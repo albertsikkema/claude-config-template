@@ -88,40 +88,7 @@ The best way to create a new agent is to use the `/agent` command or ask Claude 
 You: /agent
 ```
 
-Then follow the interactive instructions to create your agent. The command will guide you through the process step-by-step.
-
-**Option 2: Ask Claude Code directly**
-
-1. **Describe what you want the agent to do:**
-   ```
-   You: I want to create an agent that generates unit tests for Python functions.
-        It should analyze the function, identify edge cases, and write pytest tests.
-   ```
-
-2. **Ask Claude Code to create the agent file:**
-   ```
-   You: Create a new agent file at .claude/agents/python-test-generator.md
-        that implements this functionality.
-   ```
-
-3. **Claude Code will generate the agent with:**
-   - Proper frontmatter structure
-   - Comprehensive instructions
-   - Examples and edge cases
-   - Best practices built in
-
-4. **Test and adapt:**
-   - Use the agent in real scenarios
-   - Iterate on the instructions based on results
-   - Refine the prompts and examples
-   - Ask Claude Code to help improve it
-
-5. **Review existing agents for inspiration:**
-   - Look at `.claude/agents/*.md` in this repository
-   - Study the structure and style
-   - Borrow patterns that work well
-
-This meta-approach (using Claude Code to build Claude Code tools) is highly effective!
+Then follow the interactive instructions to create your agent. The command will guide you through the process step-by-step. Then test the agent and manually (or with claude code) change the agent.
 
 ---
 
@@ -135,17 +102,6 @@ When creating or modifying agents:
 - **Provide examples** of when and how to use the agent
 - **Test thoroughly** before submitting
 
-Example agent structure:
-```markdown
----
-name: my-agent
-description: Brief description of what this agent does
-model: sonnet
-color: blue
----
-
-Agent instructions here...
-```
 
 ### Slash Commands (.claude/commands/*.md)
 
