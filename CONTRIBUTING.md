@@ -80,7 +80,17 @@ cd claude-config-template
 
 **💡 Pro Tip: Use Claude Code to Create Agents**
 
-The best way to create a new agent is to ask Claude Code to help you! Here's how:
+The best way to create a new agent is to use the `/agent` command or ask Claude Code directly!
+
+**Option 1: Use the `/agent` command (Easiest)**
+
+```
+You: /agent
+```
+
+Then follow the interactive instructions to create your agent. The command will guide you through the process step-by-step.
+
+**Option 2: Ask Claude Code directly**
 
 1. **Describe what you want the agent to do:**
    ```
@@ -235,7 +245,7 @@ Not sure what to contribute? Here are some ideas:
 - **Help others** who are learning or contributing
 - **Give credit** where credit is due
 - **Follow the MIT License** terms
-- **Keep it professional** and inclusive
+- **Keep it professional** and **inclusive**
 
 ## 📧 Questions?
 
