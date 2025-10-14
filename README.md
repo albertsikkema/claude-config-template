@@ -93,7 +93,7 @@ git clone https://github.com/albertsikkema/claude-config-template.git
 cd /path/to/your-project
 
 # Install
-/path/to/claude-config-template/install.sh
+/path/to/claude-config-template/install-helper.sh
 ```
 
 ### Option 3: One-Line Remote Install ⚡
@@ -102,22 +102,22 @@ The easiest way! Downloads, installs, and cleans up automatically:
 
 ```bash
 # Install everything (recommended)
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 
 # Install only Claude configuration
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --claude-only
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --claude-only
 
 # Install only thoughts structure
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --thoughts-only
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --thoughts-only
 
 # Preview what will be installed (dry run)
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --dry-run
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --dry-run
 
 # Install to specific directory
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- /path/to/project
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- /path/to/project
 
 # Combine options
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --force --claude-only
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force --claude-only
 ```
 
 **How it works**: The remote installer downloads the repository, runs the installation with your options, and automatically cleans up temporary files.
@@ -126,30 +126,28 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 ```bash
 # Install everything (default)
-./install.sh
+./install-helper.sh
 
 # Install only Claude configuration
-./install.sh --claude-only
+./install-helper.sh --claude-only
 
 # Install only thoughts structure
-./install.sh --thoughts-only
+./install-helper.sh --thoughts-only
 
 # Preview what will be installed
-./install.sh --dry-run
+./install-helper.sh --dry-run
 
 # Force overwrite existing files
-./install.sh --force
+./install-helper.sh --force
 
 # Install to specific directory
-./install.sh /path/to/project
+./install-helper.sh /path/to/project
 ```
 
-**Note**: The installer automatically updates your project's `.gitignore` to exclude:
-- `.claude/` - Claude Code configuration
-- `thoughts/` - Documentation and planning files
-- `claude-helpers/` - Helper scripts
-
-If `.gitignore` doesn't exist, it will be created. Existing entries are preserved.
+**Note**:
+- The remote installer (`install.sh`) downloads the repository, installs to your current directory, and cleans up automatically
+- For manual installation from a cloned repository, use `install-helper.sh`
+- The installer automatically updates your project's `.gitignore` to exclude `.claude/`, `thoughts/`, and `claude-helpers/`
 
 ## 📚 How to Use
 
@@ -446,7 +444,7 @@ If the `/project` command isn't recognized after installation:
 1. **Restart Claude Code** - Close and reopen the application
 2. **Check installation** - Verify `.claude/commands/project.md` exists
 3. **Reload configuration** - Use the `/clear` command in Claude Code
-4. **Re-install** - Run `./install.sh --force` to ensure files are correct
+4. **Re-install** - Run `./install-helper.sh --force` to ensure files are correct
 
 **Agent not found**
 

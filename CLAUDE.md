@@ -19,28 +19,28 @@ This repository is meant to be installed into other projects using the `install.
 **Quick Remote Install (Easiest)**:
 ```bash
 # One-line install - downloads, installs, and cleans up automatically
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 ```
 
 **Manual Install**:
 ```bash
 # Install everything into current directory
-./install.sh
+./install-helper.sh
 
 # Install only Claude configuration (.claude/)
-./install.sh --claude-only
+./install-helper.sh --claude-only
 
 # Install only thoughts structure
-./install.sh --thoughts-only
+./install-helper.sh --thoughts-only
 
 # Preview what will be installed without making changes
-./install.sh --dry-run
+./install-helper.sh --dry-run
 
 # Force overwrite existing files
-./install.sh --force
+./install-helper.sh --force
 
 # Install into a specific directory
-./install.sh /path/to/project
+./install-helper.sh /path/to/project
 ```
 
 **Important**: The installer automatically updates `.gitignore` to exclude:
