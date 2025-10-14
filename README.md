@@ -9,7 +9,7 @@ A powerful, reusable configuration system for [Claude Code](https://claude.com/c
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 ```
 
-**Clean reinstall (⚠️ removes all thoughts/ content):**
+**Clean reinstall (⚠️ deletes important stuff):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
 ```
