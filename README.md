@@ -2,6 +2,20 @@
 
 A powerful, reusable configuration system for [Claude Code](https://claude.com/code) that supercharges your development workflow with custom agents, intelligent slash commands, and structured project documentation.
 
+## ⚡ Quick Install
+
+**First time installation:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
+```
+
+**Update/reinstall (preserves your work):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
+```
+
+---
+
 ## 🎯 What's This?
 
 This is a **configuration template** that you install into your projects. It provides:
@@ -77,7 +91,7 @@ your-project/
             └── epics/       # Epic planning
 ```
 
-## 🚀 Quick Start
+## 🚀 Installation Options
 
 ### Option 1: Use as GitHub Template (Recommended)
 
