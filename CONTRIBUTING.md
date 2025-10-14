@@ -78,6 +78,45 @@ cd claude-config-template
 
 ### Agents (.claude/agents/*.md)
 
+**💡 Pro Tip: Use Claude Code to Create Agents**
+
+The best way to create a new agent is to ask Claude Code to help you! Here's how:
+
+1. **Describe what you want the agent to do:**
+   ```
+   You: I want to create an agent that generates unit tests for Python functions.
+        It should analyze the function, identify edge cases, and write pytest tests.
+   ```
+
+2. **Ask Claude Code to create the agent file:**
+   ```
+   You: Create a new agent file at .claude/agents/python-test-generator.md
+        that implements this functionality.
+   ```
+
+3. **Claude Code will generate the agent with:**
+   - Proper frontmatter structure
+   - Comprehensive instructions
+   - Examples and edge cases
+   - Best practices built in
+
+4. **Test and adapt:**
+   - Use the agent in real scenarios
+   - Iterate on the instructions based on results
+   - Refine the prompts and examples
+   - Ask Claude Code to help improve it
+
+5. **Review existing agents for inspiration:**
+   - Look at `.claude/agents/*.md` in this repository
+   - Study the structure and style
+   - Borrow patterns that work well
+
+This meta-approach (using Claude Code to build Claude Code tools) is highly effective!
+
+---
+
+**Agent Guidelines:**
+
 When creating or modifying agents:
 
 - **Use clear, descriptive names** (e.g., `test-generator.md`, not `tester.md`)
@@ -99,6 +138,22 @@ Agent instructions here...
 ```
 
 ### Slash Commands (.claude/commands/*.md)
+
+**💡 Pro Tip: Use Claude Code to Create Commands Too!**
+
+Just like with agents, ask Claude Code to help create slash commands:
+
+```
+You: Create a new slash command /format-json that reads JSON files,
+     formats them with proper indentation, and validates the structure.
+     Save it to .claude/commands/format-json.md
+```
+
+Claude Code will generate the command with proper step-by-step instructions. Then test it, refine it, and submit!
+
+---
+
+**Command Guidelines:**
 
 When creating or modifying commands:
 
