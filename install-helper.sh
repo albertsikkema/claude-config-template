@@ -331,6 +331,7 @@ main() {
             mkdir -p "$TARGET_DIR/thoughts/shared/plans"
             mkdir -p "$TARGET_DIR/thoughts/shared/research"
             mkdir -p "$TARGET_DIR/thoughts/shared/project/epics"
+            mkdir -p "$TARGET_DIR/thoughts/technical_docs"
         fi
         print_message "$GREEN" "  ✓ Created directory structure"
 
@@ -358,6 +359,7 @@ main() {
             touch "$TARGET_DIR/thoughts/shared/research/.gitkeep"
             touch "$TARGET_DIR/thoughts/shared/project/.gitkeep"
             touch "$TARGET_DIR/thoughts/shared/project/epics/.gitkeep"
+            touch "$TARGET_DIR/thoughts/technical_docs/.gitkeep"
         fi
         print_message "$GREEN" "  ✓ Created .gitkeep files"
     fi

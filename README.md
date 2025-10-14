@@ -68,6 +68,8 @@ your-project/
     │   ├── todo.md.template
     │   └── epics.md.template
     │
+    ├── technical_docs/      # Technical documentation storage
+    │
     └── shared/
         ├── plans/           # Implementation plans
         ├── research/        # Research documents
