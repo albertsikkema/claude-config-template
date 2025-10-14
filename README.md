@@ -4,12 +4,12 @@ A powerful, reusable configuration system for [Claude Code](https://claude.com/c
 
 ## ⚡ Quick Install
 
-**First time installation:**
+**First time installation or update (preserves your work):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 ```
 
-**Update/reinstall (preserves your work):**
+**Clean reinstall (⚠️ removes all thoughts/ content):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
 ```
@@ -153,7 +153,7 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 # Preview what will be installed
 ./install-helper.sh --dry-run
 
-# Force overwrite existing files
+# Clean reinstall (⚠️ removes all thoughts/ content)
 ./install-helper.sh --force
 
 # Install to specific directory
@@ -164,6 +164,8 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 - The remote installer (`install.sh`) downloads the repository, installs to your current directory, and cleans up automatically
 - For manual installation from a cloned repository, use `install-helper.sh`
 - The installer automatically updates your project's `.gitignore` to exclude `.claude/`, `thoughts/`, and `claude-helpers/`
+- **Default behavior**: `.claude/` is always updated, `thoughts/` preserves existing content and adds missing directories
+- **With `--force`**: Completely replaces `thoughts/` directory, removing all plans, research, and project docs
 
 ## 📚 How to Use
 
@@ -479,7 +481,7 @@ The installer automatically adds `.claude/`, `thoughts/`, and `claude-helpers/` 
 
 - **Issues**: [GitHub Issues](https://github.com/albertsikkema/claude-config-template/issues)
 - **Documentation**: [Claude Code Docs](https://docs.claude.com)
-- **Template Updates**: Pull latest changes and re-run installer with `--force`
+- **Template Updates**: Re-run the installer to update `.claude/` and add any new `thoughts/` directories
 
 ## 📄 License
 

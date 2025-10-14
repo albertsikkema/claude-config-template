@@ -36,17 +36,20 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 # Preview what will be installed without making changes
 ./install-helper.sh --dry-run
 
-# Force overwrite existing files
+# Clean reinstall (⚠️ removes all thoughts/ content)
 ./install-helper.sh --force
 
 # Install into a specific directory
 ./install-helper.sh /path/to/project
 ```
 
-**Important**: The installer automatically updates `.gitignore` to exclude:
-- `.claude/` - Claude configuration
-- `thoughts/` - Documentation and plans
-- `claude-helpers/` - Helper scripts
+**Important**:
+- **Default behavior**: `.claude/` is always updated, `thoughts/` preserves existing content and adds missing directories
+- **With `--force`**: Completely replaces `thoughts/` directory, removing all plans, research, and project docs
+- The installer automatically updates `.gitignore` to exclude:
+  - `.claude/` - Claude configuration
+  - `thoughts/` - Documentation and plans
+  - `claude-helpers/` - Helper scripts
 
 If `.gitignore` doesn't exist, it will be created. Existing entries are preserved.
 
