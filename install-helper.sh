@@ -324,44 +324,25 @@ main() {
     if [ "$INSTALL_THOUGHTS" = true ]; then
         print_header "Installing thoughts/ Structure"
 
-        # Create directory structure
-        print_message "$BLUE" "Creating directory structure..."
+        # Copy entire thoughts directory structure
+        print_message "$BLUE" "Copying thoughts/ directory structure..."
         if [ "$DRY_RUN" != true ]; then
-            mkdir -p "$TARGET_DIR/thoughts/templates"
-            mkdir -p "$TARGET_DIR/thoughts/shared/plans"
-            mkdir -p "$TARGET_DIR/thoughts/shared/research"
-            mkdir -p "$TARGET_DIR/thoughts/shared/project/epics"
-            mkdir -p "$TARGET_DIR/thoughts/technical_docs"
+            # Copy the entire directory structure
+            cp -r "$SCRIPT_DIR/thoughts" "$TARGET_DIR/"
         fi
-        print_message "$GREEN" "  ✓ Created directory structure"
+        print_message "$GREEN" "  ✓ Copied thoughts/ directory structure"
 
-        # Install template files
-        if [ -d "$SCRIPT_DIR/thoughts/templates" ]; then
-            print_message "$BLUE" "Installing documentation templates..."
-            for template in "$SCRIPT_DIR/thoughts/templates"/*.template; do
+        # Remove .template extensions from template files
+        if [ "$DRY_RUN" != true ]; then
+            print_message "$BLUE" "Processing template files..."
+            for template in "$TARGET_DIR/thoughts/templates"/*.template; do
                 if [ -f "$template" ]; then
-                    local template_name=$(basename "$template")
-                    local target_name="${template_name%.template}"
-
-                    # Check if non-template version exists
-                    if check_exists "thoughts/templates/$target_name" && [ "$FORCE_INSTALL" != true ]; then
-                        print_message "$YELLOW" "  ⊘ Skipped: $target_name (already exists)"
-                    else
-                        install_item "$template" "$TARGET_DIR/thoughts/templates/$target_name" "templates/$target_name"
-                    fi
+                    local target_name="${template%.template}"
+                    mv "$template" "$target_name"
+                    print_message "$GREEN" "  ✓ Processed: $(basename "$target_name")"
                 fi
             done
         fi
-
-        # Install .gitkeep files
-        if [ "$DRY_RUN" != true ]; then
-            touch "$TARGET_DIR/thoughts/shared/plans/.gitkeep"
-            touch "$TARGET_DIR/thoughts/shared/research/.gitkeep"
-            touch "$TARGET_DIR/thoughts/shared/project/.gitkeep"
-            touch "$TARGET_DIR/thoughts/shared/project/epics/.gitkeep"
-            touch "$TARGET_DIR/thoughts/technical_docs/.gitkeep"
-        fi
-        print_message "$GREEN" "  ✓ Created .gitkeep files"
     fi
 
     # Update .gitignore
