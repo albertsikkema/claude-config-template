@@ -197,27 +197,11 @@ main() {
 
     # Show what will be removed
     echo ""
-    if [ "$FORCE_REMOVE" = true ]; then
-        print_message "$BLUE" "The following will be permanently deleted:"
-    else
-        print_message "$RED" "⚠️  WARNING: The following will be permanently deleted:"
-    fi
+    print_message "$BLUE" "The following will be removed:"
     for item in "${items_to_remove[@]}"; do
-        if [ "$FORCE_REMOVE" = true ]; then
-            print_message "$BLUE" "  - $item"
-        else
-            print_message "$RED" "  - $item"
-        fi
+        print_message "$BLUE" "  - $item"
     done
     echo ""
-
-    # Get confirmation (only if --force not used)
-    if [ "$FORCE_REMOVE" != true ]; then
-        if ! confirm "Are you sure you want to proceed? This cannot be undone!"; then
-            print_message "$YELLOW" "Uninstallation cancelled."
-            exit 0
-        fi
-    fi
 
     # Remove .claude configuration
     if [ "$REMOVE_CLAUDE" = true ]; then
