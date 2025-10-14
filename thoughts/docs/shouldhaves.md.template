@@ -1,0 +1,37 @@
+# Shouldhaves
+
+Exploratory session (mid september 2025) with shouldhaves
+
+## Search Assistent
+- Ik wil bestanden kunnen identificeren als publiek of prive
+- Ik wil ook afbeeldingen, pdf, html en filmpjes kunnen ontsluiten
+- Ik wil resultaten kunnen anonimiseren
+- Ik wil resultaten kunnen opslaan, verrijken en exporteren
+- Als beleidsmedewerker wil ik bij elke stap suggesties krijgen voor mogelijke bronnen of vergelijkbare cases, zodat ik niets belangrijks over het hoofd zie.
+
+
+
+## Dialog Assistent
+- Ik wil de Stijl van antwoorden kunnen beinvloeden, bijvoorbeeld het niveau van taalgebruik
+- Ik wil binnen het dossier bepaalde agents toepassen zodat ik vanuit de context van mijn dossier LLM kan bedrijven
+- Tijdens het verfijningsproces kan ik (deel)resultaten bewaren en later weer (her)gebruiken binnen het zoekproces.
+- Externe chatbot: Extra kanaal voor (potentiële) klanten
+- ik wil mijn eigen agents kunnen maken (prive of publiek) die ik in de applicatie kan gebruiken
+- Ik wil een eigen-organisatie woordenboek kunnen toevoegen en gebruiken, bijvoorbeeld synoniemen en afkortingen prompt uitbreiding
+- als ik centraal ga zoeken en ik raak met mijn prompt een dossier (door bedrijfsnaam te noemen of zaaknaam oid) dan wil ik dat ook die context wordt meegenomen en dat ik kan doorklikken naar mijn dossier
+
+## Case Assistent
+- Ik wil kunnen aangeven dat een bron beveiligd moet worden (niet toegankelijk voor andere gebruikers)(veiligheids niveau / dossier authenticatie)
+- Ik wil binnen het dossier ook AI resultaten kunnen "pinnen" zodat ik niet in chats hoef te scrollen naar "waar stond nou dat ene over dit en dat"
+- Als beleidsmedewerker wil ik snel kunnen terugvinden hoe eerdere soortgelijke dossiers zijn afgehandeld, zodat ik consistentie kan waarborgen.
+- Ik wil een duidelijk overzicht van mijn dossier informatie en er status aan willen koppelen "in progress" "gereed" "resultaten verwerkt" geen idee of misschien wil ik er wel een begin en einddatum aan geven. In ieder geval wil ik de mogelijkheid hebben om mijn werkprocessen aan te laten sluiten aan het dossier
+
+## Document Assistent
+- ik wil een document kunnen genereren voor mijn dossier (schrijfhulp, met agent/prompt/organisatie layout, etc)
+
+## Non-functional
+- De applicatie moet werken op mobiel
+
+## Overig
+
+
