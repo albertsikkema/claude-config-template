@@ -318,6 +318,13 @@ main() {
                 install_item "$SCRIPT_DIR/.claude/settings.local.json" "$TARGET_DIR/.claude/settings.local.json" "settings.local.json"
             fi
         fi
+
+        # Install .gitkeep files
+        if [ "$DRY_RUN" != true ]; then
+            touch "$TARGET_DIR/.claude/agents/.gitkeep"
+            touch "$TARGET_DIR/.claude/commands/.gitkeep"
+        fi
+        print_message "$GREEN" "  ✓ Created .gitkeep files"
     fi
 
     # Install thoughts structure
