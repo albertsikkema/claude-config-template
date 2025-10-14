@@ -253,25 +253,15 @@ main() {
     fi
 
     # Check for existing installations
-    local warnings=()
-
-    # .claude is always overwritten - no warnings needed
+    # .claude is always overwritten - just inform the user
     if [ "$INSTALL_CLAUDE" = true ] && check_exists ".claude"; then
         print_message "$BLUE" "Existing .claude/ will be overwritten"
     fi
 
-    # thoughts requires confirmation unless --force
+    # thoughts preserves content by default - just inform the user
     if [ "$INSTALL_THOUGHTS" = true ] && check_exists "thoughts"; then
         if [ "$FORCE_INSTALL" != true ]; then
-            echo ""
-            print_message "$YELLOW" "⚠️  Warning: thoughts/ directory already exists"
-            print_message "$YELLOW" "Missing folders will be added, but existing content will be preserved."
-            echo ""
-
-            if ! confirm "Do you want to continue?"; then
-                print_message "$YELLOW" "Installation cancelled."
-                exit 0
-            fi
+            print_message "$BLUE" "Existing thoughts/ found - missing folders will be added, content preserved"
         fi
     fi
 
