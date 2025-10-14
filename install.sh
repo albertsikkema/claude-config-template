@@ -163,6 +163,72 @@ install_item() {
     print_message "$GREEN" "  ✓ Installed: $description"
 }
 
+# Update .gitignore with Claude Code entries
+update_gitignore() {
+    local gitignore_path="$TARGET_DIR/.gitignore"
+    local entries_to_add=()
+
+    # Determine which entries to add based on what was installed
+    if [ "$INSTALL_CLAUDE" = true ]; then
+        entries_to_add+=(".claude/")
+        entries_to_add+=("claude-helpers/")
+    fi
+
+    if [ "$INSTALL_THOUGHTS" = true ]; then
+        entries_to_add+=("thoughts/")
+    fi
+
+    # If no entries to add, skip
+    if [ ${#entries_to_add[@]} -eq 0 ]; then
+        return 0
+    fi
+
+    print_header "Updating .gitignore"
+
+    if [ "$DRY_RUN" = true ]; then
+        print_message "$YELLOW" "  [DRY RUN] Would update .gitignore with:"
+        for entry in "${entries_to_add[@]}"; do
+            print_message "$YELLOW" "    - $entry"
+        done
+        return 0
+    fi
+
+    # Create .gitignore if it doesn't exist
+    if [ ! -f "$gitignore_path" ]; then
+        print_message "$BLUE" "Creating .gitignore..."
+        touch "$gitignore_path"
+    fi
+
+    local added_entries=()
+    local skipped_entries=()
+
+    for entry in "${entries_to_add[@]}"; do
+        # Check if entry already exists in .gitignore
+        if grep -qxF "$entry" "$gitignore_path" 2>/dev/null; then
+            skipped_entries+=("$entry")
+        else
+            # Add entry to .gitignore
+            echo "$entry" >> "$gitignore_path"
+            added_entries+=("$entry")
+        fi
+    done
+
+    # Report what was done
+    if [ ${#added_entries[@]} -gt 0 ]; then
+        print_message "$GREEN" "  ✓ Added to .gitignore:"
+        for entry in "${added_entries[@]}"; do
+            print_message "$GREEN" "    - $entry"
+        done
+    fi
+
+    if [ ${#skipped_entries[@]} -gt 0 ]; then
+        print_message "$YELLOW" "  ⊘ Already in .gitignore:"
+        for entry in "${skipped_entries[@]}"; do
+            print_message "$YELLOW" "    - $entry"
+        done
+    fi
+}
+
 # Main installation function
 main() {
     print_header "Claude Code Configuration Installer v${VERSION}"
@@ -261,25 +327,26 @@ main() {
         # Create directory structure
         print_message "$BLUE" "Creating directory structure..."
         if [ "$DRY_RUN" != true ]; then
-            mkdir -p "$TARGET_DIR/thoughts/docs"
+            mkdir -p "$TARGET_DIR/thoughts/templates"
             mkdir -p "$TARGET_DIR/thoughts/shared/plans"
             mkdir -p "$TARGET_DIR/thoughts/shared/research"
+            mkdir -p "$TARGET_DIR/thoughts/shared/project/epics"
         fi
         print_message "$GREEN" "  ✓ Created directory structure"
 
         # Install template files
-        if [ -d "$SCRIPT_DIR/thoughts/docs" ]; then
+        if [ -d "$SCRIPT_DIR/thoughts/templates" ]; then
             print_message "$BLUE" "Installing documentation templates..."
-            for template in "$SCRIPT_DIR/thoughts/docs"/*.template; do
+            for template in "$SCRIPT_DIR/thoughts/templates"/*.template; do
                 if [ -f "$template" ]; then
                     local template_name=$(basename "$template")
                     local target_name="${template_name%.template}"
 
                     # Check if non-template version exists
-                    if check_exists "thoughts/docs/$target_name" && [ "$FORCE_INSTALL" != true ]; then
+                    if check_exists "thoughts/templates/$target_name" && [ "$FORCE_INSTALL" != true ]; then
                         print_message "$YELLOW" "  ⊘ Skipped: $target_name (already exists)"
                     else
-                        install_item "$template" "$TARGET_DIR/thoughts/docs/$target_name" "docs/$target_name"
+                        install_item "$template" "$TARGET_DIR/thoughts/templates/$target_name" "templates/$target_name"
                     fi
                 fi
             done
@@ -289,9 +356,14 @@ main() {
         if [ "$DRY_RUN" != true ]; then
             touch "$TARGET_DIR/thoughts/shared/plans/.gitkeep"
             touch "$TARGET_DIR/thoughts/shared/research/.gitkeep"
+            touch "$TARGET_DIR/thoughts/shared/project/.gitkeep"
+            touch "$TARGET_DIR/thoughts/shared/project/epics/.gitkeep"
         fi
         print_message "$GREEN" "  ✓ Created .gitkeep files"
     fi
+
+    # Update .gitignore
+    update_gitignore
 
     # Installation complete
     print_header "Installation Complete!"
@@ -313,9 +385,10 @@ main() {
         fi
 
         if [ "$INSTALL_THOUGHTS" = true ]; then
-            echo "  4. Customize documentation templates in thoughts/docs/"
-            echo "  5. Start creating plans in thoughts/shared/plans/"
-            echo "  6. Document research in thoughts/shared/research/"
+            echo "  4. Review .gitignore for Claude Code entries"
+            echo "  5. Use /project command to create project documentation"
+            echo "  6. Start creating plans in thoughts/shared/plans/"
+            echo "  7. Document research in thoughts/shared/research/"
         fi
 
         echo ""

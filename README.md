@@ -1,109 +1,102 @@
 # Claude Code Configuration Template
 
-A reusable configuration template for [Claude Code](https://claude.com/code) that includes custom agents, slash commands, and a structured thoughts directory for documentation and planning.
+A powerful, reusable configuration system for [Claude Code](https://claude.com/code) that supercharges your development workflow with custom agents, intelligent slash commands, and structured project documentation.
 
-## 📦 What's Included
+## 🎯 What's This?
 
-### `.claude/` Configuration
+This is a **configuration template** that you install into your projects. It provides:
 
-**Agents** (10 custom agents):
-- `codebase-analyzer.md` - Analyzes HOW code works with detailed implementation flow
-- `codebase-locator.md` - Finds WHERE code and features live in the codebase
-- `codebase-pattern-finder.md` - Discovers similar implementations and usage patterns
-- `codebase-researcher.md` - Comprehensive codebase investigations
-- `plan-implementer.md` - Executes approved technical plans
-- `system-architect.md` - Designs system architectures and evaluates patterns
-- `technical-docs-researcher.md` - Researches technical documentation
-- `thoughts-analyzer.md` - Deep dives into thoughts directory content
-- `thoughts-locator.md` - Discovers relevant documents in thoughts/
-- `web-search-researcher.md` - Researches information from the web
+- **11 specialized AI agents** - Automated research, code analysis, and architecture design
+- **8 slash commands** - Streamlined workflows for common tasks
+- **Structured documentation system** - Templates and organization for project docs
+- **Pre-configured permissions** - Ready-to-use tool access for development
 
-**Commands** (17 slash commands):
-- `/code_reviewer` - Reviews code quality and suggests improvements
-- `/commit` - Creates well-formatted git commits
-- `/create_plan` - Interactive implementation plan creation
-- `/create_plan_generic` - Generic planning workflow
-- `/create_worktree` - Creates git worktrees for parallel development
-- `/debug` - Debugging assistance
-- `/describe_pr` - Generates comprehensive PR descriptions
-- `/founder_mode` - High-level strategic thinking
-- `/implement_plan` - Executes implementation plans
-- `/linear` - Linear ticket integration
-- `/local_review` - Local code review workflow
-- `/ralph_impl`, `/ralph_plan`, `/ralph_research` - Ralph-specific workflows
-- `/research_codebase`, `/research_codebase_generic` - Codebase investigation
-- `/validate_plan` - Validates implementation plans
+Think of it as a **productivity multiplier** for Claude Code - install once, benefit forever.
 
-**Settings**:
-- `settings.local.json` - Pre-configured permissions for common tools and domains
+## 📦 What You Get
 
-### `thoughts/` Structure
+### 🤖 Intelligent Agents
 
-A structured directory for documentation and planning:
+**Codebase Intelligence:**
+- `codebase-locator` - Find WHERE code lives
+- `codebase-analyzer` - Understand HOW code works
+- `codebase-pattern-finder` - Discover similar implementations
+- `codebase-researcher` - Orchestrate comprehensive research
+
+**Architecture & Planning:**
+- `system-architect` - Design systems and evaluate patterns
+- `plan-implementer` - Execute approved technical plans
+
+**Documentation Research:**
+- `project-context-analyzer` - Extract and synthesize project documentation context
+- `technical-docs-researcher` - Search technical documentation
+- `thoughts-analyzer` - Deep dive into your thoughts directory
+- `thoughts-locator` - Find relevant documents
+
+**External Research:**
+- `web-search-researcher` - Research from the web
+
+### ⚡ Slash Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/project` | Create project documentation from templates |
+| `/research_codebase` | Deep codebase investigation |
+| `/create_plan` | Interactive implementation planning |
+| `/implement_plan` | Execute approved plans |
+| `/validate_plan` | Validate implementation plans |
+| `/commit` | Create well-formatted git commits |
+| `/describe_pr` | Generate comprehensive PR descriptions |
+| `/code_reviewer` | Review code quality |
+
+### 📁 Directory Structure
+
+After installation, you'll have:
 
 ```
-thoughts/
-├── docs/                      # Project documentation
-│   ├── epics.md.template     # Epic planning template
-│   ├── musthaves.md.template # Must-have features
-│   ├── project.md.template   # Project overview
-│   ├── shouldhaves.md.template # Should-have features
-│   └── todo.md.template      # Todo tracking
-└── shared/
-    ├── plans/                # Implementation plans (dated)
-    └── research/             # Research documents (dated)
+your-project/
+├── .claude/
+│   ├── agents/              # 11 specialized agents
+│   ├── commands/            # 8 slash commands
+│   └── settings.local.json  # Pre-configured permissions
+│
+└── thoughts/
+    ├── templates/           # Documentation templates
+    │   ├── project.md.template
+    │   ├── musthaves.md.template
+    │   ├── shouldhaves.md.template
+    │   ├── todo.md.template
+    │   └── epics.md.template
+    │
+    └── shared/
+        ├── plans/           # Implementation plans
+        ├── research/        # Research documents
+        └── project/         # Project documentation
+            └── epics/       # Epic planning
 ```
 
-## 🚀 Installation
+## 🚀 Quick Start
 
-### Quick Install
+### Option 1: Use as GitHub Template (Recommended)
 
-**Option 1: Use as GitHub Template (Recommended)**
-
-1. Click "Use this template" on [GitHub](https://github.com/albertsikkema/claude-config-template)
-2. Create your new repository
+1. Click **"Use this template"** on [GitHub](https://github.com/albertsikkema/claude-config-template)
+2. Create your template repository
 3. Clone and use in your projects
 
-**Option 2: Direct Installation**
-
-Install in your current project directory:
+### Option 2: Direct Installation
 
 ```bash
-# Clone the repository
+# Clone the template
 git clone https://github.com/albertsikkema/claude-config-template.git
 
 # Navigate to your project
 cd /path/to/your-project
 
-# Run the installer
+# Install
 /path/to/claude-config-template/install.sh
 ```
 
-### Installation Options
-
-```bash
-# Install everything (default)
-./install.sh
-
-# Install only Claude configuration (.claude/)
-./install.sh --claude-only
-
-# Install only thoughts structure
-./install.sh --thoughts-only
-
-# Preview what will be installed (dry run)
-./install.sh --dry-run
-
-# Force overwrite existing files
-./install.sh --force
-
-# Install in a specific directory
-./install.sh /path/to/project
-```
-
-### One-Line Remote Install
-
-Install directly from GitHub:
+### Option 3: One-Line Remote Install
 
 ```bash
 # Install everything
@@ -111,95 +104,152 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 # Install with options
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --claude-only
-
-# Install in specific directory
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- /path/to/project
 ```
 
-## 🗑️ Uninstallation
-
-Remove the configuration from your project:
+## 🎮 Installation Options
 
 ```bash
-# Remove everything
-./uninstall.sh
+# Install everything (default)
+./install.sh
 
-# Remove only Claude configuration
-./uninstall.sh --claude-only
+# Install only Claude configuration
+./install.sh --claude-only
 
-# Remove only thoughts structure
-./uninstall.sh --thoughts-only
+# Install only thoughts structure
+./install.sh --thoughts-only
 
-# Preview what will be removed
-./uninstall.sh --dry-run
+# Preview what will be installed
+./install.sh --dry-run
 
-# Force removal without prompts
-./uninstall.sh --force
+# Force overwrite existing files
+./install.sh --force
+
+# Install to specific directory
+./install.sh /path/to/project
 ```
 
-**Warning**: Uninstalling will permanently delete the `.claude/` and/or `thoughts/` directories. Use `--dry-run` first to preview changes!
+**Note**: The installer automatically updates your project's `.gitignore` to exclude:
+- `.claude/` - Claude Code configuration
+- `thoughts/` - Documentation and planning files
+- `claude-helpers/` - Helper scripts
 
-## 📖 Usage Guide
+If `.gitignore` doesn't exist, it will be created. Existing entries are preserved.
 
-### After Installation
+## 📚 How to Use
 
-1. **Review settings**:
-   ```bash
-   cat .claude/settings.local.json
-   ```
-   Adjust permissions as needed for your project.
+### 1. Create Project Documentation
 
-2. **Explore agents**:
-   ```bash
-   ls .claude/agents/
-   ```
-   Each agent is a specialized tool for different tasks.
+Start by documenting your project:
 
-3. **Try slash commands**:
-   Open Claude Code and type `/` to see available commands.
+```bash
+# Create complete documentation
+You: /project Create full documentation for my task management SaaS
 
-4. **Customize documentation**:
-   ```bash
-   cd thoughts/docs
-   # Edit the template files for your project
-   ```
-
-### Using Agents
-
-Agents are invoked automatically by Claude Code when appropriate. You can also explicitly request them:
-
-```
-"Use the codebase-locator agent to find authentication code"
-"Research this with the web-search-researcher agent"
+# Or create specific docs
+You: /project Document my MVP requirements
+You: /project Create an epic for user authentication
 ```
 
-### Using Slash Commands
+**Result**: Customized documentation in `thoughts/shared/project/`
 
-Type `/` in Claude Code to see all available commands:
+### 2. Research Your Codebase
 
-- `/create_plan` - Start planning a new feature
-- `/implement_plan thoughts/shared/plans/2025-10-14-my-feature.md` - Implement a plan
-- `/research_codebase` - Deep dive into codebase
-- `/commit` - Create a well-formatted commit
+Deep dive into your code:
 
-### Thoughts Directory Workflow
+```bash
+You: /research_codebase how does authentication work?
+```
 
-**Planning workflow**:
-1. Research: `/research_codebase` → saves to `thoughts/shared/research/`
-2. Plan: `/create_plan` → saves to `thoughts/shared/plans/`
-3. Implement: `/implement_plan` → executes the plan
-4. Document: Update `thoughts/docs/` with learnings
+**Result**: Comprehensive research saved to `thoughts/shared/research/YYYY-MM-DD-topic.md`
 
-**File naming conventions**:
-- Plans: `YYYY-MM-DD-description.md` or `YYYY-MM-DD-TICKET-123-description.md`
-- Research: Same format as plans
-- Templates: Remove `.template` suffix when customizing
+### 3. Plan Implementation
+
+Create detailed implementation plans:
+
+```bash
+You: /create_plan add OAuth support based on the authentication research
+```
+
+**Result**: Interactive planning session → plan saved to `thoughts/shared/plans/YYYY-MM-DD-feature.md`
+
+### 4. Execute the Plan
+
+Implement your approved plan:
+
+```bash
+You: /implement_plan thoughts/shared/plans/2025-10-14-oauth-support.md
+```
+
+**Result**: Step-by-step implementation with progress tracking
+
+### 5. Commit & Review
+
+Create quality commits and PRs:
+
+```bash
+# Create a commit
+You: /commit
+
+# Generate PR description
+You: /describe_pr
+
+# Review code quality
+You: /code_reviewer
+```
+
+## 🔄 Complete Workflow Example
+
+Here's a real-world workflow from idea to implementation:
+
+```bash
+# 1. Document your project (one-time setup)
+You: /project Create full docs for my e-commerce platform
+
+# 2. Research existing implementation
+You: /research_codebase payment processing flow
+
+# 3. Create implementation plan
+You: /create_plan add Stripe payment integration
+
+# 4. Implement the plan
+You: /implement_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
+
+# 5. Review the changes
+You: /code_reviewer
+
+# 6. Create commit
+You: /commit
+
+# 7. Generate PR description
+You: /describe_pr
+```
+
+## 📝 File Naming Conventions
+
+**Plans & Research**: `YYYY-MM-DD-description.md` or `YYYY-MM-DD-TICKET-123-description.md`
+```
+2025-10-14-oauth-support.md
+2025-10-14-ENG-1478-user-tracking.md
+```
+
+**Project Documentation**: Descriptive names
+```
+thoughts/shared/project/project-overview.md
+thoughts/shared/project/mvp-requirements.md
+thoughts/shared/project/technical-todos.md
+```
+
+**Epics**: Saved in subdirectory as `epic-[name].md`
+```
+thoughts/shared/project/epics/epic-authentication.md
+thoughts/shared/project/epics/epic-payment-processing.md
+```
 
 ## 🎨 Customization
 
-### Adding Your Own Agents
+### Add Your Own Agent
 
-Create a new file in `.claude/agents/`:
+Create `.claude/agents/my-agent.md`:
 
 ```markdown
 ---
@@ -212,9 +262,9 @@ color: blue
 Your agent instructions here...
 ```
 
-### Adding Custom Commands
+### Add Custom Command
 
-Create a new file in `.claude/commands/`:
+Create `.claude/commands/my-command.md`:
 
 ```markdown
 # My Custom Command
@@ -222,9 +272,9 @@ Create a new file in `.claude/commands/`:
 Your command instructions here...
 ```
 
-### Modifying Settings
+### Adjust Permissions
 
-Edit `.claude/settings.local.json` to add/remove permissions:
+Edit `.claude/settings.local.json`:
 
 ```json
 {
@@ -238,96 +288,201 @@ Edit `.claude/settings.local.json` to add/remove permissions:
 }
 ```
 
-## 🔄 Updating
-
-To update your installation with the latest configuration:
-
-1. Pull the latest changes from this repository
-2. Re-run the installer with `--force`:
-   ```bash
-   ./install.sh --force
-   ```
-
-**Note**: This will overwrite your customizations. Consider backing up your changes first.
-
-## 📚 Examples
-
-### Example 1: Research then Plan
+## 🗑️ Uninstallation
 
 ```bash
-# Research authentication in your codebase
-You: "/research_codebase authentication system"
+# Remove everything
+./uninstall.sh
 
-# Create a plan to improve it
-You: "/create_plan based on the research, let's add OAuth support"
+# Remove only Claude config
+./uninstall.sh --claude-only
 
-# Implement the plan
-You: "/implement_plan thoughts/shared/plans/2025-10-14-oauth-support.md"
+# Preview what will be removed
+./uninstall.sh --dry-run
+
+# Force removal without prompts
+./uninstall.sh --force
 ```
 
-### Example 2: Using Agents Directly
+**⚠️ Warning**: Uninstalling permanently deletes directories. The script will warn you if it finds user-created content (plans, research, project docs).
+
+## 🔧 Pre-Configured Permissions
+
+The template includes pre-approved permissions for:
+
+**Development Tools:**
+- pytest (unit, integration tests)
+- git operations
+- docker & docker-compose
+- make & pre-commit hooks
+- Python execution
+
+**Documentation Domains:**
+- docs.astral.sh
+- fastapi.tiangolo.com
+- docs.sqlalchemy.org
+- github.com
+- localhost (testing)
+- And more...
+
+**Plus**: Unrestricted WebSearch
+
+## 🌟 Key Features Explained
+
+### Research → Plan → Implement Pattern
+
+The core workflow that ensures quality:
+
+1. **Research**: Understand before building
+2. **Plan**: Design before coding
+3. **Implement**: Execute with clarity
+
+### Intelligent Agents
+
+Agents work autonomously and can be:
+- **Invoked automatically** by Claude Code when needed
+- **Requested explicitly** by you
+- **Run in parallel** for faster results
+
+### Structured Documentation
+
+Templates help you maintain:
+- **Project overview** - Big picture understanding
+- **Requirements** - Must-haves vs. should-haves
+- **Technical TODOs** - Track technical debt
+- **Epics** - Plan major features
+
+## 📖 Real-World Examples
+
+### Example 1: New Feature Development
 
 ```
-You: "Use codebase-locator to find all database models"
+You: I need to add two-factor authentication
 
-You: "Use codebase-pattern-finder to show me how we handle errors"
+Claude uses agents to:
+1. Research existing auth code (codebase-analyzer)
+2. Find similar implementations (codebase-pattern-finder)
+3. Check technical docs (technical-docs-researcher)
 
-You: "Use system-architect to design a caching layer"
+Then guides you through:
+1. Creating a plan
+2. Implementing step-by-step
+3. Reviewing the code
+4. Committing changes
 ```
 
-### Example 3: Documentation Workflow
+### Example 2: Understanding Legacy Code
 
-```bash
-# Start with project template
-cp thoughts/docs/project.md.template thoughts/docs/project.md
+```
+You: /research_codebase How does the caching layer work?
 
-# Fill in your project details
-vim thoughts/docs/project.md
+Claude spawns parallel agents to:
+- Locate cache-related files
+- Analyze implementation details
+- Document the architecture
 
-# Track features
-cp thoughts/docs/musthaves.md.template thoughts/docs/musthaves.md
-vim thoughts/docs/musthaves.md
+Result: Comprehensive research document with file:line references
+```
+
+### Example 3: Project Setup
+
+```
+You: /project Create complete project documentation
+
+Claude asks about:
+- Tech stack
+- Team size
+- Development phase
+- Core features
+
+Result: Full project documentation customized for your needs
 ```
 
 ## 🤝 Contributing
 
-Contributions are welcome! To add new agents or commands:
+Contributions welcome! To add agents or commands:
 
 1. Fork this repository
 2. Add your agent/command files
-3. Update this README
+3. Update documentation
 4. Submit a pull request
 
-## 📝 License
+## 💡 Tips & Best Practices
 
-[Add your license here]
-
-## 🆘 Support
-
-Issues and questions:
-- Open an issue on GitHub
-- Check [Claude Code documentation](https://docs.claude.com)
-
-## 🎯 Best Practices
-
-1. **Don't commit secrets**: Never add API keys or passwords to configuration files
-2. **Customize for your project**: The templates are starting points - adapt them
-3. **Use version control**: Commit your customized configuration
-4. **Document your changes**: Update thoughts/docs/ as your project evolves
-5. **Review permissions**: Regularly audit settings.local.json for security
+1. **Start with documentation** - Use `/project` to document your project first
+2. **Research before planning** - Always understand before building
+3. **Use agents explicitly** - Don't wait for automatic invocation
+4. **Keep docs updated** - Update project docs as you evolve
+5. **Review permissions** - Audit `settings.local.json` regularly
 
 ## 📊 Version
 
-Current version: 1.0.0
+Current version: **1.0.0**
 
-## 🗺️ Roadmap
+## 🆘 Support & Troubleshooting
 
-- [ ] Add more agent templates
-- [ ] Create interactive configuration wizard
-- [ ] Add language-specific command packs
-- [ ] Integration with Linear/JIRA
-- [ ] Automated updates via git
+### Common Issues
+
+**"Unknown slash command: project"**
+
+If the `/project` command isn't recognized after installation:
+
+1. **Restart Claude Code** - Close and reopen the application
+2. **Check installation** - Verify `.claude/commands/project.md` exists
+3. **Reload configuration** - Use the `/clear` command in Claude Code
+4. **Re-install** - Run `./install.sh --force` to ensure files are correct
+
+**Agent not found**
+
+If agents aren't being recognized:
+- Verify `.claude/agents/` contains all 11 agent files
+- Restart Claude Code
+- Check file permissions (files should be readable)
+
+**Git tracking configuration files**
+
+The installer automatically adds `.claude/`, `thoughts/`, and `claude-helpers/` to your `.gitignore`. If you want to track these:
+- Edit `.gitignore` and remove the entries you want to track
+- Or use `git add -f` to force-add specific files
+
+### Getting Help
+
+- **Issues**: [GitHub Issues](https://github.com/albertsikkema/claude-config-template/issues)
+- **Documentation**: [Claude Code Docs](https://docs.claude.com)
+- **Template Updates**: Pull latest changes and re-run installer with `--force`
+
+## 📄 License
+
+MIT License - See LICENSE file for details
+
+## 🎯 What Makes This Special?
+
+Unlike basic Claude Code configurations, this template provides:
+
+✅ **Complete workflow system** - Not just tools, but processes
+✅ **Intelligent automation** - Agents that think and research
+✅ **Structured knowledge** - Organized documentation system
+✅ **Battle-tested patterns** - Proven workflows that work
+✅ **Easy to customize** - Extend and adapt to your needs
+
+## 🚦 Getting Started Checklist
+
+After installation:
+
+- [ ] **Restart Claude Code** to load new configuration
+- [ ] Verify installation: Check `.claude/` and `thoughts/` directories exist
+- [ ] Review `.claude/settings.local.json` permissions
+- [ ] Run `/project` to document your project (if command not found, see troubleshooting)
+- [ ] Try `/research_codebase` on a feature
+- [ ] Explore available agents (agents are invoked automatically or explicitly)
+- [ ] Create your first plan with `/create_plan`
+- [ ] Add project-specific agents if needed
+- [ ] Share with your team!
 
 ---
+
+**Ready to supercharge your development workflow?**
+
+Install now and experience the future of AI-assisted development! 🚀
 
 Made with ❤️ for the Claude Code community

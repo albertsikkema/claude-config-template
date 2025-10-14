@@ -231,10 +231,17 @@ main() {
                 fi
             fi
 
+            if [ -d "$TARGET_DIR/thoughts/shared/project" ]; then
+                local project_count=$(find "$TARGET_DIR/thoughts/shared/project" -type f -not -name ".gitkeep" | wc -l | tr -d ' ')
+                if [ "$project_count" -gt 0 ]; then
+                    has_user_content=true
+                fi
+            fi
+
             if [ "$has_user_content" = true ]; then
                 print_message "$YELLOW" "⚠️  Warning: thoughts/ contains user-created content!"
 
-                if ! confirm "Do you really want to delete all plans and research documents?"; then
+                if ! confirm "Do you really want to delete all plans, research, and project documents?"; then
                     print_message "$YELLOW" "  ⊘ Skipped: thoughts/ (contains user content)"
                     print_message "$BLUE" "Tip: Consider backing up your content before uninstalling."
                     exit 0
@@ -242,10 +249,13 @@ main() {
             fi
         fi
 
-        remove_item "$TARGET_DIR/thoughts/docs" "docs/"
+        remove_item "$TARGET_DIR/thoughts/templates" "templates/"
         remove_item "$TARGET_DIR/thoughts/shared/plans" "shared/plans/"
         remove_item "$TARGET_DIR/thoughts/shared/research" "shared/research/"
+        remove_item "$TARGET_DIR/thoughts/shared/project/epics" "shared/project/epics/"
+        remove_item "$TARGET_DIR/thoughts/shared/project" "shared/project/"
         remove_item "$TARGET_DIR/thoughts/shared" "shared/"
+        remove_item "$TARGET_DIR/thoughts/technical_docs" "technical_docs/"
         remove_item "$TARGET_DIR/thoughts" "thoughts/ directory"
     fi
 
