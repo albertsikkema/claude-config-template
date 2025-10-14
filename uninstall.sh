@@ -11,6 +11,7 @@ NC='\033[0m' # No Color
 # Default options
 REMOVE_CLAUDE=true
 REMOVE_THOUGHTS=true
+REMOVE_HELPERS=true
 FORCE_REMOVE=false
 DRY_RUN=false
 TARGET_DIR="."
@@ -179,6 +180,10 @@ main() {
         items_to_remove+=("thoughts/")
     fi
 
+    if [ "$REMOVE_HELPERS" = true ] && check_exists "claude-helpers"; then
+        items_to_remove+=("claude-helpers/")
+    fi
+
     # Check if anything to remove
     if [ ${#items_to_remove[@]} -eq 0 ]; then
         print_message "$YELLOW" "No Claude Code configuration found to remove."
@@ -187,16 +192,26 @@ main() {
 
     # Show what will be removed
     echo ""
-    print_message "$RED" "⚠️  WARNING: The following will be permanently deleted:"
+    if [ "$FORCE_REMOVE" = true ]; then
+        print_message "$BLUE" "The following will be permanently deleted:"
+    else
+        print_message "$RED" "⚠️  WARNING: The following will be permanently deleted:"
+    fi
     for item in "${items_to_remove[@]}"; do
-        print_message "$RED" "  - $item"
+        if [ "$FORCE_REMOVE" = true ]; then
+            print_message "$BLUE" "  - $item"
+        else
+            print_message "$RED" "  - $item"
+        fi
     done
     echo ""
 
-    # Get confirmation
-    if ! confirm "Are you sure you want to proceed? This cannot be undone!"; then
-        print_message "$YELLOW" "Uninstallation cancelled."
-        exit 0
+    # Get confirmation (only if --force not used)
+    if [ "$FORCE_REMOVE" != true ]; then
+        if ! confirm "Are you sure you want to proceed? This cannot be undone!"; then
+            print_message "$YELLOW" "Uninstallation cancelled."
+            exit 0
+        fi
     fi
 
     # Remove .claude configuration
@@ -213,8 +228,8 @@ main() {
     if [ "$REMOVE_THOUGHTS" = true ]; then
         print_header "Removing thoughts/ Structure"
 
-        if [ "$DRY_RUN" != true ]; then
-            # Check if there's any user content
+        if [ "$DRY_RUN" != true ] && [ "$FORCE_REMOVE" != true ]; then
+            # Check if there's any user content and warn
             local has_user_content=false
 
             if [ -d "$TARGET_DIR/thoughts/shared/plans" ]; then
@@ -257,6 +272,12 @@ main() {
         remove_item "$TARGET_DIR/thoughts/shared" "shared/"
         remove_item "$TARGET_DIR/thoughts/technical_docs" "technical_docs/"
         remove_item "$TARGET_DIR/thoughts" "thoughts/ directory"
+    fi
+
+    # Remove claude-helpers
+    if [ "$REMOVE_HELPERS" = true ]; then
+        print_header "Removing claude-helpers/"
+        remove_item "$TARGET_DIR/claude-helpers" "claude-helpers/ directory"
     fi
 
     # Uninstallation complete
