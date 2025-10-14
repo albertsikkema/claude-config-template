@@ -14,6 +14,18 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
 ```
 
+## 🗑️ Quick Uninstall
+
+**Uninstall with confirmation prompts:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash
+```
+
+**Force uninstall (no prompts):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash -s -- --force
+```
+
 ---
 
 ## 🎯 What's This?
