@@ -96,16 +96,6 @@ cd /path/to/your-project
 /path/to/claude-config-template/install.sh
 ```
 
-### Option 3: One-Line Remote Install
-
-```bash
-# Install everything
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
-
-# Install with options
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --claude-only
-```
-
 ## 🎮 Installation Options
 
 ```bash
