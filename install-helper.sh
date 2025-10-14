@@ -255,26 +255,23 @@ main() {
     # Check for existing installations
     local warnings=()
 
+    # .claude is always overwritten - no warnings needed
     if [ "$INSTALL_CLAUDE" = true ] && check_exists ".claude"; then
-        warnings+=(".claude/ directory already exists")
+        print_message "$BLUE" "Existing .claude/ will be overwritten"
     fi
 
+    # thoughts requires confirmation unless --force
     if [ "$INSTALL_THOUGHTS" = true ] && check_exists "thoughts"; then
-        warnings+=("thoughts/ directory already exists")
-    fi
+        if [ "$FORCE_INSTALL" != true ]; then
+            echo ""
+            print_message "$YELLOW" "⚠️  Warning: thoughts/ directory already exists"
+            print_message "$YELLOW" "Missing folders will be added, but existing content will be preserved."
+            echo ""
 
-    # Show warnings and get confirmation
-    if [ ${#warnings[@]} -gt 0 ]; then
-        echo ""
-        print_message "$YELLOW" "⚠️  Warning: The following items already exist:"
-        for warning in "${warnings[@]}"; do
-            print_message "$YELLOW" "  - $warning"
-        done
-        echo ""
-
-        if ! confirm "Do you want to continue? Existing files may be overwritten."; then
-            print_message "$YELLOW" "Installation cancelled."
-            exit 0
+            if ! confirm "Do you want to continue?"; then
+                print_message "$YELLOW" "Installation cancelled."
+                exit 0
+            fi
         fi
     fi
 
@@ -304,19 +301,10 @@ main() {
             done
         fi
 
-        # Install settings.local.json
+        # Install settings.local.json (always overwrite)
         if [ -f "$SCRIPT_DIR/.claude/settings.local.json" ]; then
             print_message "$BLUE" "Installing settings..."
-
-            if check_exists ".claude/settings.local.json" && [ "$FORCE_INSTALL" != true ]; then
-                if confirm "settings.local.json already exists. Do you want to overwrite it?"; then
-                    install_item "$SCRIPT_DIR/.claude/settings.local.json" "$TARGET_DIR/.claude/settings.local.json" "settings.local.json"
-                else
-                    print_message "$YELLOW" "  ⊘ Skipped: settings.local.json (already exists)"
-                fi
-            else
-                install_item "$SCRIPT_DIR/.claude/settings.local.json" "$TARGET_DIR/.claude/settings.local.json" "settings.local.json"
-            fi
+            install_item "$SCRIPT_DIR/.claude/settings.local.json" "$TARGET_DIR/.claude/settings.local.json" "settings.local.json"
         fi
 
         # Install .gitkeep files
@@ -332,12 +320,22 @@ main() {
         print_header "Installing thoughts/ Structure"
 
         # Copy entire thoughts directory structure
-        print_message "$BLUE" "Copying thoughts/ directory structure..."
-        if [ "$DRY_RUN" != true ]; then
-            # Copy the entire directory structure
-            cp -r "$SCRIPT_DIR/thoughts" "$TARGET_DIR/"
+        if [ "$FORCE_INSTALL" = true ]; then
+            print_message "$BLUE" "Replacing thoughts/ directory structure (overwrite mode)..."
+            if [ "$DRY_RUN" != true ]; then
+                # Remove existing directory and replace completely
+                rm -rf "$TARGET_DIR/thoughts"
+                cp -r "$SCRIPT_DIR/thoughts" "$TARGET_DIR/"
+            fi
+            print_message "$GREEN" "  ✓ Replaced thoughts/ directory structure"
+        else
+            print_message "$BLUE" "Adding missing directories and files..."
+            if [ "$DRY_RUN" != true ]; then
+                # Use rsync to copy only missing files and directories
+                rsync -a --ignore-existing "$SCRIPT_DIR/thoughts/" "$TARGET_DIR/thoughts/"
+            fi
+            print_message "$GREEN" "  ✓ Added missing directories and files"
         fi
-        print_message "$GREEN" "  ✓ Copied thoughts/ directory structure"
 
         # Remove .template extensions from template files
         if [ "$DRY_RUN" != true ]; then
@@ -349,6 +347,18 @@ main() {
                     print_message "$GREEN" "  ✓ Processed: $(basename "$target_name")"
                 fi
             done
+        fi
+    fi
+
+    # Install claude-helpers
+    if [ "$INSTALL_CLAUDE" = true ]; then
+        if [ -d "$SCRIPT_DIR/claude-helpers" ]; then
+            print_header "Installing claude-helpers/"
+            print_message "$BLUE" "Copying claude-helpers/ directory..."
+            if [ "$DRY_RUN" != true ]; then
+                cp -r "$SCRIPT_DIR/claude-helpers" "$TARGET_DIR/"
+            fi
+            print_message "$GREEN" "  ✓ Copied claude-helpers/ directory"
         fi
     fi
 
