@@ -96,6 +96,32 @@ cd /path/to/your-project
 /path/to/claude-config-template/install.sh
 ```
 
+### Option 3: One-Line Remote Install ⚡
+
+The easiest way! Downloads, installs, and cleans up automatically:
+
+```bash
+# Install everything (recommended)
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash
+
+# Install only Claude configuration
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --claude-only
+
+# Install only thoughts structure
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --thoughts-only
+
+# Preview what will be installed (dry run)
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --dry-run
+
+# Install to specific directory
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- /path/to/project
+
+# Combine options
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash -s -- --force --claude-only
+```
+
+**How it works**: The remote installer downloads the repository, runs the installation with your options, and automatically cleans up temporary files.
+
 ## 🎮 Installation Options
 
 ```bash

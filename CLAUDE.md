@@ -16,6 +16,13 @@ This repository is meant to be installed into other projects using the `install.
 
 ### Installing This Template Into Projects
 
+**Quick Remote Install (Easiest)**:
+```bash
+# One-line install - downloads, installs, and cleans up automatically
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/remote-install.sh | bash
+```
+
+**Manual Install**:
 ```bash
 # Install everything into current directory
 ./install.sh
