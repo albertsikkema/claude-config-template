@@ -62,6 +62,10 @@ check_dependencies() {
 main() {
     print_header "Claude Code Configuration Remote Installer"
 
+    # Save original working directory
+    ORIGINAL_DIR="$(pwd)"
+    print_message "$BLUE" "Target directory: $ORIGINAL_DIR"
+
     # Check dependencies
     print_message "$BLUE" "Checking dependencies..."
     check_dependencies
@@ -115,11 +119,27 @@ main() {
     # Make install.sh executable
     chmod +x install.sh
 
-    # Run installer with all arguments passed to this script
-    print_message "$BLUE" "Executing install.sh with options: $*"
-    echo ""
+    # Parse arguments to see if user specified a target directory
+    # If not, we'll add the original directory as the target
+    local has_target=false
+    for arg in "$@"; do
+        # Check if argument doesn't start with -- (i.e., it's a positional argument)
+        if [[ ! "$arg" =~ ^-- ]] && [[ ! "$arg" =~ ^- ]]; then
+            has_target=true
+            break
+        fi
+    done
 
-    ./install.sh "$@"
+    # Run installer with all arguments passed to this script
+    if [ "$has_target" = true ]; then
+        print_message "$BLUE" "Executing install.sh with options: $*"
+        echo ""
+        ./install.sh "$@"
+    else
+        print_message "$BLUE" "Executing install.sh with options: $* $ORIGINAL_DIR"
+        echo ""
+        ./install.sh "$@" "$ORIGINAL_DIR"
+    fi
 
     # Success message
     echo ""
