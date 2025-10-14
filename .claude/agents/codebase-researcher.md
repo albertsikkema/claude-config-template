@@ -83,7 +83,7 @@ Then synthesize findings:
 - Answer the user's specific questions with concrete evidence
 
 ### Step 6: Gather Metadata
-Run `hack/spec_metadata.sh` to generate all relevant metadata for the research document.
+Run `claude-helpers/spec_metadata.sh` to generate all relevant metadata for the research document.
 
 Filename format: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
 - YYYY-MM-DD: Today's date

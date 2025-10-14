@@ -30,6 +30,11 @@ Then wait for the user's research query.
    - Create multiple Task agents to research different aspects concurrently
    - We now have specialized agents that know how to do specific research tasks:
 
+   **For project context (IMPORTANT - use this first):**
+   - Use the **project-context-analyzer** agent to gather existing project documentation and context
+   - This provides critical context about project goals, requirements, and current state
+   - Helps understand WHY the code exists and what problems it solves
+
    **For codebase research:**
    - Use the **codebase-locator** agent to find WHERE files and components live
    - Use the **codebase-analyzer** agent to understand HOW specific code works
@@ -49,7 +54,8 @@ Then wait for the user's research query.
    - Use the **linear-searcher** agent to find related tickets or historical context
 
    The key is to use these agents intelligently:
-   - Start with locator agents to find what exists
+   - **Always start with project-context-analyzer** to understand project goals and context
+   - Use locator agents to find what exists in the codebase
    - Then use analyzer agents on the most promising findings
    - Run multiple agents in parallel when they're searching for different things
    - Each agent knows its job - just tell it what you're looking for
@@ -57,9 +63,11 @@ Then wait for the user's research query.
 
 4. **Wait for all sub-agents to complete and synthesize findings:**
    - IMPORTANT: Wait for ALL sub-agent tasks to complete before proceeding
-   - Compile all sub-agent results (both codebase and thoughts findings)
+   - Compile all sub-agent results (codebase, project context, and thoughts findings)
+   - Start with project context to frame your understanding
    - Prioritize live codebase findings as primary source of truth
    - Use thoughts/ findings as supplementary historical context
+   - Connect findings back to project goals and requirements
    - Connect findings across different components
    - Include specific file paths and line numbers for reference
    - Verify all thoughts/ paths are correct (e.g., thoughts/allison/ not thoughts/shared/ for personal files)
@@ -67,7 +75,7 @@ Then wait for the user's research query.
    - Answer the user's specific questions with concrete evidence
 
 5. **Gather metadata for the research document:**
-   - Run the `hack/spec_metadata.sh` script to generate all relevant metadata
+   - Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
    - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
@@ -107,6 +115,13 @@ Then wait for the user's research query.
 
      ## Summary
      [High-level findings answering the user's question]
+
+     ## Project Context
+     [Context from project-context-analyzer about relevant project goals, requirements, and current state]
+     - Project goals related to this topic
+     - Existing requirements and constraints
+     - Current implementation status
+     - Relevant epics or features
 
      ## Detailed Findings
 
@@ -160,9 +175,10 @@ Then wait for the user's research query.
    - Continue updating the document and syncing
 
 ## Important notes:
+- **Always use project-context-analyzer first** to understand project goals and requirements
 - Always use parallel Task agents to maximize efficiency and minimize context usage
 - Always run fresh codebase research - never rely solely on existing research documents
-- The thoughts/ directory provides historical context to supplement live findings
+- The thoughts/ directory and project docs provide historical context to supplement live findings
 - Focus on finding concrete file paths and line numbers for developer reference
 - Research documents should be self-contained with all necessary context
 - Each sub-agent prompt should be specific and focused on read-only operations
