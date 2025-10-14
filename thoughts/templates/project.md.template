@@ -1,0 +1,220 @@
+# Project Name - Project Description
+
+## Executive Summary
+
+[Brief overview of your project - what it does, who it's for, and why it matters]
+
+## Target Market
+
+### Primary Audience
+- [User persona 1]
+- [User persona 2]
+- [User persona 3]
+
+### Geographic Focus
+[Target regions or markets]
+
+### Market Characteristics
+- [Key characteristic 1]
+- [Key characteristic 2]
+- [Key characteristic 3]
+
+## Business Model
+
+[Describe your business model: SaaS, Enterprise, Open Source, etc.]
+
+**Key Points**:
+- Architecture approach (multi-tenant, single-tenant, hybrid)
+- Deployment model (cloud, on-premise, hybrid)
+- Pricing model (subscription, usage-based, freemium, etc.)
+
+## Current Development Phase
+
+### Status: [Prototype / MVP / Alpha / Beta / Production]
+
+**Goal**: [What you're working towards]
+
+**Timeline**: [Key milestones and dates]
+
+**Success Criteria**:
+- [Criterion 1]
+- [Criterion 2]
+- [Criterion 3]
+
+## Key Differentiators
+
+### 1. [Differentiator Name]
+[Description of what makes your product unique]
+
+### 2. [Differentiator Name]
+[Description of what makes your product unique]
+
+### 3. [Differentiator Name]
+[Description of what makes your product unique]
+
+## Team Composition
+
+**Total: [X] team members**
+
+### Development Team ([X])
+- [Role and count]
+- [Role and count]
+
+### Design Team ([X])
+- [Role and count]
+
+### Product/Business Team ([X])
+- [Role and count]
+
+## Core Features
+
+### Must-Haves (MVP Requirements)
+
+#### 1. [Feature Category Name]
+- **[Sub-feature]**: Description
+- **[Sub-feature]**: Description
+- **[Sub-feature]**: Description
+
+#### 2. [Feature Category Name]
+- **[Sub-feature]**: Description
+- **[Sub-feature]**: Description
+
+#### 3. [Feature Category Name]
+- **[Sub-feature]**: Description
+- **[Sub-feature]**: Description
+
+#### 4. Non-Functional Requirements
+- **Performance**: [Performance requirements]
+- **Security**: [Security requirements]
+- **Scalability**: [Scalability requirements]
+- **Compliance**: [Compliance requirements]
+
+### Should-Haves (Post-MVP)
+
+#### Enhanced [Feature Area]
+- [Feature description]
+- [Feature description]
+
+#### [New Feature Area]
+- [Feature description]
+- [Feature description]
+
+## Technical Architecture
+
+### Backend
+**Technology Stack**:
+- **Framework**: [Framework name and version]
+- **Language**: [Programming language]
+- **Database**: [Database technology]
+- **Authentication**: [Auth solution]
+- **API**: [API technology - REST, GraphQL, gRPC, etc.]
+- **Testing**: [Testing framework and strategy]
+- **Deployment**: [Deployment platform]
+- **Package Management**: [Package manager]
+
+**Key Patterns**:
+- [Architecture pattern - e.g., layered, microservices, etc.]
+- [Testing strategy]
+- [Code quality tools]
+- [Logging and monitoring approach]
+- [Configuration management]
+
+### Frontend (if applicable)
+**Technology Stack**:
+- **Framework**: [Framework name]
+- **State Management**: [State solution]
+- **UI Library**: [UI component library]
+- **Build Tool**: [Build tooling]
+- **Testing**: [Testing framework]
+
+### Infrastructure
+- **Hosting**: [Cloud provider or hosting solution]
+- **Container Registry**: [Registry name]
+- **Compute**: [Compute service]
+- **CI/CD**: [CI/CD platform]
+- **Database**: [Managed service or self-hosted]
+- **Monitoring**: [Monitoring solution]
+
+### Development Workflow
+- **Dependency Management**: [How dependencies are managed]
+- **Code Quality**: [Linters, formatters, hooks]
+- **Testing**: [Unit, integration, e2e approaches]
+- **Local Development**: [How developers run the project locally]
+- **Version Control**: [Git workflow, branching strategy]
+
+## Project Structure
+
+```
+project-name/
+├── src/                    # Source code
+│   ├── main.ext           # Main entry point
+│   ├── routes/            # API routes/controllers
+│   ├── services/          # Business logic
+│   ├── models/            # Data models
+│   └── utils/             # Utility functions
+├── tests/
+│   ├── unit/             # Unit tests
+│   └── integration/      # Integration tests
+├── docs/                 # Documentation
+├── scripts/              # Build and utility scripts
+├── config/               # Configuration files
+└── [config files]        # Package manager configs
+```
+
+## Current Implementation Status
+
+### Completed ✅
+- [Feature or component]
+- [Feature or component]
+- [Feature or component]
+
+### In Progress 🚧
+- [Feature or component]
+- [Feature or component]
+
+### Pending ⏳
+- [Feature or component]
+- [Feature or component]
+- [Feature or component]
+
+## Key Risks & Mitigations
+
+### Risk 1: [Risk Description]
+**Mitigation**:
+- [Mitigation strategy]
+- [Mitigation strategy]
+
+### Risk 2: [Risk Description]
+**Mitigation**:
+- [Mitigation strategy]
+- [Mitigation strategy]
+
+### Risk 3: [Risk Description]
+**Mitigation**:
+- [Mitigation strategy]
+- [Mitigation strategy]
+
+## Success Metrics
+
+### [Phase Name] Success
+- [ ] [Metric or goal]
+- [ ] [Metric or goal]
+- [ ] [Metric or goal]
+
+### Post-Launch (Future)
+- [Metric to track]
+- [Metric to track]
+- [Metric to track]
+
+## References
+
+- **Must-have requirements**: See [musthaves.md](musthaves.md)
+- **Should-have requirements**: See [shouldhaves.md](shouldhaves.md)
+- **Technical TODOs**: See [todo.md](todo.md)
+- **Epic planning**: See [epics.md](epics.md)
+
+---
+
+*Last Updated: [Date]*
+*Document Owner: [Team/Person]*
+*Status: Living Document - Update as project evolves*

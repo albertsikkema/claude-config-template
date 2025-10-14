@@ -1,0 +1,118 @@
+# Technical TODOs
+
+> Action items, technical debt, and improvements tracked for the project.
+
+## High Priority 🔴
+
+- [ ] [Critical task or bug fix]
+- [ ] [Critical task or bug fix]
+- [ ] [Critical task or bug fix]
+
+## Medium Priority 🟡
+
+- [ ] [Important but not urgent task]
+- [ ] [Important but not urgent task]
+- [ ] [Important but not urgent task]
+
+## Low Priority 🟢
+
+- [ ] [Nice-to-have improvement]
+- [ ] [Nice-to-have improvement]
+- [ ] [Nice-to-have improvement]
+
+---
+
+## Technical Debt
+
+### Code Quality
+- [ ] [Refactoring needed]
+- [ ] [Code smell to address]
+- [ ] [Complexity reduction needed]
+
+### Testing
+- [ ] [Missing test coverage]
+- [ ] [Flaky test to fix]
+- [ ] [Test infrastructure improvement]
+
+### Documentation
+- [ ] [API documentation needed]
+- [ ] [Architecture documentation needed]
+- [ ] [Developer guide improvement]
+
+### Performance
+- [ ] [Performance optimization opportunity]
+- [ ] [Query optimization needed]
+- [ ] [Caching opportunity]
+
+### Security
+- [ ] [Security audit item]
+- [ ] [Dependency update for security]
+- [ ] [Access control improvement]
+
+---
+
+## Infrastructure & DevOps
+
+- [ ] [CI/CD improvement]
+- [ ] [Monitoring enhancement]
+- [ ] [Deployment automation]
+- [ ] [Infrastructure as code update]
+- [ ] [Backup/recovery improvement]
+
+---
+
+## Dependencies & Upgrades
+
+- [ ] [Framework upgrade needed]
+- [ ] [Library update needed]
+- [ ] [Breaking change to address]
+- [ ] [Deprecated API to replace]
+
+---
+
+## Research & Exploration
+
+- [ ] [Technology to evaluate]
+- [ ] [Architecture pattern to research]
+- [ ] [POC to build]
+- [ ] [Performance benchmark to run]
+
+---
+
+## From Code Reviews
+
+> Items identified during code reviews that need follow-up
+
+- [ ] [Review finding with reference to review document]
+- [ ] [Review finding with reference to review document]
+- [ ] [Review finding with reference to review document]
+
+---
+
+## Completed ✅
+
+> Recently completed items (archive periodically)
+
+- [x] [Completed task with date]
+- [x] [Completed task with date]
+- [x] [Completed task with date]
+
+---
+
+## Categorization Guide
+
+**Priority Levels**:
+- 🔴 High: Blocking or critical for current sprint
+- 🟡 Medium: Important for next sprint or two
+- 🟢 Low: Can be scheduled when capacity allows
+
+**Categories**:
+- **Technical Debt**: Cleanup, refactoring, improvement of existing code
+- **Infrastructure**: DevOps, deployment, monitoring, tooling
+- **Dependencies**: Library updates, framework upgrades
+- **Research**: Exploration, POCs, technology evaluation
+
+---
+
+*Last Updated: [Date]*
+*Status: Living Document - Update regularly*
