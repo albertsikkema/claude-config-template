@@ -58,11 +58,19 @@ thoughts/
 
 ### Quick Install
 
+**Option 1: Use as GitHub Template (Recommended)**
+
+1. Click "Use this template" on [GitHub](https://github.com/albertsikkema/claude-config-template)
+2. Create your new repository
+3. Clone and use in your projects
+
+**Option 2: Direct Installation**
+
 Install in your current project directory:
 
 ```bash
-# Clone or download this repository first
-git clone <your-repo-url> /path/to/claude-config-template
+# Clone the repository
+git clone https://github.com/albertsikkema/claude-config-template.git
 
 # Navigate to your project
 cd /path/to/your-project
@@ -95,14 +103,17 @@ cd /path/to/your-project
 
 ### One-Line Remote Install
 
-If hosted on GitHub, you can install directly:
+Install directly from GitHub:
 
 ```bash
-# Install from GitHub (replace with your repo URL)
-curl -fsSL https://raw.githubusercontent.com/username/repo/main/install.sh | bash
+# Install everything
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 
-# Or with options
-curl -fsSL https://raw.githubusercontent.com/username/repo/main/install.sh | bash -s -- --claude-only
+# Install with options
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --claude-only
+
+# Install in specific directory
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- /path/to/project
 ```
 
 ## 🗑️ Uninstallation
