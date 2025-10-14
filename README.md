@@ -9,7 +9,7 @@ A powerful, reusable configuration system for [Claude Code](https://claude.com/c
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 ```
 
-**Clean reinstall (⚠️ deletes important stuff):**
+**Clean reinstall (⚠️ overwrites important stuff):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
 ```
@@ -21,7 +21,7 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash
 ```
 
-**Remove everything including thoughts/ (⚠️ deletes important stuff):**
+**Remove everything including thoughts/ (⚠️ overwrites important stuff):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash -s -- --force
 ```
@@ -105,7 +105,7 @@ your-project/
 
 ## 🚀 Installation Options
 
-### Option 1: Use as GitHub Template (Recommended)
+### Option 1: Use as GitHub Template 
 
 1. Click **"Use this template"** on [GitHub](https://github.com/albertsikkema/claude-config-template)
 2. Create your template repository
@@ -124,7 +124,7 @@ cd /path/to/your-project
 /path/to/claude-config-template/install-helper.sh
 ```
 
-### Option 3: One-Line Remote Install ⚡
+### Option 3: One-Line Remote Install ⚡ (Recommended)
 
 The easiest way! Downloads, installs, and cleans up automatically:
 
@@ -352,26 +352,6 @@ Edit `.claude/settings.local.json`:
 
 **With `--force`**: Removes **everything** including all your work in `thoughts/`.
 
-## 🔧 Pre-Configured Permissions
-
-The template includes pre-approved permissions for:
-
-**Development Tools:**
-- pytest (unit, integration tests)
-- git operations
-- docker & docker-compose
-- make & pre-commit hooks
-- Python execution
-
-**Documentation Domains:**
-- docs.astral.sh
-- fastapi.tiangolo.com
-- docs.sqlalchemy.org
-- github.com
-- localhost (testing)
-- And more...
-
-**Plus**: Unrestricted WebSearch
 
 ## 🌟 Key Features Explained
 
@@ -403,18 +383,14 @@ Templates help you maintain:
 ### Example 1: New Feature Development
 
 ```
-You: I need to add two-factor authentication
+You: /research_codebase I need to add two-factor authentication
 
 Claude uses agents to:
 1. Research existing auth code (codebase-analyzer)
 2. Find similar implementations (codebase-pattern-finder)
 3. Check technical docs (technical-docs-researcher)
 
-Then guides you through:
-1. Creating a plan
-2. Implementing step-by-step
-3. Reviewing the code
-4. Committing changes
+Then read and use the created research file to create a plan, implement etc.
 ```
 
 ### Example 2: Understanding Legacy Code
@@ -446,12 +422,21 @@ Result: Full project documentation customized for your needs
 
 ## 🤝 Contributing
 
-Contributions welcome! To add agents or commands:
+Contributions are welcome from individuals and companies alike! We'd love to see:
 
-1. Fork this repository
-2. Add your agent/command files
-3. Update documentation
-4. Submit a pull request
+- New agents and slash commands
+- Improved documentation and examples
+- Bug fixes and enhancements
+- Installation script improvements
+- Templates and workflow ideas
+
+**See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on:**
+- How to submit contributions
+- Agent and command development best practices
+- Testing requirements
+- Pull request process
+
+For questions or larger contributions, contact: license@albertsikkema.com
 
 ## 💡 Tips & Best Practices
 
