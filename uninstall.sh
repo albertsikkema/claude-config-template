@@ -176,8 +176,13 @@ main() {
         items_to_remove+=(".claude/")
     fi
 
+    # Only remove thoughts/ if --force is used (it contains user's work)
     if [ "$REMOVE_THOUGHTS" = true ] && check_exists "thoughts"; then
-        items_to_remove+=("thoughts/")
+        if [ "$FORCE_REMOVE" = true ]; then
+            items_to_remove+=("thoughts/")
+        else
+            print_message "$BLUE" "Skipping thoughts/ (use --force to remove user content)"
+        fi
     fi
 
     if [ "$REMOVE_HELPERS" = true ] && check_exists "claude-helpers"; then
@@ -224,54 +229,20 @@ main() {
         remove_item "$TARGET_DIR/.claude" ".claude/ directory"
     fi
 
-    # Remove thoughts structure
-    if [ "$REMOVE_THOUGHTS" = true ]; then
-        print_header "Removing thoughts/ Structure"
+    # Remove thoughts structure (only if --force and in items_to_remove)
+    if [ "$REMOVE_THOUGHTS" = true ] && [ "$FORCE_REMOVE" = true ]; then
+        if check_exists "thoughts"; then
+            print_header "Removing thoughts/ Structure"
 
-        if [ "$DRY_RUN" != true ] && [ "$FORCE_REMOVE" != true ]; then
-            # Check if there's any user content and warn
-            local has_user_content=false
-
-            if [ -d "$TARGET_DIR/thoughts/shared/plans" ]; then
-                local plan_count=$(find "$TARGET_DIR/thoughts/shared/plans" -type f -not -name ".gitkeep" | wc -l | tr -d ' ')
-                if [ "$plan_count" -gt 0 ]; then
-                    has_user_content=true
-                fi
-            fi
-
-            if [ -d "$TARGET_DIR/thoughts/shared/research" ]; then
-                local research_count=$(find "$TARGET_DIR/thoughts/shared/research" -type f -not -name ".gitkeep" | wc -l | tr -d ' ')
-                if [ "$research_count" -gt 0 ]; then
-                    has_user_content=true
-                fi
-            fi
-
-            if [ -d "$TARGET_DIR/thoughts/shared/project" ]; then
-                local project_count=$(find "$TARGET_DIR/thoughts/shared/project" -type f -not -name ".gitkeep" | wc -l | tr -d ' ')
-                if [ "$project_count" -gt 0 ]; then
-                    has_user_content=true
-                fi
-            fi
-
-            if [ "$has_user_content" = true ]; then
-                print_message "$YELLOW" "⚠️  Warning: thoughts/ contains user-created content!"
-
-                if ! confirm "Do you really want to delete all plans, research, and project documents?"; then
-                    print_message "$YELLOW" "  ⊘ Skipped: thoughts/ (contains user content)"
-                    print_message "$BLUE" "Tip: Consider backing up your content before uninstalling."
-                    exit 0
-                fi
-            fi
+            remove_item "$TARGET_DIR/thoughts/templates" "templates/"
+            remove_item "$TARGET_DIR/thoughts/shared/plans" "shared/plans/"
+            remove_item "$TARGET_DIR/thoughts/shared/research" "shared/research/"
+            remove_item "$TARGET_DIR/thoughts/shared/project/epics" "shared/project/epics/"
+            remove_item "$TARGET_DIR/thoughts/shared/project" "shared/project/"
+            remove_item "$TARGET_DIR/thoughts/shared" "shared/"
+            remove_item "$TARGET_DIR/thoughts/technical_docs" "technical_docs/"
+            remove_item "$TARGET_DIR/thoughts" "thoughts/ directory"
         fi
-
-        remove_item "$TARGET_DIR/thoughts/templates" "templates/"
-        remove_item "$TARGET_DIR/thoughts/shared/plans" "shared/plans/"
-        remove_item "$TARGET_DIR/thoughts/shared/research" "shared/research/"
-        remove_item "$TARGET_DIR/thoughts/shared/project/epics" "shared/project/epics/"
-        remove_item "$TARGET_DIR/thoughts/shared/project" "shared/project/"
-        remove_item "$TARGET_DIR/thoughts/shared" "shared/"
-        remove_item "$TARGET_DIR/thoughts/technical_docs" "technical_docs/"
-        remove_item "$TARGET_DIR/thoughts" "thoughts/ directory"
     fi
 
     # Remove claude-helpers

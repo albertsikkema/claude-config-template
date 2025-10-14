@@ -16,12 +16,12 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 ## 🗑️ Quick Uninstall
 
-**Uninstall with confirmation prompts:**
+**Remove configuration (preserves thoughts/):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash
 ```
 
-**Force uninstall (no prompts):**
+**Remove everything including thoughts/ (⚠️ deletes important stuff):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash -s -- --force
 ```
@@ -335,7 +335,7 @@ Edit `.claude/settings.local.json`:
 ## 🗑️ Uninstallation
 
 ```bash
-# Remove everything
+# Remove configuration (preserves thoughts/)
 ./uninstall.sh
 
 # Remove only Claude config
@@ -344,11 +344,13 @@ Edit `.claude/settings.local.json`:
 # Preview what will be removed
 ./uninstall.sh --dry-run
 
-# Force removal without prompts
+# Remove everything including thoughts/ (⚠️ deletes your work)
 ./uninstall.sh --force
 ```
 
-**⚠️ Warning**: Uninstalling permanently deletes directories. The script will warn you if it finds user-created content (plans, research, project docs).
+**Default behavior**: Removes `.claude/` and `claude-helpers/` but **preserves** `thoughts/` directory with your plans, research, and project docs.
+
+**With `--force`**: Removes **everything** including all your work in `thoughts/`.
 
 ## 🔧 Pre-Configured Permissions
 
