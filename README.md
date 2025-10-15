@@ -14,6 +14,12 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
 ```
 
+**Optional: Start monitoring dashboard** (requires [Bun](https://bun.sh)):
+```bash
+./start-monitoring.sh
+```
+See the [Multi-Agent Observability Dashboard](#-multi-agent-observability-dashboard) section for details.
+
 ## 🗑️ Quick Uninstall
 
 **Remove configuration (preserves thoughts/):**
@@ -34,6 +40,7 @@ This is a **configuration template** that you install into your projects. It pro
 
 - **11 specialized AI agents** - Automated research, code analysis, and architecture design
 - **8 slash commands** - Streamlined workflows for common tasks
+- **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
 
@@ -84,7 +91,8 @@ your-project/
 ├── .claude/
 │   ├── agents/              # 11 specialized agents
 │   ├── commands/            # 8 slash commands
-│   └── settings.local.json  # Pre-configured permissions
+│   ├── hooks/               # Observability hooks (if monitoring enabled)
+│   └── settings.json        # Configuration and hooks
 │
 └── thoughts/
     ├── templates/           # Documentation templates
@@ -102,6 +110,92 @@ your-project/
         └── project/         # Project documentation
             └── epics/       # Epic planning
 ```
+
+## 🔍 Multi-Agent Observability Dashboard
+
+Gain real-time visibility into Claude Code's decision-making process with the monitoring dashboard. Watch agents spawn, tools execute, and see AI-generated summaries of all activities.
+
+### What You Get
+
+- **Real-time event streaming** - See every tool use, agent spawn, and notification as it happens
+- **AI-powered summaries** - Automatically generated summaries of complex events
+- **Session tracking** - Follow complete conversation flows and agent orchestration
+- **Event filtering** - Focus on specific event types or sessions
+- **WebSocket updates** - Live dashboard updates with no refresh needed
+
+### Quick Start
+
+**Prerequisites**: [Bun](https://bun.sh) must be installed
+```bash
+# Install Bun (macOS/Linux)
+curl -fsSL https://bun.sh/install | bash
+```
+
+**Option 1: One-Line Setup** (Easiest)
+```bash
+./start-monitoring.sh
+```
+
+This will:
+1. Clone the monitoring dashboard repository
+2. Install all dependencies using Bun
+3. Set up observability hooks in `.claude/hooks/`
+4. Configure hooks in `.claude/settings.json`
+5. Start the monitoring server and dashboard
+
+**Option 2: Skip Hooks Setup** (if you have custom hooks)
+```bash
+./start-monitoring.sh --skip-hooks
+```
+
+**Option 3: Force Clean Reinstall**
+```bash
+./start-monitoring.sh --force-install
+```
+
+### Accessing the Dashboard
+
+Once started, access:
+- **Dashboard UI**: http://localhost:5173
+- **Server API**: http://localhost:4000
+
+### What Gets Tracked
+
+The monitoring system captures:
+- **PreToolUse** - Before any tool executes
+- **PostToolUse** - After tool execution completes
+- **Notification** - User input requests (with optional TTS)
+- **Stop** - Conversation stop events
+- **SubagentStop** - When spawned agents complete
+- **PreCompact** - Before context window compaction
+- **UserPromptSubmit** - User message submissions
+- **SessionStart/End** - Session lifecycle events
+
+### Helper Scripts
+
+After starting, you can:
+```bash
+# Stop the monitoring system
+./claude-code-hooks-multi-agent-observability/scripts/reset-system.sh
+
+# Test the monitoring system
+./claude-code-hooks-multi-agent-observability/scripts/test-system.sh
+```
+
+### How It Works
+
+1. **Hooks** in `.claude/hooks/` intercept Claude Code events
+2. **Events** are sent to the server at `http://localhost:4000`
+3. **AI summaries** are generated for complex events (optional)
+4. **Dashboard** displays everything in real-time via WebSocket
+
+### Customization
+
+The hooks configuration is in `.claude/settings.json`. You can:
+- Disable specific hooks
+- Adjust which events get AI summaries
+- Change the server URL
+- Add custom event processing
 
 ## 🚀 Installation Options
 
@@ -318,7 +412,7 @@ Your command instructions here...
 
 ### Adjust Permissions
 
-Edit `.claude/settings.local.json`:
+Edit `.claude/settings.json`:
 
 ```json
 {
@@ -502,7 +596,8 @@ After installation:
 
 - [ ] **Restart Claude Code** to load new configuration
 - [ ] Verify installation: Check `.claude/` and `thoughts/` directories exist
-- [ ] Review `.claude/settings.local.json` permissions
+- [ ] Review `.claude/settings.json` permissions
+- [ ] **(Optional)** Start monitoring dashboard: `./start-monitoring.sh`
 - [ ] Run `/project` to document your project (if command not found, see troubleshooting)
 - [ ] Try `/research_codebase` on a feature
 - [ ] Explore available agents (agents are invoked automatically or explicitly)
