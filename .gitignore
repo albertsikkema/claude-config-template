@@ -80,6 +80,9 @@ logs/
 .env.local
 .env.*.local
 
+# Monitoring dashboard (cloned by start-monitoring.sh)
+claude-code-hooks-multi-agent-observability/
+
 # Node modules (if you add Node.js tooling)
 node_modules/
 
@@ -99,3 +102,6 @@ secrets/
 *.cer
 *.crt
 credentials.json
+
+# for local files that should not be in repo
+local/
