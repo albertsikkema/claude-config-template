@@ -46,6 +46,14 @@ This is a **configuration template** that you install into your projects. It pro
 
 Think of it as a **productivity multiplier** for Claude Code - install once, benefit forever.
 
+Partly based on/ inspired by:
+- https://github.com/humanlayer/humanlayer
+- https://github.com/Wirasm/PRPs-agentic-eng
+
+Monitoring dashboard:
+- https://github.com/disler/claude-code-hooks-multi-agent-observability
+
+
 ## 📦 What You Get
 
 ### 🤖 Intelligent Agents
@@ -113,7 +121,7 @@ your-project/
 
 ## 🔍 Multi-Agent Observability Dashboard
 
-Gain real-time visibility into Claude Code's decision-making process with the monitoring dashboard. Watch agents spawn, tools execute, and see AI-generated summaries of all activities. See this repo for the full readme: [https://github.com/disler/claude-code-hooks-multi-agent-observability](https://github.com/disler/claude-code-hooks-multi-agent-observability)
+Gain real-time visibility into Claude Code's decision-making process with the monitoring dashboard. Watch agents spawn, tools execute, and see AI-generated summaries of all activities. Basically uses this repo: [https://github.com/disler/claude-code-hooks-multi-agent-observability](https://github.com/disler/claude-code-hooks-multi-agent-observability)
 
 ### What You Get
 
