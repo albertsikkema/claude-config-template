@@ -113,7 +113,7 @@ your-project/
 
 ## 🔍 Multi-Agent Observability Dashboard
 
-Gain real-time visibility into Claude Code's decision-making process with the monitoring dashboard. Watch agents spawn, tools execute, and see AI-generated summaries of all activities.
+Gain real-time visibility into Claude Code's decision-making process with the monitoring dashboard. Watch agents spawn, tools execute, and see AI-generated summaries of all activities. See this repo for the full readme: [https://github.com/disler/claude-code-hooks-multi-agent-observability](https://github.com/disler/claude-code-hooks-multi-agent-observability)
 
 ### What You Get
 
