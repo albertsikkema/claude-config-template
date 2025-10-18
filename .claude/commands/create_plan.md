@@ -33,40 +33,64 @@ Then wait for the user's input.
 ### Step 1: Context Gathering & Initial Analysis
 
 1. **Read all mentioned files immediately and FULLY**:
-   - Ticket files (e.g., `thoughts/allison/tickets/eng_1234.md`)
-   - Research documents
-   - Related implementation plans
-   - Any JSON/data files mentioned
-   - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
-   - **CRITICAL**: DO NOT spawn sub-tasks before reading these files yourself in the main context
+   - If the user mentions specific files (research, tickets, docs, JSON), read them first
+   - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files, READ A FILE IN FULL
+   - **CRITICAL**: Read these files yourself in the main context before spawning any sub-tasks
+   - This ensures you have full context before decomposing the research
    - **NEVER** read files partially - if a file is mentioned, read it completely
 
-2. **Spawn initial research tasks to gather context**:
+2. **Check for codebase indexes and scan them:**
+   - Check if `thoughts/codebase/` directory exists and contains index files
+   - Look for index files:
+     - `codebase_overview_*_py.md` - Python codebase indexes
+     - `codebase_overview_*_ts.md` - TypeScript codebase indexes
+     - `thoughts/codebase/openapi.json` - FastAPI OpenAPI schema (if applicable)
+
+   **If indexes exist:**
+   - Use Grep to search index files for keywords from the research query
+   - Search for: function names, class names, component names, relevant terms
+   - Examples:
+   ```bash
+   grep -i "authentication\|login\|auth" thoughts/codebase/*.md
+   grep -i "class UserService\|def authenticate" thoughts/codebase/*.md
+   ```
+   - Extract specific file paths and line numbers from matches
+   - Note promising starting points: functions, classes, components
+   - **Time budget: <30 seconds** - this is a quick scan to target your agents
+
+   **If no indexes exist:**
+      - Continue to step 3 with broader search strategies
+      - Consider mentioning to user: "No codebase indexes found. For faster research in the future, consider running `/index_codebase`"
+
+3. **Analyze and decompose the research question:**
+   - **Incorporate index findings:** Use file:line references from index scan to focus research
+   - Use index to consider which directories, files, or architectural patterns are relevant
+   - Identify specific components, patterns, or concepts to investigate
+   - Create a research plan using TodoWrite to track all subtasks
+
+4. **Spawn initial research tasks to gather more context (optional)**:
    Before asking the user any questions, use specialized agents to research in parallel:
 
-   - Use the **codebase-locator** agent to find all files related to the ticket/task
-   - Use the **codebase-analyzer** agent to understand how the current implementation works
-   - If relevant, use the **thoughts-locator** agent to find any existing thoughts documents about this feature
-   - If a Linear ticket is mentioned, use the **linear-ticket-reader** agent to get full details
+   - Use the **codebase-analyzer** agent to understand how the current implementation works with SPECIFIC file:line references from indexes
 
-   These agents will:
+   This step will:
    - Find relevant source files, configs, and tests
    - Identify the specific directories to focus on (e.g., if WUI is mentioned, they'll focus on humanlayer-wui/)
    - Trace data flow and key functions
    - Return detailed explanations with file:line references
 
-3. **Read all files identified by research tasks**:
+5. **Read all files identified by research tasks**:
    - After research tasks complete, read ALL files they identified as relevant
    - Read them FULLY into the main context
    - This ensures you have complete understanding before proceeding
 
-4. **Analyze and verify understanding**:
+6. **Analyze and verify understanding**:
    - Cross-reference the ticket requirements with actual code
    - Identify any discrepancies or misunderstandings
    - Note assumptions that need verification
    - Determine true scope based on codebase reality
 
-5. **Present informed understanding and focused questions**:
+7. **Present informed understanding and focused questions**:
    ```
    Based on the ticket and my research of the codebase, I understand we need to [accurate summary].
 
@@ -95,12 +119,12 @@ After getting initial clarifications:
 
 2. **Create a research todo list** using TodoWrite to track exploration tasks
 
-3. **Spawn parallel sub-tasks for comprehensive research**:
+3. **Spawn parallel sub-tasks for comprehensive research (optional)**:
    - Create multiple Task agents to research different aspects concurrently
+   - Use the index to focus
    - Use the right agent for each type of research:
 
    **For deeper investigation:**
-   - **codebase-locator** - To find more specific files (e.g., "find all files that handle [specific component]")
    - **codebase-analyzer** - To understand implementation details (e.g., "analyze how [system] works")
    - **codebase-pattern-finder** - To find similar features we can model after
 
@@ -164,7 +188,18 @@ Once aligned on approach:
 
 After structure approval:
 
-1. **Write the plan** to `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
+1. **Gather metadata for the research document:**
+   - Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
+   - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
+     - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
+       - YYYY-MM-DD is today's date
+       - ENG-XXXX is the ticket number (omit if no ticket)
+       - description is a brief kebab-case description of the research topic
+     - Examples:
+       - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
+       - Without ticket: `2025-01-08-authentication-flow.md`
+
+2. **Write the plan** to `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
    - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
      - YYYY-MM-DD is today's date
      - ENG-XXXX is the ticket number (omit if no ticket)
@@ -172,9 +207,28 @@ After structure approval:
    - Examples:
      - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
      - Without ticket: `2025-01-08-improve-error-handling.md`
-2. **Use this template structure**:
+3. **Generate research document:**
+   - Use the metadata gathered in step 2
+   - Structure the document with YAML frontmatter followed by content:
+     ```markdown
+     ---
+     date: [Current date and time with timezone in ISO format from step 2]
+     file-id: [UUID from step 2]
+     parentfile-id: [file-id from frontmatter research file]
+     claude-sessionid: [claude-sessionid from step 2]
+     researcher: [Researcher name from thoughts status]
+     git_commit: [Current commit hash from step 2]
+     branch: [Current branch name from step 2]
+     repository: [Repository name from step 2]
+     topic: "[User's Question/Topic]"
+     tags: [research, codebase, relevant-component-names]
+     status: complete
+     last_updated: [Current date in YYYY-MM-DD HH:mm format]
+     last_updated_by: [Researcher name]
+     ---
 
 ````markdown
+
 # [Feature/Task Name] Implementation Plan
 
 ## Overview
