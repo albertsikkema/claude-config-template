@@ -24,7 +24,7 @@ Then wait for the user's research query.
    - Look for index files:
      - `codebase_overview_*_py.md` - Python codebase indexes
      - `codebase_overview_*_ts.md` - TypeScript codebase indexes
-     - `openapi.json` - FastAPI OpenAPI schema (if applicable)
+     - `thoughts/codebase/openapi.json` - FastAPI OpenAPI schema (if applicable)
 
    **If indexes exist:**
    - Use Grep to search index files for keywords from the research query
