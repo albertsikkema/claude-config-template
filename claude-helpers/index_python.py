@@ -6,6 +6,30 @@ import sys
 # Cache ast.unparse availability check at module level
 HAS_UNPARSE = hasattr(ast, 'unparse')
 
+# Directories to skip during indexing (only directories that might contain .py files)
+SKIP_DIRS = {
+    # Virtual environments (contain Python files we don't want to index)
+    '.venv', 'venv', 'env', '.env', 'ENV',
+    # Dependencies
+    'node_modules',
+    # Version control
+    '.git', '.svn', '.hg',
+    # Python cache directories
+    '__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.pytype', '.pyre',
+    # Testing directories
+    '.tox', '.nox', 'htmlcov', '.hypothesis',
+    # Build/distribution directories (may contain generated .py files)
+    'dist', 'build', '.eggs', 'eggs', 'lib', 'lib64', 'sdist', 'wheels',
+    # Documentation builds (may contain generated .py files)
+    'site',
+    # IDE/Editor directories (may contain IDE-specific .py files)
+    '.vscode', '.idea', '.vs', '.spyderproject', '.spyproject', '.ropeproject',
+    # Claude configuration
+    '.claude', 'claude-helpers',
+    # Logs and temporary directories
+    'logs', 'tmp', 'temp'
+}
+
 def safe_unparse(node):
     """Safely unparse an AST node with fallback to str()."""
     return ast.unparse(node) if HAS_UNPARSE else str(node)
@@ -14,21 +38,13 @@ def extract_codebase_info(directory):
     """Traverse the directory and extract functions, classes, variables."""
     codebase_info = {}
 
-    # Directories to skip (same as Go version)
-    skip_dirs = {
-        '.venv', 'venv', 'env', '.env',
-        'node_modules', '.git', '__pycache__',
-        '.pytest_cache', '.mypy_cache', '.tox',
-        'dist', 'build', '.eggs'
-    }
-
     # Single pass: extract structure and track calls in one go
     # Store AST trees for call tracking
     ast_trees = {}
 
     for root, dirs, files in os.walk(directory):
         # Skip excluded directories (modify dirs in-place)
-        dirs[:] = [d for d in dirs if d not in skip_dirs and not d.endswith('.egg-info')]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.endswith('.egg-info')]
 
         for file in files:
             if file.endswith('.py'):  # Process Python files only
@@ -273,14 +289,6 @@ def track_calls(tree, current_file, name_index):
 
 def generate_file_tree(directory, codebase_info):
     """Generate a visual tree structure of Python files in the codebase."""
-    # Directories to skip (same as in extract_codebase_info)
-    skip_dirs = {
-        '.venv', 'venv', 'env', '.env',
-        'node_modules', '.git', '__pycache__',
-        '.pytest_cache', '.mypy_cache', '.tox',
-        'dist', 'build', '.eggs'
-    }
-
     tree_lines = []
     base_path = os.path.abspath(directory)
     base_name = os.path.basename(base_path) or base_path
@@ -293,9 +301,9 @@ def generate_file_tree(directory, codebase_info):
         except PermissionError:
             return
 
-        # Filter out skip_dirs and hidden files
+        # Filter out SKIP_DIRS
         dirs = [e for e in entries if os.path.isdir(os.path.join(current_dir, e))
-                and e not in skip_dirs and not e.startswith('.') and not e.endswith('.egg-info')]
+                and e not in SKIP_DIRS and not e.endswith('.egg-info')]
         files = [e for e in entries if os.path.isfile(os.path.join(current_dir, e))
                  and e.endswith('.py')]
 

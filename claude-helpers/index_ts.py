@@ -4,19 +4,35 @@ import argparse
 import sys
 from pathlib import Path
 
+# Directories to skip during indexing (only directories that might contain .ts/.tsx files)
+SKIP_DIRS = {
+    # Dependencies (contain library .ts/.tsx files we don't want to index)
+    'node_modules', 'jspm_packages', 'bower_components',
+    # Version control
+    '.git', '.svn', '.hg',
+    # Build outputs (contain compiled/generated files)
+    'dist', 'build', 'out', '.next', '.nuxt', '.output',
+    # Cache directories
+    '.cache', '.parcel-cache', '.turbo',
+    # Testing output
+    'coverage',
+    # Framework specific build directories
+    '.docusaurus', '.serverless',
+    # IDE/Editor directories
+    '.vscode', '.idea', '.vs',
+    # Claude configuration
+    '.claude', 'claude-helpers',
+    # Logs and temporary directories
+    'logs', 'tmp', 'temp'
+}
+
 def extract_typescript_info(directory):
     """Traverse the directory and extract TypeScript/TSX components, functions, interfaces, types."""
     codebase_info = {}
 
-    # Directories to skip
-    skip_dirs = {
-        'node_modules', '.git', 'dist', 'build',
-        '.cache', 'coverage', '.next', '.nuxt'
-    }
-
     for root, dirs, files in os.walk(directory):
         # Skip excluded directories
-        dirs[:] = [d for d in dirs if d not in skip_dirs]
+        dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
 
         for file in files:
             if file.endswith(('.ts', '.tsx')):
@@ -305,12 +321,6 @@ def find_matching_paren(source, start_pos):
 
 def generate_file_tree(directory, codebase_info):
     """Generate a visual tree structure of TypeScript/TSX files in the codebase."""
-    # Directories to skip (same as in extract_typescript_info)
-    skip_dirs = {
-        'node_modules', '.git', 'dist', 'build',
-        '.cache', 'coverage', '.next', '.nuxt'
-    }
-
     tree_lines = []
     base_path = os.path.abspath(directory)
     base_name = os.path.basename(base_path) or base_path
@@ -323,9 +333,9 @@ def generate_file_tree(directory, codebase_info):
         except PermissionError:
             return
 
-        # Filter out skip_dirs and hidden files
+        # Filter out SKIP_DIRS
         dirs = [e for e in entries if os.path.isdir(os.path.join(current_dir, e))
-                and e not in skip_dirs and not e.startswith('.')]
+                and e not in SKIP_DIRS]
         files = [e for e in entries if os.path.isfile(os.path.join(current_dir, e))
                  and e.endswith(('.ts', '.tsx'))]
 
