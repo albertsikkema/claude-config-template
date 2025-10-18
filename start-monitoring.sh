@@ -61,6 +61,25 @@ if [ ! -d "$MONITORING_DIR" ]; then
     echo "📥 Cloning monitoring dashboard repository..."
     git clone "$MONITORING_REPO"
     echo ""
+
+    # Add to .gitignore
+    echo "📝 Updating .gitignore..."
+    GITIGNORE_PATH=".gitignore"
+
+    # Create .gitignore if it doesn't exist
+    if [ ! -f "$GITIGNORE_PATH" ]; then
+        touch "$GITIGNORE_PATH"
+    fi
+
+    # Check if entry already exists in .gitignore
+    if grep -qxF "$MONITORING_DIR/" "$GITIGNORE_PATH" 2>/dev/null; then
+        echo "  ⊘ $MONITORING_DIR/ already in .gitignore"
+    else
+        # Add entry to .gitignore
+        echo "$MONITORING_DIR/" >> "$GITIGNORE_PATH"
+        echo "  ✓ Added $MONITORING_DIR/ to .gitignore"
+    fi
+    echo ""
 fi
 
 cd "$MONITORING_DIR"
