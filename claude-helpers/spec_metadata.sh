@@ -79,7 +79,7 @@ echo "Current Working Directory: $CURRENT_PWD"
 [ -n "$GIT_COMMIT" ] && echo "Current Git Commit Hash: $GIT_COMMIT"
 [ -n "$GIT_BRANCH" ] && echo "Current Branch Name: $GIT_BRANCH"
 [ -n "$REPO_NAME" ] && echo "Repository Name: $REPO_NAME"
-[ -n "$CLAUDE_SESSION_ID" ] && echo "Claude Session ID: $CLAUDE_SESSION_ID"
+[ -n "$CLAUDE_SESSION_ID" ] && echo "claude-sessionid: $CLAUDE_SESSION_ID"
 echo "Timestamp For Filename: $FILENAME_TS"
 [ -n "$THOUGHTS_STATUS" ] && {
   echo "$THOUGHTS_STATUS"

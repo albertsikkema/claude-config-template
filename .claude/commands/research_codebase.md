@@ -124,6 +124,7 @@ Then wait for the user's research query.
      ---
      date: [Current date and time with timezone in ISO format from step 6]
      file-id: [UUID from step 6]
+     claude-sessionid: [claude-sessionid from step 6]
      researcher: [Researcher name from thoughts status]
      git_commit: [Current commit hash from step 6]
      branch: [Current branch name from step 6]
