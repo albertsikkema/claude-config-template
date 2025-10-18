@@ -15,7 +15,7 @@ Then wait for the user's research query.
 
 1. **Read any directly mentioned files first:**
    - If the user mentions specific files (tickets, docs, JSON), read them FULLY first
-   - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files
+   - **IMPORTANT**: Use the Read tool WITHOUT limit/offset parameters to read entire files, READ A FILE IN FULL.
    - **CRITICAL**: Read these files yourself in the main context before spawning any sub-tasks
    - This ensures you have full context before decomposing the research
 
@@ -36,10 +36,10 @@ Then wait for the user's research query.
      ```
    - Extract specific file paths and line numbers from matches
    - Note promising starting points: functions, classes, components
-   - **Time budget: <10 seconds** - this is a quick scan to target your agents
+   - **Time budget: <30 seconds** - this is a quick scan to target your agents
 
    **If no indexes exist:**
-   - Skip to step 3 with broader search strategies
+   - Continue to step 3 with broader search strategies
    - Consider mentioning to user: "No codebase indexes found. For faster research in the future, consider running `/index_codebase`"
 
 3. **Analyze and decompose the research question:**
@@ -54,7 +54,7 @@ Then wait for the user's research query.
    - Create multiple Task agents to research different aspects concurrently
    - We now have specialized agents that know how to do specific research tasks:
 
-   **For project context (IMPORTANT - use this first):**
+   **For project context:**
    - Use the **project-context-analyzer** agent to gather existing project documentation and context
    - This provides critical context about project goals, requirements, and current state
    - Helps understand WHY the code exists and what problems it solves
@@ -118,29 +118,29 @@ Then wait for the user's research query.
        - Without ticket: `2025-01-08-authentication-flow.md`
 
 7. **Generate research document:**
-   - Use the metadata gathered in step 4
+   - Use the metadata gathered in step 6
    - Structure the document with YAML frontmatter followed by content:
      ```markdown
      ---
-     date: [Current date and time with timezone in ISO format]
-     file-id: [UUID]
+     date: [Current date and time with timezone in ISO format from step 6]
+     file-id: [UUID from step 6]
      researcher: [Researcher name from thoughts status]
-     git_commit: [Current commit hash]
-     branch: [Current branch name]
-     repository: [Repository name]
+     git_commit: [Current commit hash from step 6]
+     branch: [Current branch name from step 6]
+     repository: [Repository name from step 6]
      topic: "[User's Question/Topic]"
      tags: [research, codebase, relevant-component-names]
      status: complete
-     last_updated: [Current date in YYYY-MM-DD format]
+     last_updated: [Current date in YYYY-MM-DD HH:mm format]
      last_updated_by: [Researcher name]
      ---
 
      # Research: [User's Question/Topic]
 
-     **Date**: [Current date and time with timezone from step 4]
+     **Date**: [Current date and time with timezone from step 6]
      **Researcher**: [Researcher name from thoughts status]
-     **Git Commit**: [Current commit hash from step 4]
-     **Branch**: [Current branch name from step 4]
+     **Git Commit**: [Current commit hash from step 6]
+     **Branch**: [Current branch name from step 6]
      **Repository**: [Repository name]
 
      ## Research Question
@@ -193,8 +193,7 @@ Then wait for the user's research query.
      - Create permalinks: `https://github.com/{owner}/{repo}/blob/{commit}/{file}#L{line}`
    - Replace local file references with permalinks in the document
 
-9. **Sync and present findings:**
-   - Run `humanlayer thoughts sync` to sync the thoughts directory
+9. **Present findings:**
    - Present a concise summary of findings to the user
    - Include key file references for easy navigation
    - Ask if they have follow-up questions or need clarification
@@ -226,17 +225,9 @@ Then wait for the user's research query.
 - **File reading**: Always read mentioned files FULLY (no limit/offset) before spawning sub-tasks
 - **Critical ordering**: Follow the numbered steps exactly
   - ALWAYS read mentioned files first before spawning sub-tasks (step 1)
-  - ALWAYS wait for all sub-agents to complete before synthesizing (step 4)
-  - ALWAYS gather metadata before writing the document (step 5 before step 6)
+  - ALWAYS wait for all sub-agents to complete before synthesizing (step 5)
+  - ALWAYS gather metadata before writing the document (step 6 before step 7)
   - NEVER write the research document with placeholder values
-- **Path handling**: The thoughts/searchable/ directory contains hard links for searching
-  - Always document paths by removing ONLY "searchable/" - preserve all other subdirectories
-  - Examples of correct transformations:
-    - `thoughts/searchable/allison/old_stuff/notes.md` → `thoughts/allison/old_stuff/notes.md`
-    - `thoughts/searchable/shared/prs/123.md` → `thoughts/shared/prs/123.md`
-    - `thoughts/searchable/global/shared/templates.md` → `thoughts/global/shared/templates.md`
-  - NEVER change allison/ to shared/ or vice versa - preserve the exact directory structure
-  - This ensures paths are correct for editing and navigation
 - **Frontmatter consistency**:
   - Always include frontmatter at the beginning of research documents
   - Keep frontmatter fields consistent across all research documents
