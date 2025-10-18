@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 REPO_URL="https://github.com/albertsikkema/claude-config-template"
-TARBALL_URL="${REPO_URL}/archive/refs/heads/main.tar.gz"
+BRANCH="main"  # Default branch
 TEMP_DIR=""
 
 # Print colored message
@@ -58,6 +58,23 @@ check_dependencies() {
     fi
 }
 
+# Parse command line arguments
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --branch)
+                BRANCH="$2"
+                shift 2
+                ;;
+            *)
+                # Keep other arguments for install-helper.sh
+                INSTALL_ARGS+=("$1")
+                shift
+                ;;
+        esac
+    done
+}
+
 # Main installation function
 main() {
     print_header "Claude Code Configuration Remote Installer"
@@ -65,6 +82,7 @@ main() {
     # Save original working directory
     ORIGINAL_DIR="$(pwd)"
     print_message "$BLUE" "Target directory: $ORIGINAL_DIR"
+    print_message "$BLUE" "Branch: $BRANCH"
 
     # Check dependencies
     print_message "$BLUE" "Checking dependencies..."
@@ -78,7 +96,8 @@ main() {
 
     # Download repository
     print_header "Downloading Repository"
-    print_message "$BLUE" "Fetching from: $REPO_URL"
+    TARBALL_URL="${REPO_URL}/archive/refs/heads/${BRANCH}.tar.gz"
+    print_message "$BLUE" "Fetching from: $REPO_URL (branch: $BRANCH)"
 
     if curl -fsSL "$TARBALL_URL" -o "$TEMP_DIR/repo.tar.gz"; then
         print_message "$GREEN" "  ✓ Download complete"
@@ -122,7 +141,7 @@ main() {
     # Parse arguments to see if user specified a target directory
     # If not, we'll add the original directory as the target
     local has_target=false
-    for arg in "$@"; do
+    for arg in "${INSTALL_ARGS[@]}"; do
         # Check if argument doesn't start with -- (i.e., it's a positional argument)
         if [[ ! "$arg" =~ ^-- ]] && [[ ! "$arg" =~ ^- ]]; then
             has_target=true
@@ -130,15 +149,15 @@ main() {
         fi
     done
 
-    # Run installer with all arguments passed to this script
+    # Run installer with filtered arguments (excluding --branch)
     if [ "$has_target" = true ]; then
-        print_message "$BLUE" "Executing install-helper.sh with options: $*"
+        print_message "$BLUE" "Executing install-helper.sh with options: ${INSTALL_ARGS[*]}"
         echo ""
-        ./install-helper.sh "$@"
+        ./install-helper.sh "${INSTALL_ARGS[@]}"
     else
-        print_message "$BLUE" "Executing install-helper.sh with options: $* $ORIGINAL_DIR"
+        print_message "$BLUE" "Executing install-helper.sh with options: ${INSTALL_ARGS[*]} $ORIGINAL_DIR"
         echo ""
-        ./install-helper.sh "$@" "$ORIGINAL_DIR"
+        ./install-helper.sh "${INSTALL_ARGS[@]}" "$ORIGINAL_DIR"
     fi
 
     # Success message
@@ -147,5 +166,11 @@ main() {
     print_message "$GREEN" "✓ Repository downloaded and installed successfully"
 }
 
-# Run main function with all arguments
-main "$@"
+# Initialize array for install-helper.sh arguments
+INSTALL_ARGS=()
+
+# Parse arguments first
+parse_args "$@"
+
+# Run main function
+main

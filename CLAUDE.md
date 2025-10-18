@@ -20,6 +20,12 @@ This repository is meant to be installed into other projects using the `install.
 ```bash
 # One-line install - downloads, installs, and cleans up automatically
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
+
+# Install from a specific branch (e.g., for testing new features)
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing
+
+# Install from a specific branch with other options
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing --force
 ```
 
 **Manual Install**:

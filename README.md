@@ -9,9 +9,19 @@ A powerful, reusable configuration system for [Claude Code](https://claude.com/c
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 ```
 
+**Install from a specific branch:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing
+```
+
 **Clean reinstall (⚠️ overwrites important stuff):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --force
+```
+
+**Clean reinstall from a specific branch:**
+```bash
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing --force
 ```
 
 **Optional: Start monitoring dashboard** (requires [Bun](https://bun.sh)):
