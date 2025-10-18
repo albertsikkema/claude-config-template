@@ -7,6 +7,16 @@ FILENAME_TS=$(date '+%Y-%m-%d_%H-%M-%S')
 CURRENT_USER=$(whoami)
 CURRENT_PWD=$(pwd)
 
+# Generate UUID for this metadata instance
+if command -v uuidgen >/dev/null 2>&1; then
+  UUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
+else
+  # Fallback: generate a pseudo-UUID using date and random
+  UUID=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || \
+         printf '%08x-%04x-%04x-%04x-%012x' \
+         $RANDOM$RANDOM $RANDOM $RANDOM $RANDOM $RANDOM$RANDOM$RANDOM)
+fi
+
 if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   REPO_ROOT=$(git rev-parse --show-toplevel)
   REPO_NAME=$(basename "$REPO_ROOT")
@@ -62,6 +72,7 @@ if command -v humanlayer >/dev/null 2>&1; then
 fi
 
 # Print similar to the individual command outputs
+echo "UUID: $UUID"
 echo "Current Date/Time (TZ): $DATETIME_TZ"
 echo "Current User: $CURRENT_USER"
 echo "Current Working Directory: $CURRENT_PWD"
