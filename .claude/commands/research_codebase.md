@@ -19,14 +19,38 @@ Then wait for the user's research query.
    - **CRITICAL**: Read these files yourself in the main context before spawning any sub-tasks
    - This ensures you have full context before decomposing the research
 
-2. **Analyze and decompose the research question:**
+2. **Check for codebase indexes and scan them:**
+   - Check if `thoughts/codebase/` directory exists and contains index files
+   - Look for index files:
+     - `codebase_overview_*_py.md` - Python codebase indexes
+     - `codebase_overview_*_ts.md` - TypeScript codebase indexes
+     - `openapi.json` - FastAPI OpenAPI schema (if applicable)
+
+   **If indexes exist:**
+   - Use Grep to search index files for keywords from the research query
+   - Search for: function names, class names, component names, relevant terms
+   - Examples:
+     ```bash
+     grep -i "authentication\|login\|auth" thoughts/codebase/*.md
+     grep -i "class UserService\|def authenticate" thoughts/codebase/*.md
+     ```
+   - Extract specific file paths and line numbers from matches
+   - Note promising starting points: functions, classes, components
+   - **Time budget: <10 seconds** - this is a quick scan to target your agents
+
+   **If no indexes exist:**
+   - Skip to step 3 with broader search strategies
+   - Consider mentioning to user: "No codebase indexes found. For faster research in the future, consider running `/index_codebase`"
+
+3. **Analyze and decompose the research question:**
    - Break down the user's query into composable research areas
    - Take time to ultrathink about the underlying patterns, connections, and architectural implications the user might be seeking
+   - **Incorporate index findings:** Use file:line references from index scan to focus research
    - Identify specific components, patterns, or concepts to investigate
    - Create a research plan using TodoWrite to track all subtasks
    - Consider which directories, files, or architectural patterns are relevant
 
-3. **Spawn parallel sub-agent tasks for comprehensive research:**
+4. **Spawn parallel sub-agent tasks for comprehensive research:**
    - Create multiple Task agents to research different aspects concurrently
    - We now have specialized agents that know how to do specific research tasks:
 
@@ -35,9 +59,15 @@ Then wait for the user's research query.
    - This provides critical context about project goals, requirements, and current state
    - Helps understand WHY the code exists and what problems it solves
 
-   **For codebase research:**
+   **For targeted codebase research (when you have index hits):**
+   - Use the **codebase-analyzer** agent with SPECIFIC file:line references from indexes
+   - Example: "Analyze the authentication flow. Start at `auth/service.py:45` (UserService.authenticate method from index) and trace through the implementation and its dependencies."
+   - This makes the agent much faster and more focused
+   - Provide context from the index: function signatures, called-by relationships, etc.
+
+   **For exploratory codebase research (broader context or areas not in indexes):**
    - Use the **codebase-locator** agent to find WHERE files and components live
-   - Use the **codebase-analyzer** agent to understand HOW specific code works
+   - Use the **codebase-analyzer** agent to understand HOW specific code works (without specific starting points)
    - Use the **codebase-pattern-finder** agent if you need examples of similar implementations
    - Use the **technical-docs-researcher** agent to find all best practices and technical documentation for the libraries and workflows
 
@@ -55,13 +85,15 @@ Then wait for the user's research query.
 
    The key is to use these agents intelligently:
    - **Always start with project-context-analyzer** to understand project goals and context
+   - **When you have index hits:** Use targeted codebase-analyzer with specific file:line references
+   - **For broader context:** Use exploratory locator/pattern-finder agents
    - Use locator agents to find what exists in the codebase
    - Then use analyzer agents on the most promising findings
    - Run multiple agents in parallel when they're searching for different things
    - Each agent knows its job - just tell it what you're looking for
    - Don't write detailed prompts about HOW to search - the agents already know
 
-4. **Wait for all sub-agents to complete and synthesize findings:**
+5. **Wait for all sub-agents to complete and synthesize findings:**
    - IMPORTANT: Wait for ALL sub-agent tasks to complete before proceeding
    - Compile all sub-agent results (codebase, project context, and thoughts findings)
    - Start with project context to frame your understanding
@@ -74,7 +106,7 @@ Then wait for the user's research query.
    - Highlight patterns, connections, and architectural decisions
    - Answer the user's specific questions with concrete evidence
 
-5. **Gather metadata for the research document:**
+6. **Gather metadata for the research document:**
    - Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
    - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
@@ -85,7 +117,7 @@ Then wait for the user's research query.
        - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
        - Without ticket: `2025-01-08-authentication-flow.md`
 
-6. **Generate research document:**
+7. **Generate research document:**
    - Use the metadata gathered in step 4
    - Structure the document with YAML frontmatter followed by content:
      ```markdown
@@ -153,20 +185,20 @@ Then wait for the user's research query.
      [Any areas that need further investigation]
      ```
 
-7. **Add GitHub permalinks (if applicable):**
+8. **Add GitHub permalinks (if applicable):**
    - Check if on main branch or if commit is pushed: `git branch --show-current` and `git status`
    - If on main/master or pushed, generate GitHub permalinks:
      - Get repo info: `gh repo view --json owner,name`
      - Create permalinks: `https://github.com/{owner}/{repo}/blob/{commit}/{file}#L{line}`
    - Replace local file references with permalinks in the document
 
-8. **Sync and present findings:**
+9. **Sync and present findings:**
    - Run `humanlayer thoughts sync` to sync the thoughts directory
    - Present a concise summary of findings to the user
    - Include key file references for easy navigation
    - Ask if they have follow-up questions or need clarification
 
-9. **Handle follow-up questions:**
+10. **Handle follow-up questions:**
    - If the user has follow-up questions, append to the same research document
    - Update the frontmatter fields `last_updated` and `last_updated_by` to reflect the update
    - Add `last_updated_note: "Added follow-up research for [brief description]"` to frontmatter
@@ -175,6 +207,8 @@ Then wait for the user's research query.
    - Continue updating the document and syncing
 
 ## Important notes:
+- **Index-first approach:** When codebase indexes exist in `thoughts/codebase/`, scan them first (step 2) to identify specific file:line targets for your agents
+- **Targeted agent prompts:** Use index findings to make agent prompts specific (e.g., "Start at auth/service.py:45") instead of broad searches
 - **Always use project-context-analyzer first** to understand project goals and requirements
 - Always use parallel Task agents to maximize efficiency and minimize context usage
 - Always run fresh codebase research - never rely solely on existing research documents
