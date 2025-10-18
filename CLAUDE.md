@@ -86,8 +86,14 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 ```
 .claude/
 ├── agents/          # 11 specialized agents for different tasks
-├── commands/        # 8 slash commands for common workflows
+├── commands/        # 11 slash commands for common workflows
 └── settings.local.json  # Pre-approved tool permissions
+
+docs/                    # Helper script documentation
+├── README-fetch-docs.md     # Documentation fetcher guide
+├── README-indexers.md       # Codebase indexers guide
+├── README-fetch-openapi.md  # OpenAPI fetcher guide
+└── README-spec-metadata.md  # Metadata generator guide
 
 thoughts/
 ├── templates/       # Project documentation templates
@@ -107,6 +113,10 @@ thoughts/
 └── technical_docs/  # Technical documentation storage
 
 claude-helpers/      # Utility scripts for workflows
+├── index_python.py  # Python codebase indexer
+├── index_ts.py      # TypeScript codebase indexer
+├── index_go.py      # Go codebase indexer
+└── fetch-docs.py    # Documentation fetcher
 ```
 
 ### Agent System

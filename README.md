@@ -50,7 +50,7 @@ This is a **configuration template** that you install into your projects. It pro
 
 - **Complete development workflow** - Research → Plan → Implement → Rationalize ([see WORKFLOW.md](WORKFLOW.md))
 - **11 specialized AI agents** - Automated research, code analysis, and architecture design
-- **9 slash commands** - Streamlined workflows for common tasks
+- **11 slash commands** - Streamlined workflows for common tasks
 - **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -103,6 +103,8 @@ Monitoring dashboard:
 | `/commit` | Create well-formatted git commits |
 | `/describe_pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
+| `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
+| `/index_codebase` | Index Python/TypeScript/Go codebases |
 
 ### 📁 Directory Structure
 
@@ -112,9 +114,24 @@ After installation, you'll have:
 your-project/
 ├── .claude/
 │   ├── agents/              # 11 specialized agents
-│   ├── commands/            # 9 slash commands
+│   ├── commands/            # 11 slash commands
 │   ├── hooks/               # Observability hooks (if monitoring enabled)
 │   └── settings.json        # Configuration and hooks
+│
+├── docs/                    # Helper script documentation
+│   ├── README-fetch-docs.md     # Documentation fetcher guide
+│   ├── README-indexers.md       # Codebase indexers guide
+│   ├── README-fetch-openapi.md  # OpenAPI fetcher guide
+│   └── README-spec-metadata.md  # Metadata generator guide
+│
+├── claude-helpers/          # Utility scripts
+│   ├── README.md            # Scripts overview
+│   ├── index_python.py      # Python codebase indexer
+│   ├── index_ts.py          # TypeScript codebase indexer
+│   ├── index_go.py          # Go codebase indexer
+│   ├── fetch-docs.py        # Documentation fetcher
+│   ├── fetch_openapi.sh     # OpenAPI schema fetcher
+│   └── spec_metadata.sh     # Metadata generator
 │
 └── thoughts/
     ├── templates/           # Documentation templates
@@ -297,6 +314,34 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 - The installer automatically updates your project's `.gitignore` to exclude `.claude/`, `thoughts/`, and `claude-helpers/`
 - **Default behavior**: `.claude/` is always updated, `thoughts/` preserves existing content and adds missing directories
 - **With `--force`**: Completely replaces `thoughts/` directory, removing all plans, research, and project docs
+
+## 📚 Helper Scripts & Documentation
+
+This template includes several utility scripts in the `claude-helpers/` directory:
+
+- **Codebase Indexers**: Generate searchable markdown documentation
+  - `index_python.py` - Index Python codebases (functions, classes, models)
+  - `index_ts.py` - Index TypeScript/React codebases (components, functions, interfaces)
+  - `index_go.py` - Index Go codebases (structs, interfaces, functions)
+  - Use via `/index_codebase` slash command
+  - **📖 See [docs/README-indexers.md](docs/README-indexers.md) for detailed guide**
+
+- **Documentation Fetcher**: Download LLM-optimized documentation
+  - `fetch-docs.py` - Fetch documentation from context7.com
+  - Use via `/fetch_technical_docs` slash command
+  - **📖 See [docs/README-fetch-docs.md](docs/README-fetch-docs.md) for detailed guide**
+
+- **OpenAPI Fetcher**: Extract API schemas from FastAPI
+  - `fetch_openapi.sh` - Fetch OpenAPI/Swagger schemas
+  - Auto-invoked via `/index_codebase` when FastAPI detected
+  - **📖 See [docs/README-fetch-openapi.md](docs/README-fetch-openapi.md) for detailed guide**
+
+- **Metadata Generator**: Capture development context
+  - `spec_metadata.sh` - Generate comprehensive metadata
+  - Used in plans, research, and ADRs
+  - **📖 See [docs/README-spec-metadata.md](docs/README-spec-metadata.md) for detailed guide**
+
+**📖 Full scripts overview: [claude-helpers/README.md](claude-helpers/README.md)**
 
 ## 📚 Complete Development Workflow
 
