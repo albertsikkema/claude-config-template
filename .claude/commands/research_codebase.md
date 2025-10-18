@@ -123,6 +123,7 @@ Then wait for the user's research query.
      ```markdown
      ---
      date: [Current date and time with timezone in ISO format]
+     file-id: [UUID]
      researcher: [Researcher name from thoughts status]
      git_commit: [Current commit hash]
      branch: [Current branch name]
