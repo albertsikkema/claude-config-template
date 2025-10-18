@@ -303,10 +303,67 @@ def find_matching_paren(source, start_pos):
     return pos - 1 if count == 0 else -1
 
 
-def generate_markdown(codebase_info, output_file):
+def generate_file_tree(directory, codebase_info):
+    """Generate a visual tree structure of TypeScript/TSX files in the codebase."""
+    # Directories to skip (same as in extract_typescript_info)
+    skip_dirs = {
+        'node_modules', '.git', 'dist', 'build',
+        '.cache', 'coverage', '.next', '.nuxt'
+    }
+
+    tree_lines = []
+    base_path = os.path.abspath(directory)
+    base_name = os.path.basename(base_path) or base_path
+
+    # Create tree structure
+    def build_tree(current_dir, prefix="", is_last=True):
+        """Recursively build tree structure."""
+        try:
+            entries = sorted(os.listdir(current_dir))
+        except PermissionError:
+            return
+
+        # Filter out skip_dirs and hidden files
+        dirs = [e for e in entries if os.path.isdir(os.path.join(current_dir, e))
+                and e not in skip_dirs and not e.startswith('.')]
+        files = [e for e in entries if os.path.isfile(os.path.join(current_dir, e))
+                 and e.endswith(('.ts', '.tsx'))]
+
+        # Combine and sort: directories first, then files
+        all_entries = [(d, True) for d in dirs] + [(f, False) for f in files]
+
+        for idx, (entry, is_dir) in enumerate(all_entries):
+            is_last_entry = idx == len(all_entries) - 1
+            entry_path = os.path.join(current_dir, entry)
+
+            # Determine connector
+            connector = "└── " if is_last_entry else "├── "
+            tree_lines.append(f"{prefix}{connector}{entry}{'/' if is_dir else ''}")
+
+            # Recurse into directories
+            if is_dir:
+                extension = "    " if is_last_entry else "│   "
+                build_tree(entry_path, prefix + extension, is_last_entry)
+
+    # Start with root
+    tree_lines.append(f"{base_name}/")
+    build_tree(base_path, "", True)
+
+    return "\n".join(tree_lines)
+
+
+def generate_markdown(codebase_info, output_file, directory):
     """Generate a Markdown file with TypeScript codebase overview."""
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write("# TypeScript/React Codebase Overview\n\n")
+
+        # Generate file tree
+        f.write("## File Tree\n\n")
+        f.write("```\n")
+        tree = generate_file_tree(directory, codebase_info)
+        f.write(tree)
+        f.write("\n```\n\n")
+        f.write("---\n\n")
 
         # Generate table of contents
         f.write("## Table of Contents\n\n")
@@ -453,7 +510,7 @@ Note: Both relative paths (./dir, ../dir) and absolute paths (/path/to/dir) are 
     extracted_info = extract_typescript_info(args.directory)
 
     # Create Markdown file
-    generate_markdown(extracted_info, args.output)
+    generate_markdown(extracted_info, args.output, args.directory)
     print(f"Found {len(extracted_info)} TypeScript files")
 
 
