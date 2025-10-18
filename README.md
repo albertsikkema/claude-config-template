@@ -48,13 +48,16 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 This is a **configuration template** that you install into your projects. It provides:
 
+- **Complete development workflow** - Research → Plan → Implement → Rationalize ([see WORKFLOW.md](WORKFLOW.md))
 - **11 specialized AI agents** - Automated research, code analysis, and architecture design
-- **8 slash commands** - Streamlined workflows for common tasks
+- **9 slash commands** - Streamlined workflows for common tasks
 - **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
 
 Think of it as a **productivity multiplier** for Claude Code - install once, benefit forever.
+
+**📖 New to this template? Start with [WORKFLOW.md](WORKFLOW.md) for the complete development workflow guide.**
 
 Partly based on/ inspired by:
 - https://github.com/humanlayer/humanlayer
@@ -95,7 +98,8 @@ Monitoring dashboard:
 | `/research_codebase` | Deep codebase investigation |
 | `/create_plan` | Interactive implementation planning |
 | `/implement_plan` | Execute approved plans |
-| `/validate_plan` | Validate implementation plans |
+| `/validate_plan` | Validate implementation correctness |
+| `/rationalize` | Rationalize implementation and update docs |
 | `/commit` | Create well-formatted git commits |
 | `/describe_pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
@@ -108,12 +112,13 @@ After installation, you'll have:
 your-project/
 ├── .claude/
 │   ├── agents/              # 11 specialized agents
-│   ├── commands/            # 8 slash commands
+│   ├── commands/            # 9 slash commands
 │   ├── hooks/               # Observability hooks (if monitoring enabled)
 │   └── settings.json        # Configuration and hooks
 │
 └── thoughts/
     ├── templates/           # Documentation templates
+    │   ├── adr.md.template
     │   ├── project.md.template
     │   ├── musthaves.md.template
     │   ├── shouldhaves.md.template
@@ -125,6 +130,8 @@ your-project/
     └── shared/
         ├── plans/           # Implementation plans
         ├── research/        # Research documents
+        ├── adrs/            # Architecture Decision Records
+        ├── rationalization/ # Ephemeral working docs (auto-deleted)
         └── project/         # Project documentation
             └── epics/       # Epic planning
 ```
@@ -291,94 +298,51 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 - **Default behavior**: `.claude/` is always updated, `thoughts/` preserves existing content and adds missing directories
 - **With `--force`**: Completely replaces `thoughts/` directory, removing all plans, research, and project docs
 
-## 📚 How to Use
+## 📚 Complete Development Workflow
 
-### 1. Create Project Documentation
+This template provides a systematic **Research → Plan → Implement → Rationalize** workflow based on "Faking a Rational Design Process in the AI Era".
 
-Start by documenting your project:
+**📖 See [WORKFLOW.md](WORKFLOW.md) for the complete guide** covering:
 
-```bash
-# Create complete documentation
-You: /project Create full documentation for my task management SaaS
+- **Phase 0**: Index Codebase (optional but recommended)
+- **Phase 1**: Project Setup (one-time)
+- **Phase 2**: Research
+- **Phase 3**: Plan
+- **Phase 4**: Implement
+- **Phase 5**: Validate
+- **Phase 6**: Rationalize (MANDATORY)
+- **Phase 7**: Commit & PR
 
-# Or create specific docs
-You: /project Document my MVP requirements
-You: /project Create an epic for user authentication
-```
-
-**Result**: Customized documentation in `thoughts/shared/project/`
-
-### 2. Research Your Codebase
-
-Deep dive into your code:
+### Quick Start Example
 
 ```bash
-You: /research_codebase how does authentication work?
-```
+# 1. Index your codebase (optional but makes research faster)
+You: /index_codebase
 
-**Result**: Comprehensive research saved to `thoughts/shared/research/YYYY-MM-DD-topic.md`
-
-### 3. Plan Implementation
-
-Create detailed implementation plans:
-
-```bash
-You: /create_plan add OAuth support based on the authentication research
-```
-
-**Result**: Interactive planning session → plan saved to `thoughts/shared/plans/YYYY-MM-DD-feature.md`
-
-### 4. Execute the Plan
-
-Implement your approved plan:
-
-```bash
-You: /implement_plan thoughts/shared/plans/2025-10-14-oauth-support.md
-```
-
-**Result**: Step-by-step implementation with progress tracking
-
-### 5. Commit & Review
-
-Create quality commits and PRs:
-
-```bash
-# Create a commit
-You: /commit
-
-# Generate PR description
-You: /describe_pr
-
-# Review code quality
-You: /code_reviewer
-```
-
-## 🔄 Complete Workflow Example
-
-Here's a real-world workflow from idea to implementation:
-
-```bash
-# 1. Document your project (one-time setup)
+# 2. Document your project (one-time setup)
 You: /project Create full docs for my e-commerce platform
 
-# 2. Research existing implementation
+# 3. Research before building
 You: /research_codebase payment processing flow
 
-# 3. Create implementation plan
+# 4. Create implementation plan
 You: /create_plan add Stripe payment integration
 
-# 4. Implement the plan
+# 5. Implement the plan
 You: /implement_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
 
-# 5. Review the changes
-You: /code_reviewer
+# 6. Validate implementation
+You: /validate_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
 
-# 6. Create commit
+# 7. Rationalize (MANDATORY - updates docs with clean narrative)
+You: /rationalize thoughts/shared/plans/2025-10-14-stripe-integration.md
+
+# 8. Commit and create PR
 You: /commit
-
-# 7. Generate PR description
 You: /describe_pr
 ```
+
+**👉 Read [WORKFLOW.md](WORKFLOW.md) for detailed explanations, examples, and best practices.**
 
 ## 📝 File Naming Conventions
 
@@ -399,6 +363,12 @@ thoughts/shared/project/technical-todos.md
 ```
 thoughts/shared/project/epics/epic-authentication.md
 thoughts/shared/project/epics/epic-payment-processing.md
+```
+
+**ADRs**: Sequential numbering as `NNN-decision-title.md`
+```
+thoughts/shared/adrs/001-use-optimistic-locking.md
+thoughts/shared/adrs/002-cache-invalidation-strategy.md
 ```
 
 ## 🎨 Customization
@@ -467,13 +437,14 @@ Edit `.claude/settings.json`:
 
 ## 🌟 Key Features Explained
 
-### Research → Plan → Implement Pattern
+### Research → Plan → Implement → Rationalize Pattern
 
-The core workflow that ensures quality:
+The core workflow ensures quality and preserves knowledge:
 
 1. **Research**: Understand before building
 2. **Plan**: Design before coding
 3. **Implement**: Execute with clarity
+4. **Rationalize**: Clean up the narrative (see [WORKFLOW.md](WORKFLOW.md))
 
 ### Intelligent Agents
 
@@ -489,6 +460,7 @@ Templates help you maintain:
 - **Requirements** - Must-haves vs. should-haves
 - **Technical TODOs** - Track technical debt
 - **Epics** - Plan major features
+- **ADRs** - Architecture Decision Records
 
 ## 📖 Real-World Examples
 
@@ -552,11 +524,12 @@ For questions or larger contributions, contact: license@albertsikkema.com
 
 ## 💡 Tips & Best Practices
 
-1. **Start with documentation** - Use `/project` to document your project first
-2. **Research before planning** - Always understand before building
-3. **Use agents explicitly** - Don't wait for automatic invocation
-4. **Keep docs updated** - Update project docs as you evolve
-5. **Review permissions** - Audit `settings.local.json` regularly
+1. **Follow the workflow** - See [WORKFLOW.md](WORKFLOW.md) for the complete process
+2. **Index first** - Run `/index_codebase` before research for faster results
+3. **Research before planning** - Always understand before building
+4. **Never skip rationalization** - It preserves knowledge for future AI sessions
+5. **Create meaningful ADRs** - Document significant decisions, not everything
+6. **Review permissions** - Audit `settings.local.json` regularly
 
 ## 📊 Version
 
@@ -616,10 +589,10 @@ After installation:
 - [ ] Verify installation: Check `.claude/` and `thoughts/` directories exist
 - [ ] Review `.claude/settings.json` permissions
 - [ ] **(Optional)** Start monitoring dashboard: `./start-monitoring.sh`
+- [ ] **Read [WORKFLOW.md](WORKFLOW.md)** to understand the complete process
+- [ ] Run `/index_codebase` to create searchable indexes (optional but recommended)
 - [ ] Run `/project` to document your project (if command not found, see troubleshooting)
-- [ ] Try `/research_codebase` on a feature
-- [ ] Explore available agents (agents are invoked automatically or explicitly)
-- [ ] Create your first plan with `/create_plan`
+- [ ] Follow the workflow: Research → Plan → Implement → Validate → Rationalize → PR
 - [ ] Add project-specific agents if needed
 - [ ] Share with your team!
 

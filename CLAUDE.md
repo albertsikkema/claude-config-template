@@ -91,6 +91,7 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 
 thoughts/
 ├── templates/       # Project documentation templates
+│   ├── adr.md.template
 │   ├── epics.md.template
 │   ├── musthaves.md.template
 │   ├── project.md.template
@@ -99,6 +100,8 @@ thoughts/
 ├── shared/
 │   ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md)
 │   ├── research/    # Research documents (dated: YYYY-MM-DD-*.md)
+│   ├── adrs/        # Architecture Decision Records (NNN-title.md)
+│   ├── rationalization/  # Ephemeral working docs (deleted after rationalization)
 │   └── project/     # Project documentation (created by /project)
 │       └── epics/   # Epic documents
 └── technical_docs/  # Technical documentation storage
@@ -139,7 +142,8 @@ Available commands (use `/` prefix in Claude Code):
 **Planning & Implementation:**
 - `/create_plan` - Interactive implementation plan creation (saves to `thoughts/shared/plans/`)
 - `/implement_plan <path>` - Execute an approved plan file
-- `/validate_plan <path>` - Validate a plan before implementation
+- `/validate_plan <path>` - Validate implementation correctness
+- `/rationalize <path>` - Rationalize implementation and update documentation
 
 **Research:**
 - `/research_codebase` - Comprehensive codebase investigation (saves to `thoughts/shared/research/`)
@@ -172,9 +176,9 @@ The command creates documentation such as:
 
 Templates are stored in `thoughts/templates/` and remain unchanged.
 
-### Research → Plan → Implement Pattern
+### Research → Plan → Implement → Rationalize Pattern
 
-This is the primary workflow pattern:
+This is the primary workflow pattern, based on "Faking a Rational Design Process in the AI Era":
 
 1. **Research**: Use `/research_codebase <topic>` to investigate
    - Spawns parallel agents to analyze codebase
@@ -187,6 +191,40 @@ This is the primary workflow pattern:
 3. **Implement**: Use `/implement_plan thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
    - Executes the approved plan step-by-step
    - Can resume if interrupted
+
+4. **Validate**: Use `/validate_plan thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
+   - Verifies implementation correctness
+   - Runs automated tests and checks
+   - Identifies deviations from plan
+
+5. **Rationalize** (MANDATORY): Use `/rationalize thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
+   - Analyzes what actually happened vs. what was planned
+   - Updates plan to show final approach as if it was always intended
+   - Creates ADRs for significant decisions
+   - Updates CLAUDE.md with new patterns/conventions
+   - Documents rejected alternatives
+   - **Key principle**: Present clean narrative, not messy discovery process
+
+6. **Commit & PR**: Use `/commit` and `/describe_pr`
+   - Create well-formatted commits
+   - Generate comprehensive PR description
+
+#### Why Rationalization Matters
+
+From Parnas & Clements (1986): Documentation should show the cleaned-up, rationalized version of what happened, not the messy discovery process.
+
+**For AI-assisted development:**
+- AI assistants have no memory between sessions
+- Documentation becomes the "single source of truth"
+- Without rationalized docs, design decisions get lost
+- Prevents the codebase from becoming a patchwork of different "styles"
+
+**Rationalization ensures:**
+- Plans reflect reality (what was actually built)
+- Decisions are documented (ADRs with rationale)
+- Patterns are captured (CLAUDE.md updates)
+- Rejected alternatives are recorded (prevents re-exploration)
+- Future AI sessions have proper context
 
 ### File Naming Conventions
 
@@ -204,6 +242,12 @@ This is the primary workflow pattern:
 - Saved in `thoughts/shared/project/epics/`
 - Format: `epic-[name].md`
 - Examples: `epic-authentication.md`, `epic-payment-processing.md`
+
+**ADRs (Architecture Decision Records):**
+- Saved in `thoughts/shared/adrs/`
+- Format: `NNN-decision-title.md` (sequential numbering)
+- Examples: `001-use-optimistic-locking.md`, `002-cache-invalidation-strategy.md`
+- Created during `/rationalize` workflow
 
 **Documentation Templates:**
 - Stored in `thoughts/templates/` with `.template` extension
