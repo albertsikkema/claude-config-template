@@ -7,7 +7,7 @@ from pathlib import Path
 # Directories to skip during indexing (only directories that might contain .go files)
 SKIP_DIRS = {
     # Dependencies (contain library .go files we don't want to index)
-    'vendor', 'third_party',
+    'vendor', 'third_party', 'node_modules',
     # Version control
     '.git', '.svn', '.hg',
     # Build outputs (contain compiled/generated files)
