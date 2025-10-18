@@ -210,274 +210,268 @@ After structure approval:
 3. **Generate research document:**
    - Use the metadata gathered in step 2
    - Structure the document with YAML frontmatter followed by content:
-     ```markdown
-     ---
-     date: [Current date and time with timezone in ISO format from step 2]
-     file-id: [UUID from step 2]
-     parentfile-id: [file-id from frontmatter research file]
-     claude-sessionid: [claude-sessionid from step 2]
-     researcher: [Researcher name from thoughts status]
-     git_commit: [Current commit hash from step 2]
-     branch: [Current branch name from step 2]
-     repository: [Repository name from step 2]
-     topic: "[User's Question/Topic]"
-     tags: [research, codebase, relevant-component-names]
-     status: complete
-     last_updated: [Current date in YYYY-MM-DD HH:mm format]
-     last_updated_by: [Researcher name]
-     ---
+   ````markdown
+   ---
+   date: [Current date and time with timezone in ISO format from step 2]
+   file-id: [UUID from step 2]
+   parentfile-id: [file-id from frontmatter research file]
+   claude-sessionid: [claude-sessionid from step 2]
+   researcher: [Researcher name from thoughts status]
+   git_commit: [Current commit hash from step 2]
+   branch: [Current branch name from step 2]
+   repository: [Repository name from step 2]
+   topic: "[User's Question/Topic]"
+   tags: [research, codebase, relevant-component-names]
+   status: complete
+   last_updated: [Current date in YYYY-MM-DD HH:mm format]
+   last_updated_by: [Researcher name]
+   ---
+   
 
-````markdown
+   # [Feature/Task Name] Implementation Plan
 
-# [Feature/Task Name] Implementation Plan
+   ## Overview
 
-## Overview
+   [Brief description of what we're implementing and why]
 
-[Brief description of what we're implementing and why]
+   ## Current State Analysis
 
-## Current State Analysis
+   [What exists now, what's missing, key constraints discovered]
 
-[What exists now, what's missing, key constraints discovered]
+   ## Desired End State
 
-## Desired End State
+   [A Specification of the desired end state after this plan is complete, and how to verify it]
 
-[A Specification of the desired end state after this plan is complete, and how to verify it]
+   ### Key Discoveries:
+   - [Important finding with file:line reference]
+   - [Pattern to follow]
+   - [Constraint to work within]
 
-### Key Discoveries:
-- [Important finding with file:line reference]
-- [Pattern to follow]
-- [Constraint to work within]
+   ## What We're NOT Doing
 
-## What We're NOT Doing
+   [Explicitly list out-of-scope items to prevent scope creep]
 
-[Explicitly list out-of-scope items to prevent scope creep]
+   ## Implementation Approach
 
-## Implementation Approach
+   [High-level strategy and reasoning]
 
-[High-level strategy and reasoning]
+   ## Phase 1: [Descriptive Name]
 
-## Phase 1: [Descriptive Name]
+   ### Overview
+   [What this phase accomplishes]
 
-### Overview
-[What this phase accomplishes]
+   ### Changes Required:
 
-### Changes Required:
+   #### 1. [Component/File Group]
+   **File**: `path/to/file.ext`
+   **Changes**: [Summary of changes]
 
-#### 1. [Component/File Group]
-**File**: `path/to/file.ext`
-**Changes**: [Summary of changes]
-
-```[language]
-// Specific code to add/modify
-```
-
-### Success Criteria:
-
-#### Automated Verification:
-- [ ] Migration applies cleanly: `make migrate`
-- [ ] Unit tests pass: `make test-component`
-- [ ] Type checking passes: `npm run typecheck`
-- [ ] Linting passes: `make lint`
-- [ ] Integration tests pass: `make test-integration`
-
-#### Manual Verification:
-- [ ] Feature works as expected when tested via UI
-- [ ] Performance is acceptable under load
-- [ ] Edge case handling verified manually
-- [ ] No regressions in related features
-
----
-
-## Phase 2: [Descriptive Name]
-
-[Similar structure with both automated and manual success criteria...]
-
----
-
-## Testing Strategy
-
-### Unit Tests:
-- [What to test]
-- [Key edge cases]
-
-### Integration Tests:
-- [End-to-end scenarios]
-
-### Manual Testing Steps:
-1. [Specific step to verify feature]
-2. [Another verification step]
-3. [Edge case to test manually]
-
-## Performance Considerations
-
-[Any performance implications or optimizations needed]
-
-## Migration Notes
-
-[If applicable, how to handle existing data/systems]
-
-## References
-
-- Original ticket: `thoughts/allison/tickets/eng_XXXX.md`
-- Related research: `thoughts/shared/research/[relevant].md`
-- Similar implementation: `[file:line]`
-````
-
-### Step 5: Sync and Review
-
-1. **Sync the thoughts directory**:
-   - Run `humanlayer thoughts sync` to sync the newly created plan
-   - This ensures the plan is properly indexed and available
-
-2. **Present the draft plan location**:
-   ```
-   I've created the initial implementation plan at:
-   `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
-
-   Please review it and let me know:
-   - Are the phases properly scoped?
-   - Are the success criteria specific enough?
-   - Any technical details that need adjustment?
-   - Missing edge cases or considerations?
+   ```[language]
+   // Specific code to add/modify
    ```
 
-3. **Iterate based on feedback** - be ready to:
-   - Add missing phases
-   - Adjust technical approach
-   - Clarify success criteria (both automated and manual)
-   - Add/remove scope items
-   - After making changes, run `humanlayer thoughts sync` again
+   ### Success Criteria:
 
-4. **Continue refining** until the user is satisfied
+   #### Automated Verification:
+   - [ ] Migration applies cleanly: `make migrate`
+   - [ ] Unit tests pass: `make test-component`
+   - [ ] Type checking passes: `npm run typecheck`
+   - [ ] Linting passes: `make lint`
+   - [ ] Integration tests pass: `make test-integration`
 
-## Important Guidelines
+   #### Manual Verification:
+   - [ ] Feature works as expected when tested via UI
+   - [ ] Performance is acceptable under load
+   - [ ] Edge case handling verified manually
+   - [ ] No regressions in related features
 
-1. **Be Skeptical**:
-   - Question vague requirements
-   - Identify potential issues early
-   - Ask "why" and "what about"
-   - Don't assume - verify with code
+   ---
 
-2. **Be Interactive**:
-   - Don't write the full plan in one shot
-   - Get buy-in at each major step
-   - Allow course corrections
-   - Work collaboratively
+   ## Phase 2: [Descriptive Name]
 
-3. **Be Thorough**:
-   - Read all context files COMPLETELY before planning
-   - Research actual code patterns using parallel sub-tasks
-   - Include specific file paths and line numbers
-   - Write measurable success criteria with clear automated vs manual distinction
-   - automated steps should use `make` whenever possible - for example `make -C humanlayer-wui check` instead of `cd humanlayer-wui && bun run fmt`
+   [Similar structure with both automated and manual success criteria...]
 
-4. **Be Practical**:
-   - Focus on incremental, testable changes
-   - Consider migration and rollback
-   - Think about edge cases
-   - Include "what we're NOT doing"
+   ---
 
-5. **Track Progress**:
-   - Use TodoWrite to track planning tasks
-   - Update todos as you complete research
-   - Mark planning tasks complete when done
+   ## Testing Strategy
 
-6. **No Open Questions in Final Plan**:
-   - If you encounter open questions during planning, STOP
-   - Research or ask for clarification immediately
-   - Do NOT write the plan with unresolved questions
-   - The implementation plan must be complete and actionable
-   - Every decision must be made before finalizing the plan
+   ### Unit Tests:
+   - [What to test]
+   - [Key edge cases]
 
-## Success Criteria Guidelines
+   ### Integration Tests:
+   - [End-to-end scenarios]
 
-**Always separate success criteria into two categories:**
+   ### Manual Testing Steps:
+   1. [Specific step to verify feature]
+   2. [Another verification step]
+   3. [Edge case to test manually]
 
-1. **Automated Verification** (can be run by execution agents):
-   - Commands that can be run: `make test`, `npm run lint`, etc.
-   - Specific files that should exist
-   - Code compilation/type checking
-   - Automated test suites
+   ## Performance Considerations
 
-2. **Manual Verification** (requires human testing):
-   - UI/UX functionality
-   - Performance under real conditions
-   - Edge cases that are hard to automate
-   - User acceptance criteria
+   [Any performance implications or optimizations needed]
 
-**Format example:**
-```markdown
-### Success Criteria:
+   ## Migration Notes
 
-#### Automated Verification:
-- [ ] Database migration runs successfully: `make migrate`
-- [ ] All unit tests pass: `go test ./...`
-- [ ] No linting errors: `golangci-lint run`
-- [ ] API endpoint returns 200: `curl localhost:8080/api/new-endpoint`
+   [If applicable, how to handle existing data/systems]
 
-#### Manual Verification:
-- [ ] New feature appears correctly in the UI
-- [ ] Performance is acceptable with 1000+ items
-- [ ] Error messages are user-friendly
-- [ ] Feature works correctly on mobile devices
-```
+   ## References
 
-## Common Patterns
+   - Original ticket: `thoughts/allison/tickets/eng_XXXX.md`
+   - Related research: `thoughts/shared/research/[relevant].md`
+   - Similar implementation: `[file:line]`
+   ````
 
-### For Database Changes:
-- Start with schema/migration
-- Add store methods
-- Update business logic
-- Expose via API
-- Update clients
+   ### Step 5: Sync and Review
 
-### For New Features:
-- Research existing patterns first
-- Start with data model
-- Build backend logic
-- Add API endpoints
-- Implement UI last
+    1. **Present the draft plan location**:
+      ```
+      I've created the initial implementation plan at:
+      `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
 
-### For Refactoring:
-- Document current behavior
-- Plan incremental changes
-- Maintain backwards compatibility
-- Include migration strategy
+      Please review it and let me know:
+      - Are the phases properly scoped?
+      - Are the success criteria specific enough?
+      - Any technical details that need adjustment?
+      - Missing edge cases or considerations?
+      ```
 
-## Sub-task Spawning Best Practices
+   2. **Iterate based on feedback** - be ready to:
+      - Add missing phases
+      - Adjust technical approach
+      - Clarify success criteria (both automated and manual)
+      - Add/remove scope items
 
-When spawning research sub-tasks:
+   3. **Continue refining** until the user is satisfied
 
-1. **Spawn multiple tasks in parallel** for efficiency
-2. **Each task should be focused** on a specific area
-3. **Provide detailed instructions** including:
-   - Exactly what to search for
-   - Which directories to focus on
-   - What information to extract
-   - Expected output format
-4. **Be EXTREMELY specific about directories**:
-   - If the ticket mentions "WUI", specify `humanlayer-wui/` directory
-   - If it mentions "daemon", specify `hld/` directory
-   - Never use generic terms like "UI" when you mean "WUI"
-   - Include the full path context in your prompts
-5. **Specify read-only tools** to use
-6. **Request specific file:line references** in responses
-7. **Wait for all tasks to complete** before synthesizing
-8. **Verify sub-task results**:
-   - If a sub-task returns unexpected results, spawn follow-up tasks
-   - Cross-check findings against the actual codebase
-   - Don't accept results that seem incorrect
+   ## Important Guidelines
 
-Example of spawning multiple tasks:
-```python
-# Spawn these tasks concurrently:
-tasks = [
-    Task("Research database schema", db_research_prompt),
-    Task("Find API patterns", api_research_prompt),
-    Task("Investigate UI components", ui_research_prompt),
-    Task("Check test patterns", test_research_prompt)
-]
-```
+   1. **Be Skeptical**:
+      - Question vague requirements
+      - Identify potential issues early
+      - Ask "why" and "what about"
+      - Don't assume - verify with code
+
+   2. **Be Interactive**:
+      - Don't write the full plan in one shot
+      - Get buy-in at each major step
+      - Allow course corrections
+      - Work collaboratively
+
+   3. **Be Thorough**:
+      - Read all context files COMPLETELY before planning
+      - Research actual code patterns using parallel sub-tasks
+      - Include specific file paths and line numbers
+      - Write measurable success criteria with clear automated vs manual distinction
+ 
+
+   4. **Be Practical**:
+      - Focus on incremental, testable changes
+      - Consider migration and rollback
+      - Think about edge cases
+      - Include "what we're NOT doing"
+
+   5. **Track Progress**:
+      - Use TodoWrite to track planning tasks
+      - Update todos as you complete research
+      - Mark planning tasks complete when done
+
+   6. **No Open Questions in Final Plan**:
+      - If you encounter open questions during planning, STOP
+      - Research or ask for clarification immediately
+      - Do NOT write the plan with unresolved questions
+      - The implementation plan must be complete and actionable
+      - Every decision must be made before finalizing the plan
+
+   ## Success Criteria Guidelines
+
+   **Always separate success criteria into two categories:**
+
+   1. **Automated Verification** (can be run by execution agents):
+      - Commands that can be run: `make test`, `npm run lint`, etc.
+      - Specific files that should exist
+      - Code compilation/type checking
+      - Automated test suites
+
+   2. **Manual Verification** (requires human testing):
+      - UI/UX functionality
+      - Performance under real conditions
+      - Edge cases that are hard to automate
+      - User acceptance criteria
+
+   **Format example:**
+   ```markdown
+   ### Success Criteria:
+
+   #### Automated Verification:
+   - [ ] Database migration runs successfully: `make migrate`
+   - [ ] All unit tests pass: `go test ./...`
+   - [ ] No linting errors: `golangci-lint run`
+   - [ ] API endpoint returns 200: `curl localhost:8080/api/new-endpoint`
+
+   #### Manual Verification:
+   - [ ] New feature appears correctly in the UI
+   - [ ] Performance is acceptable with 1000+ items
+   - [ ] Error messages are user-friendly
+   - [ ] Feature works correctly on mobile devices
+   ```
+
+   ## Common Patterns
+
+   ### For Database Changes:
+   - Start with schema/migration
+   - Add store methods
+   - Update business logic
+   - Expose via API
+   - Update clients
+
+   ### For New Features:
+   - Research existing patterns first
+   - Start with data model
+   - Build backend logic
+   - Add API endpoints
+   - Implement UI last
+
+   ### For Refactoring:
+   - Document current behavior
+   - Plan incremental changes
+   - Maintain backwards compatibility
+   - Include migration strategy
+
+   ## Sub-task Spawning Best Practices
+
+   When spawning research sub-tasks:
+
+   1. **Spawn multiple tasks in parallel** for efficiency
+   2. **Each task should be focused** on a specific area
+   3. **Provide detailed instructions** including:
+      - Exactly what to search for
+      - Which directories to focus on
+      - What information to extract
+      - Expected output format
+   4. **Be EXTREMELY specific about directories**:
+      - If the ticket mentions "WUI", specify `wui/` directory
+      - If it mentions "daemon", specify `dmn/` directory
+      - Never use generic terms like "UI" when you mean "WUI"
+      - Include the full path context in your prompts
+   5. **Specify read-only tools** to use
+   6. **Request specific file:line references** in responses
+   7. **Wait for all tasks to complete** before synthesizing
+   8. **Verify sub-task results**:
+      - If a sub-task returns unexpected results, spawn follow-up tasks
+      - Cross-check findings against the actual codebase
+      - Don't accept results that seem incorrect
+
+   Example of spawning multiple tasks:
+   ```python
+   # Spawn these tasks concurrently:
+   tasks = [
+      Task("Research database schema", db_research_prompt),
+      Task("Find API patterns", api_research_prompt),
+      Task("Investigate UI components", ui_research_prompt),
+      Task("Check test patterns", test_research_prompt)
+   ]
+   ```
 
 ## Example Interaction Flow
 
