@@ -97,18 +97,58 @@ For each code submission, provide:
 
 ## File Saving Instructions
 
-**IMPORTANT**: After completing each review, save it as a markdown file in the `/reviews` directory with the following naming convention:
+**IMPORTANT**: After completing each review, follow these steps to save the review:
 
-- **Format**: `YYYYMMDDhhmmss_review.md`
-- **Example**: `20240627143022_review.md` (for June 27, 2024, 2:30:22 PM)
+### Step 1: Gather Metadata
 
-Include the following metadata at the top of each review file:
+Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata:
+```bash
+./claude-helpers/spec_metadata.sh
+```
+
+This will provide:
+- Current date and time with timezone (ISO format)
+- Unique file ID (UUID)
+- Claude session ID
+- Git commit hash
+- Current branch name
+- Repository name
+
+### Step 2: Save the Review
+
+Save the review as a markdown file in `thoughts/shared/reviews/` with the following naming convention:
+
+- **Format**: `code-review-YYYY-MM-DD.md` or `code-review-YYYY-MM-DD-ENG-XXXX.md` (with ticket)
+- **Example**: `code-review-2025-01-19.md` or `code-review-2025-01-19-ENG-1234.md`
+
+### Step 3: Structure the Review with Frontmatter
+
+Include YAML frontmatter at the top with metadata from step 1:
 
 ```markdown
+---
+date: [Current date and time with timezone in ISO format from step 1]
+file-id: [UUID from step 1]
+claude-sessionid: [claude-sessionid from step 1]
+reviewer: [Reviewer name from thoughts status]
+git_commit: [Current commit hash from step 1]
+branch: [Current branch name from step 1]
+repository: [Repository name from step 1]
+files_reviewed: [List of files/components reviewed]
+review_type: code_review
+tags: [code-review, quality, security, performance]
+status: complete
+last_updated: [Current date in YYYY-MM-DD HH:mm format]
+last_updated_by: [Reviewer name]
+---
+
 # Code Review
 
-**Date**: [Full date and time]
-**Reviewer**: Code Review Assistant
+**Date**: [Current date and time with timezone from step 1]
+**Reviewer**: [Reviewer name from thoughts status]
+**Git Commit**: [Current commit hash from step 1]
+**Branch**: [Current branch name from step 1]
+**Repository**: [Repository name]
 **Files Reviewed**: [List of files/components reviewed]
 
 ---

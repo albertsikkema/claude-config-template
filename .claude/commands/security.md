@@ -184,9 +184,57 @@ Examine architectural and coding security:
 
 ### Deliverables
 
-#### **Comprehensive Review Report**:
+#### **Step 1: Gather Metadata**
 
-Save consolidated findings to `thoughts/shared/reviews/security-analysis-YYYY-MM-DD.md` with the following structure:
+Before creating the report, run `claude-helpers/spec_metadata.sh` to generate all relevant metadata:
+```bash
+./claude-helpers/spec_metadata.sh
+```
+
+This provides:
+- Current date and time with timezone (ISO format)
+- Unique file ID (UUID)
+- Claude session ID
+- Git commit hash
+- Current branch name
+- Repository name
+
+#### **Step 2: Comprehensive Review Report**:
+
+Save consolidated findings to `thoughts/shared/reviews/security-analysis-YYYY-MM-DD.md` (or `security-analysis-YYYY-MM-DD-ENG-XXXX.md` with ticket).
+
+**Document Structure** - Include YAML frontmatter followed by report content:
+
+```markdown
+---
+date: [Current date and time with timezone in ISO format from step 1]
+file-id: [UUID from step 1]
+claude-sessionid: [claude-sessionid from step 1]
+reviewer: [Reviewer name from thoughts status]
+git_commit: [Current commit hash from step 1]
+branch: [Current branch name from step 1]
+repository: [Repository name from step 1]
+review_type: security_analysis
+security_rating: [EXCELLENT | GOOD | NEEDS IMPROVEMENT | POOR]
+tags: [security, code-review, analysis, vulnerability-assessment]
+status: complete
+last_updated: [Current date in YYYY-MM-DD HH:mm format]
+last_updated_by: [Reviewer name]
+---
+
+# Security Analysis Report
+
+**Date**: [Current date and time with timezone from step 1]
+**Reviewer**: [Reviewer name from thoughts status]
+**Git Commit**: [Current commit hash from step 1]
+**Branch**: [Current branch name from step 1]
+**Repository**: [Repository name]
+**Security Rating**: [EXCELLENT | GOOD | NEEDS IMPROVEMENT | POOR]
+
+---
+```
+
+**Report Sections**:
 
 1. **Executive Summary**:
    - Technology stack overview (languages, frameworks, key dependencies)
