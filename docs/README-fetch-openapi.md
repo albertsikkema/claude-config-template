@@ -358,12 +358,18 @@ open http://localhost:8000/docs
 
 **Solution:**
 ```bash
-# Specify correct URL
+# Use auto-detection (EASIEST)
+bash claude-helpers/fetch_openapi.sh auto
+
+# Or specify correct URL
 bash claude-helpers/fetch_openapi.sh http://localhost:5000
 
 # Check if server is on different port
 lsof -i :8000
 netstat -an | grep 8000
+
+# Find all listening ports
+lsof -i -P | grep LISTEN
 ```
 
 ### Permission denied writing file
@@ -391,14 +397,14 @@ When using `/index_codebase`, Claude:
    grep -r "from fastapi import\|import fastapi" --include="*.py"
    ```
 
-2. **Runs script:**
+2. **Runs script with auto-detection:**
    ```bash
-   bash claude-helpers/fetch_openapi.sh http://localhost:8000 thoughts/codebase/openapi.json
+   bash claude-helpers/fetch_openapi.sh auto thoughts/codebase/openapi.json
    ```
 
 3. **Reports results:**
-   - ✅ Success: "OpenAPI schema fetched successfully"
-   - ⚠️ Failure: "FastAPI server not running - OpenAPI schema not fetched"
+   - ✅ Success: "OpenAPI schema fetched successfully from http://localhost:XXXX"
+   - ⚠️ Failure: "FastAPI server not detected on ports 8000-8010"
 
 ### Manual Invocation
 
@@ -456,6 +462,35 @@ openapi-spec-validator openapi.json
 npm install -g @stoplight/spectral-cli
 spectral lint openapi.json
 ```
+
+## Customization
+
+### Expanding Port Range
+
+If your FastAPI server runs on a port outside 8000-8010, you can:
+
+**Option 1: Specify URL explicitly**
+```bash
+bash claude-helpers/fetch_openapi.sh http://localhost:9000
+```
+
+**Option 2: Edit the script** (edit `claude-helpers/fetch_openapi.sh:26`)
+```bash
+# Change from:
+for port in {8000..8010}; do
+
+# To your preferred range:
+for port in {8000..8020}; do
+```
+
+### Custom Health Endpoints
+
+The script checks multiple endpoints in order:
+1. `/health` (recommended)
+2. `/docs` (FastAPI default)
+3. `/openapi.json` (schema itself)
+
+If your app uses a different health endpoint, add it to the script at line 31-33.
 
 ## Tips & Best Practices
 
