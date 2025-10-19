@@ -13,7 +13,7 @@ Follow these steps for each package:
 Run the discover command to find all packages in the project:
 
 ```bash
-python3 scripts/fetch-docs.py discover
+python3 claude-helpers/fetch-docs.py discover
 ```
 
 This will return JSON with all packages from:
@@ -38,7 +38,7 @@ This will return JSON with all packages from:
 For each core package you identified, search context7:
 
 ```bash
-python3 scripts/fetch-docs.py search <package-name>
+python3 claude-helpers/fetch-docs.py search <package-name>
 ```
 
 This returns the top 5 results as JSON with:
@@ -102,12 +102,12 @@ This returns the top 5 results as JSON with:
 Once you've selected the best result, fetch it:
 
 ```bash
-python3 scripts/fetch-docs.py get <project-path> <package-name>
+python3 claude-helpers/fetch-docs.py get <project-path> <package-name>
 ```
 
 Example:
 ```bash
-python3 scripts/fetch-docs.py get /sveltejs/svelte svelte
+python3 claude-helpers/fetch-docs.py get /sveltejs/svelte svelte
 ```
 
 This will:
@@ -117,7 +117,7 @@ This will:
 
 **If file already exists**: Use `--overwrite` flag to replace:
 ```bash
-python3 scripts/fetch-docs.py get /sveltejs/svelte svelte --overwrite
+python3 claude-helpers/fetch-docs.py get /sveltejs/svelte svelte --overwrite
 ```
 
 ### Step 4: Repeat
@@ -134,7 +134,7 @@ User: /fetch_technical_docs
 
 1. **Discover packages**:
 ```bash
-python3 scripts/fetch-docs.py discover
+python3 claude-helpers/fetch-docs.py discover
 ```
 
 2. **Analyze output** and identify core packages (example):
@@ -147,7 +147,7 @@ python3 scripts/fetch-docs.py discover
 
 3. **Search for first package** (svelte):
 ```bash
-python3 scripts/fetch-docs.py search svelte
+python3 claude-helpers/fetch-docs.py search svelte
 ```
 
 4. **Analyze results** and choose best match:
@@ -157,14 +157,14 @@ python3 scripts/fetch-docs.py search svelte
 
 5. **Fetch documentation**:
 ```bash
-python3 scripts/fetch-docs.py get /sveltejs/svelte svelte
+python3 claude-helpers/fetch-docs.py get /sveltejs/svelte svelte
 ```
 
 6. **Confirm success** and move to next package
 
 7. **Search for SvelteKit**:
 ```bash
-python3 scripts/fetch-docs.py search sveltekit
+python3 claude-helpers/fetch-docs.py search sveltekit
 ```
 
 8. **Continue** until all core packages are done
