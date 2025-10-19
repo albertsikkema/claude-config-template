@@ -212,6 +212,7 @@ This is the primary workflow pattern, based on "Faking a Rational Design Process
    - Updates plan to show final approach as if it was always intended
    - Creates ADRs for significant decisions
    - Updates CLAUDE.md with new patterns/conventions
+   - Updates project documentation (epics, requirements, TODOs, project overview)
    - Documents rejected alternatives
    - **Key principle**: Present clean narrative, not messy discovery process
 
@@ -233,6 +234,7 @@ From Parnas & Clements (1986): Documentation should show the cleaned-up, rationa
 - Plans reflect reality (what was actually built)
 - Decisions are documented (ADRs with rationale)
 - Patterns are captured (CLAUDE.md updates)
+- Project documentation stays in sync (epics, requirements, TODOs)
 - Rejected alternatives are recorded (prevents re-exploration)
 - Future AI sessions have proper context
 
