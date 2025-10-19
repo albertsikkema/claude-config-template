@@ -48,9 +48,9 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 This is a **configuration template** that you install into your projects. It provides:
 
-- **Complete development workflow** - Research → Plan → Implement → Rationalize ([see WORKFLOW.md](WORKFLOW.md))
+- **Complete development workflow** - Research → Plan → Implement → Rationalize → Deploy ([see WORKFLOW.md](WORKFLOW.md))
 - **11 specialized AI agents** - Automated research, code analysis, and architecture design
-- **11 slash commands** - Streamlined workflows for common tasks
+- **12 slash commands** - Streamlined workflows for common tasks (including deployment automation)
 - **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -103,6 +103,7 @@ Monitoring dashboard:
 | `/commit` | Create well-formatted git commits |
 | `/describe_pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
+| `/deploy` | Automated deployment preparation (version, changelog, build, release) |
 | `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
 | `/index_codebase` | Index Python/TypeScript/Go codebases |
 
@@ -114,7 +115,7 @@ After installation, you'll have:
 your-project/
 ├── .claude/
 │   ├── agents/              # 11 specialized agents
-│   ├── commands/            # 11 slash commands
+│   ├── commands/            # 12 slash commands
 │   ├── hooks/               # Observability hooks (if monitoring enabled)
 │   └── settings.json        # Configuration and hooks
 │

@@ -86,7 +86,7 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 ```
 .claude/
 ├── agents/          # 11 specialized agents for different tasks
-├── commands/        # 11 slash commands for common workflows
+├── commands/        # 12 slash commands for common workflows
 └── settings.local.json  # Pre-approved tool permissions
 
 docs/                    # Helper script documentation
@@ -98,6 +98,7 @@ docs/                    # Helper script documentation
 thoughts/
 ├── templates/       # Project documentation templates
 │   ├── adr.md.template
+│   ├── changelog.md.template
 │   ├── epics.md.template
 │   ├── musthaves.md.template
 │   ├── project.md.template
@@ -164,6 +165,9 @@ Available commands (use `/` prefix in Claude Code):
 
 **Code Quality:**
 - `/code_reviewer` - Review code quality and suggest improvements
+
+**Deployment:**
+- `/deploy` - Automated deployment preparation workflow (analyze changes, version bump, build, release)
 
 ## Key Workflows
 
@@ -237,6 +241,33 @@ From Parnas & Clements (1986): Documentation should show the cleaned-up, rationa
 - Project documentation stays in sync (epics, requirements, TODOs)
 - Rejected alternatives are recorded (prevents re-exploration)
 - Future AI sessions have proper context
+
+### Deployment Workflow
+
+Use the `/deploy` command to automate deployment preparation:
+
+**What it does:**
+0. **Initializes CHANGELOG** (creates from template if missing, validates format)
+1. **Analyzes changes** since last release (git commits, code changes)
+2. **Updates version** (auto-detects package.json, pyproject.toml, Cargo.toml, etc.)
+3. **Generates CHANGELOG** following Keep a Changelog standard
+4. **Runs build & tests** (detects project type and runs appropriate commands)
+5. **Prepares deployment** (git commands, platform-specific instructions)
+6. **Creates release** (optional GitHub/GitLab release with notes)
+
+**Customization:**
+The `/deploy` command is **generic and language-agnostic**. Customize for your project:
+- **Step 0**: Update CHANGELOG template with your repository URLs
+- **Step 4**: Add project-specific build commands, test suites, cache invalidation
+- **Step 5**: Configure deployment platform (Heroku, Vercel, AWS, Docker, etc.)
+- **Step 6**: Customize release asset generation and notifications
+
+**Usage:**
+```bash
+/deploy
+```
+
+The command uses parallel subagents to execute each step efficiently and provides clear deployment instructions at the end.
 
 ### File Naming Conventions
 
