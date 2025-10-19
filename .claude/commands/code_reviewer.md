@@ -118,8 +118,9 @@ This will provide:
 
 Save the review as a markdown file in `thoughts/shared/reviews/` with the following naming convention:
 
+- **Location**: `thoughts/shared/reviews/`
 - **Format**: `code-review-YYYY-MM-DD.md` or `code-review-YYYY-MM-DD-ENG-XXXX.md` (with ticket)
-- **Example**: `code-review-2025-01-19.md` or `code-review-2025-01-19-ENG-1234.md`
+- **Example**: `thoughts/shared/reviews/code-review-2025-01-19.md`
 
 ### Step 3: Structure the Review with Frontmatter
 
