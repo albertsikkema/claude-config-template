@@ -144,8 +144,11 @@ python ./claude-helpers/index_go.py ./backend -o thoughts/codebase/codebase_over
 ### Fetch FastAPI OpenAPI schema (if FastAPI detected)
 ```bash
 # Check for FastAPI imports in Python files
-# If found, run:
-bash ./claude-helpers/fetch_openapi.sh http://localhost:8000 thoughts/codebase/openapi.json
+# If found, run with auto-detection:
+bash ./claude-helpers/fetch_openapi.sh auto thoughts/codebase/openapi.json
+
+# Or specify port explicitly:
+bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/openapi.json
 ```
 
 ## Notes
@@ -161,15 +164,18 @@ bash ./claude-helpers/fetch_openapi.sh http://localhost:8000 thoughts/codebase/o
 When FastAPI is detected:
 1. Use Grep to search for `from fastapi import|import fastapi` in `.py` files
 2. If found, inform user that FastAPI was detected
-3. Run `bash ./claude-helpers/fetch_openapi.sh http://localhost:8000 thoughts/codebase/openapi.json`
+3. Run `bash ./claude-helpers/fetch_openapi.sh auto thoughts/codebase/openapi.json`
+   - The script will auto-detect ports 8000-8010 for running FastAPI servers
+   - Or user can specify explicit URL: `bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/openapi.json`
 4. The script will:
-   - Check if server is running at `/health` endpoint
+   - Auto-detect running FastAPI server on common ports (8000-8010) if "auto" is specified
+   - Check if server is running at `/health` or `/docs` endpoint
    - Fetch OpenAPI schema from `/openapi.json`
    - Save to `thoughts/codebase/openapi.json`
    - Display schema information if available
 5. **IMPORTANT - User Feedback**:
-   - If the script succeeds, inform user: "✅ OpenAPI schema fetched successfully"
-   - If the script fails (server not running), inform user: "⚠️ FastAPI server not running - OpenAPI schema not fetched. Start server and re-run if needed."
+   - If the script succeeds, inform user: "✅ OpenAPI schema fetched successfully from [URL]"
+   - If the script fails (server not running), inform user: "⚠️ FastAPI server not detected on ports 8000-8010. Start server and re-run if needed, or specify explicit URL."
    - Show the output from the fetch script to provide full context
 6. Continue with normal Python indexing regardless of OpenAPI fetch result
 

@@ -15,6 +15,9 @@ Automatically fetch OpenAPI/Swagger schemas from running FastAPI servers.
 ### Basic Usage
 
 ```bash
+# Auto-detect running server on ports 8000-8010 (RECOMMENDED)
+bash claude-helpers/fetch_openapi.sh auto
+
 # Fetch from default localhost:8000
 bash claude-helpers/fetch_openapi.sh
 
@@ -22,6 +25,7 @@ bash claude-helpers/fetch_openapi.sh
 bash claude-helpers/fetch_openapi.sh http://localhost:5000
 
 # Custom output file
+bash claude-helpers/fetch_openapi.sh auto my-api-schema.json
 bash claude-helpers/fetch_openapi.sh http://localhost:8000 my-api-schema.json
 ```
 
@@ -35,7 +39,7 @@ The script is automatically invoked when Claude detects FastAPI in your Python c
 
 Claude will:
 1. Scan for FastAPI imports
-2. Check if server is running
+2. Auto-detect running server on ports 8000-8010
 3. Automatically fetch OpenAPI schema
 4. Save to `thoughts/codebase/openapi.json`
 
@@ -45,7 +49,8 @@ Claude will:
 bash claude-helpers/fetch_openapi.sh [BASE_URL] [OUTPUT_FILE]
 
 Arguments:
-  BASE_URL      Base URL of FastAPI server (default: http://localhost:8000)
+  BASE_URL      Base URL of FastAPI server or "auto" to auto-detect (default: auto)
+                When "auto", scans ports 8000-8010 for running FastAPI servers
   OUTPUT_FILE   Output JSON file (default: openapi.json)
 ```
 
@@ -54,7 +59,13 @@ Arguments:
 ### Development Server
 
 ```bash
-# Default settings
+# Auto-detect (RECOMMENDED - works with any port 8000-8010)
+bash claude-helpers/fetch_openapi.sh auto
+# → Scans ports 8000-8010
+# → Automatically finds running server
+# → Saves to openapi.json
+
+# Default settings (assumes port 8000)
 bash claude-helpers/fetch_openapi.sh
 # → Fetches from http://localhost:8000
 # → Saves to openapi.json
@@ -84,29 +95,46 @@ bash claude-helpers/fetch_openapi.sh http://localhost:8000 thoughts/codebase/ope
 
 ## How It Works
 
-### 1. Server Health Check
+### 1. Auto-Detection (when using "auto")
 
-The script first checks if your server is running:
+The script scans ports 8000-8010 to find a running FastAPI server:
+
+```bash
+# Tests each port with multiple endpoints
+for port in 8000-8010:
+  - Try /health
+  - Try /docs
+  - Try /openapi.json
+```
+
+**Benefits:**
+- No need to specify port manually
+- Works regardless of which port your server is on
+- Faster development workflow
+
+### 2. Server Health Check
+
+The script checks if your server is running:
 
 ```bash
 curl -s -f -o /dev/null --connect-timeout 2 "${BASE_URL}/health"
 ```
 
-**Requirements:**
-- Server must have a `/health` endpoint
-- Endpoint should return 2xx status code
-- Server must respond within 2 seconds
+**Fallback checks:**
+- If `/health` fails, tries `/docs`
+- If `/docs` fails, tries `/openapi.json`
 
 **If server is not running:**
 ```
-❌ Error: Server is not running at http://localhost:8000
+❌ Error: No FastAPI server detected on ports 8000-8010
 
-Please start the server first:
-   cd cc_wrapper/backend
-   uvicorn app.main:app --reload
+Please either:
+   1. Start your FastAPI server, or
+   2. Specify the URL explicitly:
+      bash ./claude-helpers/fetch_openapi.sh http://localhost:YOUR_PORT
 ```
 
-### 2. Fetch OpenAPI Schema
+### 3. Fetch OpenAPI Schema
 
 If server is running, fetches the schema:
 
@@ -114,7 +142,7 @@ If server is running, fetches the schema:
 curl -s -f "${BASE_URL}/openapi.json" -o "${OUTPUT_FILE}"
 ```
 
-### 3. Display Schema Info
+### 4. Display Schema Info
 
 Uses `jq` (if available) to show schema details:
 
@@ -128,7 +156,7 @@ Schema information:
    Endpoints: 23
 ```
 
-### 4. Next Steps
+### 5. Next Steps
 
 Provides helpful commands:
 

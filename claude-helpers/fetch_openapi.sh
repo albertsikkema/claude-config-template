@@ -4,15 +4,12 @@
 set -e
 
 # Configuration
-BASE_URL="${1:-http://localhost:8000}"
+BASE_URL_INPUT="${1:-auto}"
 OUTPUT_FILE="${2:-openapi.json}"
 
 echo "============================================================"
 echo "FastAPI OpenAPI Schema Fetcher (curl)"
 echo "============================================================"
-echo "Fetching from: ${BASE_URL}/openapi.json"
-echo "Output file: ${OUTPUT_FILE}"
-echo ""
 
 # Check if curl is available
 if ! command -v curl &> /dev/null; then
@@ -20,15 +17,63 @@ if ! command -v curl &> /dev/null; then
     exit 1
 fi
 
-# Check if server is running
-if ! curl -s -f -o /dev/null --connect-timeout 2 "${BASE_URL}/health"; then
-    echo "❌ Error: Server is not running at ${BASE_URL}"
+# Auto-detect running server if "auto" is specified
+if [ "$BASE_URL_INPUT" = "auto" ]; then
+    echo "🔍 Auto-detecting FastAPI server on ports 8000-8010..."
     echo ""
-    echo "Please start the server first:"
-    echo "   cd cc_wrapper/backend"
-    echo "   uvicorn app.main:app --reload"
-    exit 1
+
+    BASE_URL=""
+    for port in {8000..8010}; do
+        test_url="http://localhost:$port"
+        echo -n "   Checking $test_url... "
+
+        # Try /health first, then /docs, then /openapi.json
+        if curl -s -f -o /dev/null --connect-timeout 1 "${test_url}/health" 2>/dev/null || \
+           curl -s -f -o /dev/null --connect-timeout 1 "${test_url}/docs" 2>/dev/null || \
+           curl -s -f -o /dev/null --connect-timeout 1 "${test_url}/openapi.json" 2>/dev/null; then
+            echo "✅ Found!"
+            BASE_URL="$test_url"
+            break
+        else
+            echo "❌"
+        fi
+    done
+
+    if [ -z "$BASE_URL" ]; then
+        echo ""
+        echo "❌ Error: No FastAPI server detected on ports 8000-8010"
+        echo ""
+        echo "Please either:"
+        echo "   1. Start your FastAPI server, or"
+        echo "   2. Specify the URL explicitly:"
+        echo "      bash $0 http://localhost:YOUR_PORT $OUTPUT_FILE"
+        exit 1
+    fi
+
+    echo ""
+    echo "🎯 Using detected server: $BASE_URL"
+else
+    BASE_URL="$BASE_URL_INPUT"
+    echo "Using specified URL: ${BASE_URL}"
+
+    # Check if server is running
+    echo -n "Checking server... "
+    if ! curl -s -f -o /dev/null --connect-timeout 2 "${BASE_URL}/health" 2>/dev/null && \
+       ! curl -s -f -o /dev/null --connect-timeout 2 "${BASE_URL}/docs" 2>/dev/null && \
+       ! curl -s -f -o /dev/null --connect-timeout 2 "${BASE_URL}/openapi.json" 2>/dev/null; then
+        echo "❌"
+        echo ""
+        echo "❌ Error: Server is not running at ${BASE_URL}"
+        echo ""
+        echo "Please start the server first or use 'auto' to auto-detect:"
+        echo "   bash $0 auto $OUTPUT_FILE"
+        exit 1
+    fi
+    echo "✅"
 fi
+
+echo "Output file: ${OUTPUT_FILE}"
+echo ""
 
 # Fetch OpenAPI schema
 echo "Fetching schema..."
