@@ -86,7 +86,7 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 ```
 .claude/
 ├── agents/          # 11 specialized agents for different tasks
-├── commands/        # 12 slash commands for common workflows
+├── commands/        # 13 slash commands for common workflows
 └── settings.local.json  # Pre-approved tool permissions
 
 docs/                    # Helper script documentation
@@ -107,6 +107,7 @@ thoughts/
 ├── shared/
 │   ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md)
 │   ├── research/    # Research documents (dated: YYYY-MM-DD-*.md)
+│   ├── reviews/     # Security and code reviews (dated: security-analysis-YYYY-MM-DD.md)
 │   ├── adrs/        # Architecture Decision Records (NNN-title.md)
 │   ├── rationalization/  # Ephemeral working docs (deleted after rationalization)
 │   └── project/     # Project documentation (created by /project)
@@ -165,6 +166,7 @@ Available commands (use `/` prefix in Claude Code):
 
 **Code Quality:**
 - `/code_reviewer` - Review code quality and suggest improvements
+- `/security` - Comprehensive security analysis and code review (18 security areas, language-agnostic)
 
 **Deployment:**
 - `/deploy` - Automated deployment preparation workflow (analyze changes, version bump, build, release)
