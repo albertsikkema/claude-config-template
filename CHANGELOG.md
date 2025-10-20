@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2025-10-20
+
+### Added
+
+**Architecture Documentation:**
+- `/build_c4_docs` command for automated C4 architecture diagram generation
+- C4 model support at 3 levels: System Context, Container, Component
+- Dual diagram format support: Mermaid (GitHub-native) + PlantUML (enhanced aesthetics)
+- `build_c4_diagrams.py` helper script for rendering PlantUML diagrams to PNG/SVG
+- Automatic PlantUML detection with Docker fallback support
+- Comprehensive C4 diagrams documentation (791 lines) covering usage, installation, and methodology
+- New directory: `thoughts/shared/research/c4-diagrams-plantuml/` for PlantUML diagram output
+- New directory: `thoughts/shared/rationalization/` for ephemeral working documents during rationalization
+
+### Changed
+
+**Documentation:**
+- Updated slash command count from 13 to 14 in README.md and CLAUDE.md
+- Enhanced directory structure documentation with C4 diagram paths
+- Added C4 diagram references to helper scripts documentation
+
+---
+
 ## [1.1.0] - 2025-10-20
 
 ### Added
@@ -103,6 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thoughts directory structure for documentation and planning
 - Installation and uninstallation scripts
 
-[Unreleased]: https://github.com/albertsikkema/claude-config-template/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/albertsikkema/claude-config-template/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/albertsikkema/claude-config-template/releases/tag/v1.0.0
