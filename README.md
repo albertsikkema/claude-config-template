@@ -572,7 +572,7 @@ For questions or larger contributions, contact: license@albertsikkema.com
 
 ## 📊 Version
 
-Current version: **1.0.0**
+Current version: **1.1.0**
 
 ## 🆘 Support & Troubleshooting
 
