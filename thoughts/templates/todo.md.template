@@ -1,118 +1,92 @@
-# Technical TODOs
+# Project TODO
 
-> Action items, technical debt, and improvements tracked for the project.
+> Active work items prioritized by Must Have (critical for MVP/current release) vs Should Have (important but not blocking).
 
-## High Priority 🔴
-
-- [ ] [Critical task or bug fix]
-- [ ] [Critical task or bug fix]
-- [ ] [Critical task or bug fix]
-
-## Medium Priority 🟡
-
-- [ ] [Important but not urgent task]
-- [ ] [Important but not urgent task]
-- [ ] [Important but not urgent task]
-
-## Low Priority 🟢
-
-- [ ] [Nice-to-have improvement]
-- [ ] [Nice-to-have improvement]
-- [ ] [Nice-to-have improvement]
+**Triage Guide**:
+- **Must Have**: Critical for launch/current release. Cannot ship without this.
+- **Should Have**: Important enhancement. Would be great to have but not blocking.
 
 ---
 
-## Technical Debt
+## Must Haves
 
-### Code Quality
-- [ ] [Refactoring needed]
-- [ ] [Code smell to address]
-- [ ] [Complexity reduction needed]
+_Work that is critical for MVP/current release. Cannot ship without these._
 
-### Testing
-- [ ] [Missing test coverage]
-- [ ] [Flaky test to fix]
-- [ ] [Test infrastructure improvement]
+### Features
+- [ ] [Feature description - be specific and actionable]
+- [ ] [Another feature]
+- [ ] [Feature with dependency] (requires: [other feature])
 
-### Documentation
-- [ ] [API documentation needed]
-- [ ] [Architecture documentation needed]
-- [ ] [Developer guide improvement]
+### Bugs & Fixes
+- [ ] [Bug description with impact]
 
-### Performance
-- [ ] [Performance optimization opportunity]
-- [ ] [Query optimization needed]
-- [ ] [Caching opportunity]
+### Improvements
+- [ ] [Improvement to existing feature]
 
-### Security
-- [ ] [Security audit item]
-- [ ] [Dependency update for security]
-- [ ] [Access control improvement]
+### Technical & Infrastructure
+- [ ] [Technical work item]
+- [ ] [Infrastructure setup]
 
 ---
 
-## Infrastructure & DevOps
+## Should Haves
 
-- [ ] [CI/CD improvement]
-- [ ] [Monitoring enhancement]
-- [ ] [Deployment automation]
-- [ ] [Infrastructure as code update]
-- [ ] [Backup/recovery improvement]
+_Important work that enhances the product but isn't blocking launch._
 
----
+### Features
+- [ ] [Enhancement description]
 
-## Dependencies & Upgrades
+### Improvements
+- [ ] [Improvement to existing feature]
 
-- [ ] [Framework upgrade needed]
-- [ ] [Library update needed]
-- [ ] [Breaking change to address]
-- [ ] [Deprecated API to replace]
+### Technical & Infrastructure
+- [ ] [Nice-to-have technical work]
 
 ---
 
-## Research & Exploration
+## Could Haves (Optional Section)
 
-- [ ] [Technology to evaluate]
-- [ ] [Architecture pattern to research]
-- [ ] [POC to build]
-- [ ] [Performance benchmark to run]
+_Nice-to-have items that may or may not happen._
 
----
-
-## From Code Reviews
-
-> Items identified during code reviews that need follow-up
-
-- [ ] [Review finding with reference to review document]
-- [ ] [Review finding with reference to review document]
-- [ ] [Review finding with reference to review document]
+- [ ] [Low priority item]
 
 ---
 
-## Completed ✅
+## Notes
 
-> Recently completed items (archive periodically)
+**Adding Items**:
+- Be specific and actionable
+- Include enough context for anyone to pick up the work
+- Link to research/ADRs if relevant (e.g., "See `thoughts/shared/research/2025-10-20-topic.md`")
 
-- [x] [Completed task with date]
-- [x] [Completed task with date]
-- [x] [Completed task with date]
+**Prioritization**:
+- Review regularly and move items between sections as priorities shift
+- When in doubt: "Can we ship without this?" → No = Must Have, Yes = Should Have
+- Reorder items within sections as dependencies or priorities change
 
----
+**Blocked Items**:
+- Add `[BLOCKED]` prefix when work cannot proceed
+- Format: `- [ ] [BLOCKED] Item - blocker description (contact/action)`
+- Examples:
+  - `- [ ] [BLOCKED] Payment API - waiting for credentials (finance@company.com)`
+  - `- [ ] [BLOCKED] Email notifications - decide on provider (research due 2025-10-22)`
+- Remove `[BLOCKED]` prefix when unblocked
+- Item stays in its original priority section
 
-## Categorization Guide
+**Dependencies**:
+- Order items top-to-bottom (do higher items first)
+- For explicit dependencies, mention in description
+- Examples:
+  - `- [ ] Shopping cart functionality (requires: user authentication)`
+  - `- [ ] Checkout flow (requires: shopping cart, payment integration)`
+- Reorder items as dependencies or priorities change
 
-**Priority Levels**:
-- 🔴 High: Blocking or critical for current sprint
-- 🟡 Medium: Important for next sprint or two
-- 🟢 Low: Can be scheduled when capacity allows
-
-**Categories**:
-- **Technical Debt**: Cleanup, refactoring, improvement of existing code
-- **Infrastructure**: DevOps, deployment, monitoring, tooling
-- **Dependencies**: Library updates, framework upgrades
-- **Research**: Exploration, POCs, technology evaluation
+**Completion**:
+- Check off items when fully done (tested, reviewed, merged, deployed)
+- **Move to done.md immediately** with completion date and plan reference
+- Keep this file focused on active work only
 
 ---
 
 *Last Updated: [Date]*
-*Status: Living Document - Update regularly*
+*Status: Living Document - Update Constantly*

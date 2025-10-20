@@ -86,24 +86,39 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 ```
 .claude/
 ├── agents/          # 11 specialized agents for different tasks
-├── commands/        # 8 slash commands for common workflows
+├── commands/        # 13 slash commands for common workflows
 └── settings.local.json  # Pre-approved tool permissions
+
+docs/                    # Helper script documentation
+├── README-fetch-docs.md     # Documentation fetcher guide
+├── README-indexers.md       # Codebase indexers guide
+├── README-fetch-openapi.md  # OpenAPI fetcher guide
+└── README-spec-metadata.md  # Metadata generator guide
 
 thoughts/
 ├── templates/       # Project documentation templates
-│   ├── epics.md.template
-│   ├── musthaves.md.template
-│   ├── project.md.template
-│   ├── shouldhaves.md.template
-│   └── todo.md.template
+│   ├── project.md.template  # Project context template
+│   ├── todo.md.template     # Active work tracking template
+│   ├── done.md.template     # Completed work template
+│   ├── adr.md.template      # Architecture Decision Records template
+│   └── changelog.md.template # Changelog template
 ├── shared/
 │   ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md)
 │   ├── research/    # Research documents (dated: YYYY-MM-DD-*.md)
+│   ├── reviews/     # Security and code reviews (dated: security-analysis-YYYY-MM-DD.md)
+│   ├── adrs/        # Architecture Decision Records (NNN-title.md)
+│   ├── rationalization/  # Ephemeral working docs (deleted after rationalization)
 │   └── project/     # Project documentation (created by /project)
-│       └── epics/   # Epic documents
+│       ├── project.md  # Project context (what/why/stack/constraints)
+│       ├── todo.md     # Active work (Must Haves / Should Haves)
+│       └── done.md     # Completed work with traceability
 └── technical_docs/  # Technical documentation storage
 
 claude-helpers/      # Utility scripts for workflows
+├── index_python.py  # Python codebase indexer
+├── index_ts.py      # TypeScript codebase indexer
+├── index_go.py      # Go codebase indexer
+└── fetch-docs.py    # Documentation fetcher
 ```
 
 ### Agent System
@@ -138,8 +153,9 @@ Available commands (use `/` prefix in Claude Code):
 
 **Planning & Implementation:**
 - `/create_plan` - Interactive implementation plan creation (saves to `thoughts/shared/plans/`)
-- `/implement_plan <path>` - Execute an approved plan file
-- `/validate_plan <path>` - Validate a plan before implementation
+- `/implement_plan <path>` - Execute an approved plan file (includes automatic validation at end)
+- `/validate_plan <path>` - Validate implementation correctness (standalone, optional if using `/implement_plan`)
+- `/rationalize <path>` - Rationalize implementation and update documentation
 
 **Research:**
 - `/research_codebase` - Comprehensive codebase investigation (saves to `thoughts/shared/research/`)
@@ -150,31 +166,58 @@ Available commands (use `/` prefix in Claude Code):
 
 **Code Quality:**
 - `/code_reviewer` - Review code quality and suggest improvements
+- `/security` - Comprehensive security analysis and code review (18 security areas, language-agnostic)
+
+**Deployment:**
+- `/deploy` - Automated deployment preparation workflow (analyze changes, version bump, build, release)
 
 ## Key Workflows
 
 ### Documentation Setup
 
-Use the `/project` command to create project documentation:
+Use the `/project` command to create project documentation using the **ultra-lean 3-file structure**:
 
 1. **Describe your need**: Run `/project <what you want>` in Claude Code
-   - Examples: "Create full docs", "Document MVP features", "Create authentication epic"
+   - Examples: "Create full docs", "Set up project documentation", "Document my MVP"
 2. **Answer questions**: Provide project details based on context
 3. **Review**: Claude creates customized documentation in `thoughts/shared/project/`
 4. **Maintain**: Update documentation as your project evolves
 
-The command creates documentation such as:
-- `thoughts/shared/project/project-overview.md` - Project overview
-- `thoughts/shared/project/mvp-requirements.md` - MVP requirements
-- `thoughts/shared/project/post-mvp-features.md` - Post-MVP features
-- `thoughts/shared/project/technical-todos.md` - Technical TODOs
-- `thoughts/shared/project/epics/epic-[name].md` - Epic planning (in epics subdirectory)
+The command creates **3 essential files**:
+
+**1. project.md** - Project context (stable, rarely changes)
+- What you're building and why
+- Technical stack (backend, frontend, infrastructure)
+- Success metrics and constraints
+- Architecture overview
+- What's explicitly out of scope
+
+**2. todo.md** - Active work tracking (living document, constantly updated)
+- **Must Haves** - Critical work for MVP/current release
+- **Should Haves** - Important but not blocking work
+- Inline blocking: `[BLOCKED]` prefix with blocker description
+- Dependencies: Ordering (top-to-bottom) + explicit `(requires:)` mentions
+- Categories: Features, Bugs & Fixes, Improvements, Technical & Infrastructure
+
+**3. done.md** - Completed work history (append-only)
+- Organized by month/year (2025-10, 2025-09, etc.)
+- Links to implementation plans, research, ADRs, PRs
+- Tracks outcomes and learnings
+- Provides traceability and velocity tracking
+
+**Workflow**:
+- New work → todo.md (Must Have or Should Have)
+- Gets blocked → Add `[BLOCKED]` prefix with blocker info
+- Unblocked → Remove `[BLOCKED]` prefix
+- Completed → Move to done.md with references
 
 Templates are stored in `thoughts/templates/` and remain unchanged.
 
-### Research → Plan → Implement Pattern
+**For complete methodology details**, see the "Ultra-Lean 3-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md).
 
-This is the primary workflow pattern:
+### Research → Plan → Implement → Rationalize Pattern
+
+This is the primary workflow pattern, based on "Faking a Rational Design Process in the AI Era":
 
 1. **Research**: Use `/research_codebase <topic>` to investigate
    - Spawns parallel agents to analyze codebase
@@ -187,6 +230,69 @@ This is the primary workflow pattern:
 3. **Implement**: Use `/implement_plan thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
    - Executes the approved plan step-by-step
    - Can resume if interrupted
+   - **Automatically runs validation at the end** to verify correctness
+   - Addresses validation findings (implements missing items or documents exceptions)
+   - Appends validation report to the plan file
+   - Only completes when validation passes
+
+4. **Rationalize** (MANDATORY): Use `/rationalize thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
+   - Analyzes what actually happened vs. what was planned
+   - Updates plan to show final approach as if it was always intended
+   - Creates ADRs for significant decisions
+   - Updates CLAUDE.md with new patterns/conventions
+   - Updates project documentation (project.md, todo.md, done.md as appropriate)
+   - Documents rejected alternatives
+   - **Key principle**: Present clean narrative, not messy discovery process
+
+5. **Commit & PR**: Use `/commit` and `/describe_pr`
+   - Create well-formatted commits
+   - Generate comprehensive PR description
+
+#### Why Rationalization Matters
+
+From Parnas & Clements (1986): Documentation should show the cleaned-up, rationalized version of what happened, not the messy discovery process.
+
+**For AI-assisted development:**
+- AI assistants have no memory between sessions
+- Documentation becomes the "single source of truth"
+- Without rationalized docs, design decisions get lost
+- Prevents the codebase from becoming a patchwork of different "styles"
+
+**Rationalization ensures:**
+- Plans reflect reality (what was actually built)
+- Decisions are documented (ADRs with rationale)
+- Patterns are captured (CLAUDE.md updates)
+- Project documentation stays in sync (project.md, todo.md, done.md)
+- Completed work moved to done.md with references
+- Rejected alternatives are recorded (prevents re-exploration)
+- Future AI sessions have proper context
+
+### Deployment Workflow
+
+Use the `/deploy` command to automate deployment preparation:
+
+**What it does:**
+0. **Initializes CHANGELOG** (creates from template if missing, validates format)
+1. **Analyzes changes** since last release (git commits, code changes)
+2. **Updates version** (auto-detects package.json, pyproject.toml, Cargo.toml, etc.)
+3. **Generates CHANGELOG** following Keep a Changelog standard
+4. **Runs build & tests** (detects project type and runs appropriate commands)
+5. **Prepares deployment** (git commands, platform-specific instructions)
+6. **Creates release** (optional GitHub/GitLab release with notes)
+
+**Customization:**
+The `/deploy` command is **generic and language-agnostic**. Customize for your project:
+- **Step 0**: Update CHANGELOG template with your repository URLs
+- **Step 4**: Add project-specific build commands, test suites, cache invalidation
+- **Step 5**: Configure deployment platform (Heroku, Vercel, AWS, Docker, etc.)
+- **Step 6**: Customize release asset generation and notifications
+
+**Usage:**
+```bash
+/deploy
+```
+
+The command uses parallel subagents to execute each step efficiently and provides clear deployment instructions at the end.
 
 ### File Naming Conventions
 
@@ -197,13 +303,16 @@ This is the primary workflow pattern:
   - `2025-10-14-ENG-1478-parent-tracking.md`
 
 **Project Documentation:**
-- Use descriptive names: `project-overview.md`, `mvp-requirements.md`, etc.
-- Or use template names: `project.md`, `musthaves.md`, `shouldhaves.md`, `todo.md`
+- 3 essential files in `thoughts/shared/project/`:
+  - `project.md` - Project context
+  - `todo.md` - Active work (Must Haves / Should Haves)
+  - `done.md` - Completed work with traceability
 
-**Epics:**
-- Saved in `thoughts/shared/project/epics/`
-- Format: `epic-[name].md`
-- Examples: `epic-authentication.md`, `epic-payment-processing.md`
+**ADRs (Architecture Decision Records):**
+- Saved in `thoughts/shared/adrs/`
+- Format: `NNN-decision-title.md` (sequential numbering)
+- Examples: `001-use-optimistic-locking.md`, `002-cache-invalidation-strategy.md`
+- Created during `/rationalize` workflow
 
 **Documentation Templates:**
 - Stored in `thoughts/templates/` with `.template` extension

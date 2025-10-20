@@ -1,220 +1,113 @@
-# Project Name - Project Description
+# [Project Name]
 
-## Executive Summary
+> [One-line description of the project]
 
-[Brief overview of your project - what it does, who it's for, and why it matters]
+## What We're Building
 
-## Target Market
+[2-3 paragraphs describing:
+- What the product/system does
+- Who it's for (target users)
+- Core value proposition
+- Key differentiators (optional)]
 
-### Primary Audience
-- [User persona 1]
-- [User persona 2]
-- [User persona 3]
+## Why
 
-### Geographic Focus
-[Target regions or markets]
-
-### Market Characteristics
-- [Key characteristic 1]
-- [Key characteristic 2]
-- [Key characteristic 3]
-
-## Business Model
-
-[Describe your business model: SaaS, Enterprise, Open Source, etc.]
-
-**Key Points**:
-- Architecture approach (multi-tenant, single-tenant, hybrid)
-- Deployment model (cloud, on-premise, hybrid)
-- Pricing model (subscription, usage-based, freemium, etc.)
-
-## Current Development Phase
-
-### Status: [Prototype / MVP / Alpha / Beta / Production]
-
-**Goal**: [What you're working towards]
-
-**Timeline**: [Key milestones and dates]
-
-**Success Criteria**:
-- [Criterion 1]
-- [Criterion 2]
-- [Criterion 3]
-
-## Key Differentiators
-
-### 1. [Differentiator Name]
-[Description of what makes your product unique]
-
-### 2. [Differentiator Name]
-[Description of what makes your product unique]
-
-### 3. [Differentiator Name]
-[Description of what makes your product unique]
-
-## Team Composition
-
-**Total: [X] team members**
-
-### Development Team ([X])
-- [Role and count]
-- [Role and count]
-
-### Design Team ([X])
-- [Role and count]
-
-### Product/Business Team ([X])
-- [Role and count]
-
-## Core Features
-
-### Must-Haves (MVP Requirements)
-
-#### 1. [Feature Category Name]
-- **[Sub-feature]**: Description
-- **[Sub-feature]**: Description
-- **[Sub-feature]**: Description
-
-#### 2. [Feature Category Name]
-- **[Sub-feature]**: Description
-- **[Sub-feature]**: Description
-
-#### 3. [Feature Category Name]
-- **[Sub-feature]**: Description
-- **[Sub-feature]**: Description
-
-#### 4. Non-Functional Requirements
-- **Performance**: [Performance requirements]
-- **Security**: [Security requirements]
-- **Scalability**: [Scalability requirements]
-- **Compliance**: [Compliance requirements]
-
-### Should-Haves (Post-MVP)
-
-#### Enhanced [Feature Area]
-- [Feature description]
-- [Feature description]
-
-#### [New Feature Area]
-- [Feature description]
-- [Feature description]
-
-## Technical Architecture
-
-### Backend
-**Technology Stack**:
-- **Framework**: [Framework name and version]
-- **Language**: [Programming language]
-- **Database**: [Database technology]
-- **Authentication**: [Auth solution]
-- **API**: [API technology - REST, GraphQL, gRPC, etc.]
-- **Testing**: [Testing framework and strategy]
-- **Deployment**: [Deployment platform]
-- **Package Management**: [Package manager]
-
-**Key Patterns**:
-- [Architecture pattern - e.g., layered, microservices, etc.]
-- [Testing strategy]
-- [Code quality tools]
-- [Logging and monitoring approach]
-- [Configuration management]
-
-### Frontend (if applicable)
-**Technology Stack**:
-- **Framework**: [Framework name]
-- **State Management**: [State solution]
-- **UI Library**: [UI component library]
-- **Build Tool**: [Build tooling]
-- **Testing**: [Testing framework]
-
-### Infrastructure
-- **Hosting**: [Cloud provider or hosting solution]
-- **Container Registry**: [Registry name]
-- **Compute**: [Compute service]
-- **CI/CD**: [CI/CD platform]
-- **Database**: [Managed service or self-hosted]
-- **Monitoring**: [Monitoring solution]
-
-### Development Workflow
-- **Dependency Management**: [How dependencies are managed]
-- **Code Quality**: [Linters, formatters, hooks]
-- **Testing**: [Unit, integration, e2e approaches]
-- **Local Development**: [How developers run the project locally]
-- **Version Control**: [Git workflow, branching strategy]
-
-## Project Structure
-
-```
-project-name/
-├── src/                    # Source code
-│   ├── main.ext           # Main entry point
-│   ├── routes/            # API routes/controllers
-│   ├── services/          # Business logic
-│   ├── models/            # Data models
-│   └── utils/             # Utility functions
-├── tests/
-│   ├── unit/             # Unit tests
-│   └── integration/      # Integration tests
-├── docs/                 # Documentation
-├── scripts/              # Build and utility scripts
-├── config/               # Configuration files
-└── [config files]        # Package manager configs
-```
-
-## Current Implementation Status
-
-### Completed ✅
-- [Feature or component]
-- [Feature or component]
-- [Feature or component]
-
-### In Progress 🚧
-- [Feature or component]
-- [Feature or component]
-
-### Pending ⏳
-- [Feature or component]
-- [Feature or component]
-- [Feature or component]
-
-## Key Risks & Mitigations
-
-### Risk 1: [Risk Description]
-**Mitigation**:
-- [Mitigation strategy]
-- [Mitigation strategy]
-
-### Risk 2: [Risk Description]
-**Mitigation**:
-- [Mitigation strategy]
-- [Mitigation strategy]
-
-### Risk 3: [Risk Description]
-**Mitigation**:
-- [Mitigation strategy]
-- [Mitigation strategy]
+[1-2 paragraphs covering:
+- Problem being solved
+- Why existing solutions aren't adequate
+- Business case or motivation]
 
 ## Success Metrics
 
-### [Phase Name] Success
-- [ ] [Metric or goal]
-- [ ] [Metric or goal]
-- [ ] [Metric or goal]
+**MVP Success Criteria**:
+- [Quantifiable metric 1]
+- [Quantifiable metric 2]
+- [Quantifiable metric 3]
 
-### Post-Launch (Future)
-- [Metric to track]
-- [Metric to track]
-- [Metric to track]
+**Long-term Goals** (optional):
+- [Future metric or goal]
 
-## References
+## Technical Stack
 
-- **Must-have requirements**: See [musthaves.md](musthaves.md)
-- **Should-have requirements**: See [shouldhaves.md](shouldhaves.md)
-- **Technical TODOs**: See [todo.md](todo.md)
-- **Epic planning**: See [epics.md](epics.md)
+**Backend**:
+- Framework: [e.g., FastAPI, Django, Express]
+- Language: [e.g., Python 3.11, TypeScript]
+- Database: [e.g., PostgreSQL, MongoDB]
+- Authentication: [e.g., JWT, OAuth2]
+
+**Frontend** (if applicable):
+- Framework: [e.g., React, Vue, Svelte]
+- State Management: [e.g., Redux, Zustand]
+- UI Library: [e.g., Tailwind, MUI]
+
+**Infrastructure**:
+- Hosting: [e.g., AWS, Vercel, Railway]
+- CI/CD: [e.g., GitHub Actions, GitLab CI]
+- Monitoring: [e.g., Sentry, DataDog]
+
+**Development**:
+- Version Control: Git + [GitHub/GitLab]
+- Package Manager: [npm, pip, cargo]
+- Code Quality: [linters, formatters, pre-commit hooks]
+
+## Key Constraints
+
+**Technical**:
+- [Constraint, e.g., "Must support offline mode"]
+- [Constraint, e.g., "Must work on mobile devices"]
+
+**Business**:
+- [Constraint, e.g., "GDPR compliance required"]
+- [Constraint, e.g., "Must integrate with existing CRM"]
+
+**Resource**:
+- [Constraint, e.g., "Solo developer, 3-month timeline"]
+- [Constraint, e.g., "Limited budget for third-party services"]
+
+## Architecture Overview
+
+[2-3 paragraphs or simple ASCII diagram describing:
+- System architecture (monolith vs microservices)
+- Key components and their relationships
+- Data flow
+- Integration points]
+
+**Example**:
+```
+┌─────────────┐
+│   React     │  Frontend (SPA)
+│   Client    │
+└──────┬──────┘
+       │ HTTPS/REST
+┌──────▼──────┐
+│   FastAPI   │  Backend API
+│   Server    │
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│ PostgreSQL  │  Database
+└─────────────┘
+```
+
+## Out of Scope
+
+**Explicitly NOT Doing** (at least for MVP):
+- [Feature/capability, e.g., "Mobile native apps"]
+- [Technology, e.g., "GraphQL API"]
+- [Problem, e.g., "Multi-currency support"]
+- [Integration, e.g., "Social media login"]
+
+---
+
+## Related Documentation
+
+- **Work tracking**: See [todo.md](todo.md)
+- **Completed work**: See [done.md](done.md)
+- **Architecture decisions**: See `thoughts/shared/adrs/`
+- **Research**: See `thoughts/shared/research/`
+- **Implementation plans**: See `thoughts/shared/plans/`
 
 ---
 
 *Last Updated: [Date]*
-*Document Owner: [Team/Person]*
-*Status: Living Document - Update as project evolves*
+*Status: Living Document*

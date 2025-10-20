@@ -1,0 +1,71 @@
+# Completed Work
+
+> Historical record of completed items with references to implementation plans and research.
+
+**Purpose**: Maintain traceability from completed work back to the plans, research, and decisions that guided implementation.
+
+---
+
+## [Current Year]-[Current Month] (e.g., 2025-10 October)
+
+### Features
+- [x] [Feature description] (YYYY-MM-DD)
+  - Plan: `thoughts/shared/plans/YYYY-MM-DD-feature-name.md`
+  - Research: `thoughts/shared/research/YYYY-MM-DD-topic.md` (if applicable)
+  - PR: #XXX
+  - Notes: [Any key outcomes, metrics improved, lessons learned]
+
+### Bugs & Fixes
+- [x] [Bug fix description] (YYYY-MM-DD)
+  - Issue: #XXX or description of problem
+  - PR: #XXX
+  - Impact: [What improved - e.g., "Performance improved from 3s to 200ms"]
+
+### Improvements
+- [x] [Improvement description] (YYYY-MM-DD)
+  - Plan: `thoughts/shared/plans/...` (if applicable)
+  - PR: #XXX
+
+### Technical & Infrastructure
+- [x] [Technical work description] (YYYY-MM-DD)
+  - Plan: `thoughts/shared/plans/...` (if applicable)
+  - ADR: `thoughts/shared/adrs/NNN-decision-title.md` (if decision was made)
+  - PR: #XXX
+
+---
+
+## [Previous Month]
+
+[Same structure as above]
+
+---
+
+## Notes
+
+**When to Add**:
+- When item is **fully complete** (tested, reviewed, merged, deployed)
+- Immediately after checking off in todo.md
+- Include current month/year section if it doesn't exist
+
+**What to Include**:
+- Completion date (YYYY-MM-DD)
+- Link to implementation plan (if one existed)
+- Link to research document (if research was done)
+- Link to ADR (if architectural decision was made)
+- Link to PR/commit
+- Key outcomes or learnings
+
+**Organization**:
+- Group by month/year (YYYY-MM format)
+- Same categories as todo.md (Features, Bugs & Fixes, Improvements, Technical)
+- Most recent month at top
+
+**Archival** (Optional):
+- After 6-12 months, consider moving older sections to archive file
+- Git history preserves everything, so safe to remove old items
+- Keep at least 3-6 months for velocity tracking
+
+---
+
+*Last Updated: [Date]*
+*Status: Historical Record*
