@@ -153,8 +153,8 @@ Available commands (use `/` prefix in Claude Code):
 
 **Planning & Implementation:**
 - `/create_plan` - Interactive implementation plan creation (saves to `thoughts/shared/plans/`)
-- `/implement_plan <path>` - Execute an approved plan file
-- `/validate_plan <path>` - Validate implementation correctness
+- `/implement_plan <path>` - Execute an approved plan file (includes automatic validation at end)
+- `/validate_plan <path>` - Validate implementation correctness (standalone, optional if using `/implement_plan`)
 - `/rationalize <path>` - Rationalize implementation and update documentation
 
 **Research:**
@@ -207,13 +207,12 @@ This is the primary workflow pattern, based on "Faking a Rational Design Process
 3. **Implement**: Use `/implement_plan thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
    - Executes the approved plan step-by-step
    - Can resume if interrupted
+   - **Automatically runs validation at the end** to verify correctness
+   - Addresses validation findings (implements missing items or documents exceptions)
+   - Appends validation report to the plan file
+   - Only completes when validation passes
 
-4. **Validate**: Use `/validate_plan thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
-   - Verifies implementation correctness
-   - Runs automated tests and checks
-   - Identifies deviations from plan
-
-5. **Rationalize** (MANDATORY): Use `/rationalize thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
+4. **Rationalize** (MANDATORY): Use `/rationalize thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
    - Analyzes what actually happened vs. what was planned
    - Updates plan to show final approach as if it was always intended
    - Creates ADRs for significant decisions
@@ -222,7 +221,7 @@ This is the primary workflow pattern, based on "Faking a Rational Design Process
    - Documents rejected alternatives
    - **Key principle**: Present clean narrative, not messy discovery process
 
-6. **Commit & PR**: Use `/commit` and `/describe_pr`
+5. **Commit & PR**: Use `/commit` and `/describe_pr`
    - Create well-formatted commits
    - Generate comprehensive PR description
 
