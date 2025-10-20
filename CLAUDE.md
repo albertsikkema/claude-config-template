@@ -86,12 +86,13 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 ```
 .claude/
 ├── agents/          # 11 specialized agents for different tasks
-├── commands/        # 13 slash commands for common workflows
+├── commands/        # 14 slash commands for common workflows
 └── settings.local.json  # Pre-approved tool permissions
 
 docs/                    # Helper script documentation
 ├── README-fetch-docs.md     # Documentation fetcher guide
 ├── README-indexers.md       # Codebase indexers guide
+├── README-c4-diagrams.md    # C4 architecture diagrams guide
 ├── README-fetch-openapi.md  # OpenAPI fetcher guide
 └── README-spec-metadata.md  # Metadata generator guide
 
@@ -118,6 +119,7 @@ claude-helpers/      # Utility scripts for workflows
 ├── index_python.py  # Python codebase indexer
 ├── index_ts.py      # TypeScript codebase indexer
 ├── index_go.py      # Go codebase indexer
+├── build_c4_diagrams.py  # C4 PlantUML diagram builder
 └── fetch-docs.py    # Documentation fetcher
 ```
 
@@ -156,6 +158,9 @@ Available commands (use `/` prefix in Claude Code):
 - `/implement_plan <path>` - Execute an approved plan file (includes automatic validation at end)
 - `/validate_plan <path>` - Validate implementation correctness (standalone, optional if using `/implement_plan`)
 - `/rationalize <path>` - Rationalize implementation and update documentation
+
+**Architecture Documentation:**
+- `/build_c4_docs` - Generate C4 architecture diagrams (System Context, Container, Component levels in Mermaid and PlantUML formats)
 
 **Research:**
 - `/research_codebase` - Comprehensive codebase investigation (saves to `thoughts/shared/research/`)
