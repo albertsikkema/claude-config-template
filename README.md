@@ -50,7 +50,7 @@ This is a **configuration template** that you install into your projects. It pro
 
 - **Complete development workflow** - Research → Plan → Implement → Rationalize → Deploy ([see WORKFLOW.md](WORKFLOW.md))
 - **11 specialized AI agents** - Automated research, code analysis, and architecture design
-- **12 slash commands** - Streamlined workflows for common tasks (including deployment automation)
+- **13 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
 - **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -100,6 +100,7 @@ Monitoring dashboard:
 | `/implement_plan` | Execute approved plans |
 | `/validate_plan` | Validate implementation correctness |
 | `/rationalize` | Rationalize implementation and update docs |
+| `/build_c4_docs` | Generate C4 architecture diagrams (System Context, Container, Component) |
 | `/commit` | Create well-formatted git commits |
 | `/describe_pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
@@ -115,13 +116,14 @@ After installation, you'll have:
 your-project/
 ├── .claude/
 │   ├── agents/              # 11 specialized agents
-│   ├── commands/            # 12 slash commands
+│   ├── commands/            # 13 slash commands
 │   ├── hooks/               # Observability hooks (if monitoring enabled)
 │   └── settings.json        # Configuration and hooks
 │
 ├── docs/                    # Helper script documentation
 │   ├── README-fetch-docs.md     # Documentation fetcher guide
 │   ├── README-indexers.md       # Codebase indexers guide
+│   ├── README-c4-diagrams.md    # C4 architecture diagrams guide
 │   ├── README-fetch-openapi.md  # OpenAPI fetcher guide
 │   └── README-spec-metadata.md  # Metadata generator guide
 │
@@ -130,6 +132,7 @@ your-project/
 │   ├── index_python.py      # Python codebase indexer
 │   ├── index_ts.py          # TypeScript codebase indexer
 │   ├── index_go.py          # Go codebase indexer
+│   ├── build_c4_diagrams.py # C4 PlantUML diagram builder
 │   ├── fetch-docs.py        # Documentation fetcher
 │   ├── fetch_openapi.sh     # OpenAPI schema fetcher
 │   └── spec_metadata.sh     # Metadata generator
