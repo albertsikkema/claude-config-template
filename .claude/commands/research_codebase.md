@@ -155,7 +155,7 @@ Then wait for the user's research query.
      - Project goals related to this topic
      - Existing requirements and constraints
      - Current implementation status
-     - Relevant epics or features
+     - Relevant work items or features
 
      ## Detailed Findings
 

@@ -1,8 +1,15 @@
 # Project Documentation
 
-You are tasked with helping users create and manage their project documentation using the templates in `thoughts/templates/`.
+You are tasked with helping users create and manage their project documentation using the ultra-lean 3-file structure.
 
-These are templates that will be customized based on user input and saved to `thoughts/shared/project/`.
+## The Structure
+
+**3 Essential Files**:
+1. **project.md** - Project context (what/why/how)
+2. **todo.md** - Active work (Must Haves / Should Haves)
+3. **done.md** - Completed work (initially empty)
+
+Templates are in `thoughts/templates/`, documentation goes to `thoughts/shared/project/`.
 
 ## Initial Response
 
@@ -13,12 +20,12 @@ When this command is invoked, check if there are any parameters provided:
 **If no parameters**, respond with:
 
 ```
-I'll help you create project documentation based on the templates.
+I'll help you create project documentation using the lean 3-file structure.
 
-What would you like to create?
+What would you like to do?
 
-1. **Complete project documentation** - Create all documentation files at once
-2. **Specific document** - Create just one type (project overview, features, etc.)
+1. **Complete project setup** - Create all 3 files (project.md, todo.md, done.md)
+2. **Just project context** - Create project.md only
 3. **Update existing documentation** - Modify existing project docs
 
 Or simply describe what you need, and I'll guide you through it.
@@ -31,16 +38,15 @@ Then wait for the user's response.
 ### Step 1: Understand What User Wants
 
 Based on user input, determine:
-- Which template(s) to use
+- Which file(s) to create
 - What information to gather
 - What questions to ask
 
 **Examples of user input:**
 - "Create full project docs for my e-commerce platform"
 - "I need a project overview"
-- "Document my must-have features"
-- "Help me plan my MVP requirements"
-- "Create an epic for authentication"
+- "Set up project documentation"
+- "Help me document my MVP"
 
 ### Step 2: Gather Existing Project Context (In Parallel)
 
@@ -69,14 +75,17 @@ Use Task tool with:
 
 ### Step 3: Read the Appropriate Template(s)
 
-- Templates are in `thoughts/templates/`
-- Read the full template(s) without limits
-- Understand the structure before asking questions
+Templates in `thoughts/templates/`:
+- `project.md.template` - Project context
+- `todo.md.template` - Active work tracking
+- `done.md.template` - Completed work history
+
+Read the full template(s) without limits to understand the structure.
 
 ### Step 4: Ask Targeted Questions
 
 Ask questions based on:
-1. **Which template** the user is working with
+1. **Which file(s)** the user is creating
 2. **What they've already told you** in their initial request
 3. **What information is needed** to fill the template
 4. **What context was found** by the project-context-analyzer agent (if any)
@@ -89,34 +98,22 @@ Ask questions based on:
 
 **For project.md:**
 - Project name (if not mentioned)
-- Brief description (if not clear)
-- Primary tech stack
-- Current phase (prototype, MVP, production, etc.)
-- Team composition
-- Target audience
-
-**For musthaves.md:**
-- Core features for MVP
-- Target users
-- Critical requirements
-- Non-functional requirements (performance, security, etc.)
-
-**For shouldhaves.md:**
-- Post-MVP features
-- Future enhancements
-- Long-term vision
+- One-line description
+- What are you building and why?
+- Primary tech stack (backend, frontend, infrastructure)
+- Key constraints (technical, business, resource)
+- Success metrics for MVP
+- What's explicitly out of scope?
 
 **For todo.md:**
-- Current high-priority tasks
-- Known technical debt
-- Infrastructure needs
-- Pending items
+- What are the Must Have features/work for MVP?
+- What are the Should Have features (post-MVP)?
+- Any known blockers?
+- Dependencies between items?
 
-**For epics.md:**
-- Major feature areas
-- Timeline and priorities
-- Dependencies between features
-- Success metrics
+**For done.md:**
+- Starts empty - just create the template structure
+- Will be populated as work is completed
 
 ### Step 5: Create Customized Documentation
 
@@ -130,26 +127,21 @@ Ask questions based on:
    - Remove irrelevant sections
    - Add project-specific details
 
-3. **Save to appropriate location**:
-
-   **For epics**, save to `thoughts/shared/project/epics/`:
-   - `epic-[name].md` (e.g., `epic-authentication.md`, `epic-payment-processing.md`)
-
-   **For other documentation**, save to `thoughts/shared/project/`:
-   - Use clear filenames like:
-     - `project-overview.md` or `project.md`
-     - `mvp-requirements.md` or `musthaves.md`
-     - `post-mvp-features.md` or `shouldhaves.md`
-     - `technical-todos.md` or `todo.md`
+3. **Save to `thoughts/shared/project/`**:
+   - `project.md` - Project context
+   - `todo.md` - Active work
+   - `done.md` - Completed work (initially just headers/structure)
 
 4. **Show the user** what was created with a brief summary
 
 ### Step 6: Offer Next Steps
 
 After creating documentation, suggest what to do next:
-- Create additional documentation types
-- Update existing docs
-- Use the docs in planning workflows
+- Review and refine the documentation
+- Start working through todo.md items
+- Create implementation plans for complex features
+- Use `/research_codebase` to understand existing code
+- Use `/create_plan` for detailed implementation planning
 
 ## Examples
 
@@ -158,70 +150,104 @@ After creating documentation, suggest what to do next:
 ```
 User: /project Create full documentation for my SaaS task management app
 
-Claude: I'll help you create documentation for your SaaS task management app.
+Claude: I'll help you create documentation for your SaaS task management app using the lean 3-file structure.
         Let me first check if there's any existing project documentation...
 
 [Claude uses project-context-analyzer agent in parallel]
 
-Claude: I found some existing project context. Based on what's already documented
-        and what's missing, let me ask a few questions:
+Claude: I didn't find existing project documentation. Let me ask a few questions:
 
-1. What tech stack are you using?
-2. Is this B2B or B2C?
-3. Team size?
-4. Current development phase?
+1. Brief description - what makes your task management app unique?
+2. What tech stack are you using? (backend, frontend, database)
+3. Is this B2B or B2C?
+4. What are the 3-5 core features that MUST exist for MVP?
+5. Current development phase? (planning, prototype, MVP, production)
 
 [After getting answers]
 
-Claude: Perfect\! I'm creating your documentation now...
+Claude: Perfect! I'm creating your project documentation now...
 
 ✅ Created thoughts/shared/project/project.md
-✅ Created thoughts/shared/project/musthaves.md
-✅ Created thoughts/shared/project/shouldhaves.md
+✅ Created thoughts/shared/project/todo.md (with Must Haves and Should Haves)
+✅ Created thoughts/shared/project/done.md (ready for tracking completed work)
+
+Your project documentation is ready!
+
+**Next steps:**
+- Review and refine project.md
+- Start working through todo.md Must Haves
+- As you complete work, move items to done.md with references to plans/PRs
+```
+
+### Example 2: Just Project Context
+
+```
+User: /project I just need the project overview, not the todos
+
+Claude: I'll create just the project.md for you.
+        Let me check for existing context first...
+
+[Claude uses project-context-analyzer agent]
+
+Claude: No existing documentation found. Tell me about your project:
+
+1. Project name and one-line description?
+2. What problem are you solving?
+3. Tech stack?
+4. MVP success criteria?
+
+[User provides answers]
+
+Claude: ✅ Created thoughts/shared/project/project.md
+
+You can create todo.md later when you're ready to start tracking work items.
+```
+
+### Example 3: With Existing Context
+
+```
+User: /project Set up the full documentation structure
+
+Claude: I'll set up the complete 3-file documentation structure.
+        Let me check what already exists...
+
+[Claude uses project-context-analyzer agent]
+
+Claude: Great! I found existing documentation:
+        - project.md already exists
+        - No todo.md yet
+        - No done.md yet
+
+Based on your project.md, I can see you're building [details from existing docs].
+
+For todo.md, what are your current Must Have items (critical for MVP)?
+
+[User provides current work items]
+
+Claude: ✅ Updated thoughts/shared/project/project.md (refreshed dates)
 ✅ Created thoughts/shared/project/todo.md
-✅ Created thoughts/shared/project/epics.md
+✅ Created thoughts/shared/project/done.md
 
-Your complete project documentation is ready\!
+Your documentation structure is complete!
 ```
 
-### Example 2: Specific Document
+### Example 4: Update Existing
 
 ```
-User: /project I need to document my MVP features
+User: /project Update my project docs with new features
 
-Claude: I'll help you create your MVP requirements document.
-        Let me check for existing project documentation first...
+Claude: I'll help you update your project documentation.
+        Let me check what currently exists...
 
 [Claude uses project-context-analyzer agent]
 
-Claude: Based on your existing project overview, I can see you're building [details].
-        Now tell me about your core features...
+Claude: Found your existing documentation. What updates do you need?
 
-[User describes features]
+User: Add these new features to the Must Haves: [features]
 
-Claude: ✅ Created thoughts/shared/project/mvp-requirements.md
-```
+Claude: ✅ Updated thoughts/shared/project/todo.md (added new Must Haves)
 
-### Example 3: With User Input Parameter
-
-```
-User: /project Create an epic for user authentication with OAuth support
-
-Claude: I'll create an authentication epic for you.
-        Let me gather context from your existing project docs...
-
-[Claude uses project-context-analyzer agent]
-
-Claude: I see from your project docs that you're using [tech stack] and targeting [audience].
-        A few questions about the authentication epic:
-
-1. Which OAuth providers? (Google, GitHub, etc.)
-2. Timeline for this epic?
-3. Any dependencies on other features?
-
-[After getting answers]
-
-Claude: ✅ Created thoughts/shared/project/epics/epic-authentication.md
+Your todo.md has been updated with the new features.
 ```
 
 ## Guidelines
@@ -233,19 +259,31 @@ Claude: ✅ Created thoughts/shared/project/epics/epic-authentication.md
 - **Fill in placeholders** - no [brackets] in final output
 - **Ensure consistency** - Match tone and style of existing docs
 - **Save to thoughts/shared/project/** - correct location
-- **Use descriptive filenames** - help users find docs easily
 - **Update dates** in "Last Updated" fields
 - **Remove irrelevant sections** from templates
 - **Add project-specific content** beyond just filling blanks
+- **done.md starts empty** - Just create the structure, will be populated as work completes
 
 ## Important Notes
 
 - **CRITICAL**: Always use `project-context-analyzer` agent at the start to gather existing context
-- Templates are in `thoughts/templates/` (without .template extension after install)
-- **Epics** go to `thoughts/shared/project/epics/`
-- **Other docs** go to `thoughts/shared/project/`
-- The project-context-analyzer will search `thoughts/shared/project/` for existing documentation
+- Templates are in `thoughts/templates/`
+- Documentation goes to `thoughts/shared/project/`
+- The 3-file structure is: project.md (context), todo.md (active work), done.md (completed work)
+- done.md starts empty with just the template structure - it will be populated as work is completed
+- todo.md uses Must Haves (critical) and Should Haves (important but not blocking)
+- Items can be marked `[BLOCKED]` inline when they can't proceed
+- Dependencies noted with `(requires: other-item)` in descriptions
 - Never delete or modify the original templates
-- Always create new files in the appropriate project directory
+- Always create new files in `thoughts/shared/project/`
 - Keep documentation updated as the project evolves
-- Use existing documentation context to maintain consistency across all project docs
+- Use existing documentation context to maintain consistency
+
+## Lean Documentation Philosophy
+
+This template follows **lean documentation principles**:
+- **Just enough context** - AI needs what/why, not exhaustive details
+- **Action-focused** - Everything in todo.md is actionable
+- **Traceability** - done.md links work back to plans/research/decisions
+- **Living documents** - Update constantly, keep current
+- **Simple prioritization** - Must Have (critical) vs Should Have (important)

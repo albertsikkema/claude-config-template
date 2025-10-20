@@ -136,12 +136,11 @@ your-project/
 │
 └── thoughts/
     ├── templates/           # Documentation templates
-    │   ├── adr.md.template
-    │   ├── project.md.template
-    │   ├── musthaves.md.template
-    │   ├── shouldhaves.md.template
-    │   ├── todo.md.template
-    │   └── epics.md.template
+    │   ├── project.md.template  # Project context template
+    │   ├── todo.md.template     # Active work tracking template
+    │   ├── done.md.template     # Completed work template
+    │   ├── adr.md.template      # Architecture Decision Records template
+    │   └── changelog.md.template # Changelog template
     │
     ├── technical_docs/      # Technical documentation storage
     │
@@ -150,8 +149,7 @@ your-project/
         ├── research/        # Research documents
         ├── adrs/            # Architecture Decision Records
         ├── rationalization/ # Ephemeral working docs (auto-deleted)
-        └── project/         # Project documentation
-            └── epics/       # Epic planning
+        └── project/         # Project documentation (3-file structure)
 ```
 
 ## 🔍 Multi-Agent Observability Dashboard
@@ -398,17 +396,11 @@ You: /describe_pr
 2025-10-14-ENG-1478-user-tracking.md
 ```
 
-**Project Documentation**: Descriptive names
+**Project Documentation**: Ultra-lean 3-file structure
 ```
-thoughts/shared/project/project-overview.md
-thoughts/shared/project/mvp-requirements.md
-thoughts/shared/project/technical-todos.md
-```
-
-**Epics**: Saved in subdirectory as `epic-[name].md`
-```
-thoughts/shared/project/epics/epic-authentication.md
-thoughts/shared/project/epics/epic-payment-processing.md
+thoughts/shared/project/project.md    # Project context (what/why/stack)
+thoughts/shared/project/todo.md       # Active work (Must Haves/Should Haves)
+thoughts/shared/project/done.md       # Completed work history
 ```
 
 **ADRs**: Sequential numbering as `NNN-decision-title.md`
@@ -501,12 +493,13 @@ Agents work autonomously and can be:
 
 ### Structured Documentation
 
-Templates help you maintain:
-- **Project overview** - Big picture understanding
-- **Requirements** - Must-haves vs. should-haves
-- **Technical TODOs** - Track technical debt
-- **Epics** - Plan major features
+Ultra-lean 3-file structure:
+- **project.md** - Project context (what/why/stack/constraints)
+- **todo.md** - Active work with MoSCoW prioritization (Must Haves/Should Haves)
+- **done.md** - Completed work history with full traceability
 - **ADRs** - Architecture Decision Records
+
+See the "Ultra-Lean 3-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md) for methodology details.
 
 ## 📖 Real-World Examples
 

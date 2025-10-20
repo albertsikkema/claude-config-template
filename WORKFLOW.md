@@ -21,6 +21,150 @@ From Parnas & Clements (1986): *"Documentation should show the cleaned-up, ratio
 
 ---
 
+## The Ultra-Lean 3-File Documentation Method
+
+> Minimal project documentation for AI-assisted development
+
+### Why 3 Files?
+
+Traditional project management (epics, user stories, sprints) is often overkill for small teams and AI-assisted development. This method provides **just enough** documentation for:
+- AI assistants to understand project context between sessions
+- Clear prioritization and progress tracking
+- Traceability from completed work back to plans
+
+### The 3 Files
+
+#### 1. project.md - Project Context (Stable)
+**Purpose**: What you're building and why
+
+**Contains**:
+- Project description and value proposition
+- Technical stack (backend, frontend, infrastructure)
+- Success metrics and constraints
+- Architecture overview
+- What's explicitly out of scope
+
+**Update frequency**: Rarely (only when project direction changes)
+
+#### 2. todo.md - Active Work (Living Document)
+**Purpose**: What needs to be done, prioritized
+
+**Structure**:
+```markdown
+## Must Haves
+_Critical for MVP/current release. Cannot ship without these._
+
+### Features
+- [ ] Feature description
+- [ ] [BLOCKED] Feature - blocker description
+- [ ] Feature with dependency (requires: authentication)
+
+### Bugs & Fixes
+- [ ] Bug description
+
+### Improvements
+- [ ] Improvement description
+
+### Technical & Infrastructure
+- [ ] Technical work
+
+## Should Haves
+_Important but not blocking launch._
+[Same categories as above]
+```
+
+**Key Features**:
+- **MoSCoW prioritization**: Must Have (critical) vs Should Have (important but not blocking)
+- **Inline blocking**: `[BLOCKED]` prefix with blocker description
+- **Dependency tracking**:
+  - Ordering (do top items first)
+  - Explicit mentions: `(requires: other-feature)`
+- **Categories**: Features, Bugs & Fixes, Improvements, Technical & Infrastructure
+
+**Update frequency**: Constantly (add items, check off completed work, reorder priorities)
+
+#### 3. done.md - Completed Work (Historical Record)
+**Purpose**: Traceability from completed work to implementation
+
+**Structure**:
+```markdown
+## 2025-10 October
+
+### Features
+- [x] Feature description (2025-10-20)
+  - Plan: `thoughts/shared/plans/2025-10-20-feature.md`
+  - Research: `thoughts/shared/research/2025-10-15-topic.md`
+  - PR: #123
+  - Notes: Key outcomes, metrics improved, lessons learned
+
+### Bugs & Fixes
+- [x] Bug fix (2025-10-18)
+  - Issue: #456
+  - PR: #457
+  - Impact: Performance improved from 3s to 200ms
+```
+
+**Key Features**:
+- Organized by month/year (most recent first)
+- Links to plans, research, ADRs, PRs
+- Same categories as todo.md
+- Includes completion dates and outcomes
+
+**Update frequency**: When work is completed (immediately after checking off in todo.md)
+
+### Daily Workflow with 3 Files
+
+**Daily Work:**
+1. Review **todo.md** Must Haves
+2. Work on highest priority unblocked item
+3. When complete:
+   - Check off item in todo.md
+   - Move to done.md with full details (plan link, PR, notes)
+
+**Adding New Work:**
+1. Add to appropriate section in **todo.md**
+2. Choose Must Have (blocking) or Should Have (nice-to-have)
+3. Add category (Features/Bugs/Improvements/Technical)
+4. Note dependencies if needed: `(requires: other-item)`
+
+**Blocked Work:**
+1. Add `[BLOCKED]` prefix inline: `- [ ] [BLOCKED] Item - waiting for API keys (contact@example.com)`
+2. Keep in original priority section (stays Must Have or Should Have)
+3. Remove `[BLOCKED]` when unblocked
+
+**Completed Work:**
+1. Check off in todo.md: `- [x] Item`
+2. Immediately move to done.md:
+   - Add to current month/year section
+   - Include completion date
+   - Link to plan, research, ADR (if applicable)
+   - Link to PR/commit
+   - Add notes on outcomes or learnings
+3. Remove from todo.md
+
+### Why This Works
+
+**For Humans**:
+- Clear priorities (Must vs Should)
+- Visibility into blocked work
+- Progress tracking (what's done)
+- Quick to scan and update
+
+**For AI Assistants**:
+- Context-rich project.md provides essential background
+- Current work visible in todo.md
+- Historical decisions traceable through done.md → plans → research
+- No memory needed between sessions
+
+**Lean Principles**:
+- Just enough context (no exhaustive details)
+- Action-focused (everything is actionable)
+- Living documents (update constantly)
+- Simple prioritization (2 levels, not 5)
+- Traceability (links to implementation artifacts)
+
+---
+
 ## Overview: The 8-Phase Workflow
 
 ```
@@ -121,13 +265,9 @@ Future research and planning will be much faster!
 **Typical Documents Created:**
 ```
 thoughts/shared/project/
-├── project-overview.md          # High-level project description
-├── mvp-requirements.md          # Must-have features
-├── post-mvp-features.md         # Should-have features
-├── technical-todos.md           # Technical debt and improvements
-└── epics/
-    ├── epic-authentication.md   # Feature epic planning
-    └── epic-payment.md          # Another epic
+├── project.md                   # Project context (what/why/stack/constraints)
+├── todo.md                      # Active work (Must Haves/Should Haves)
+└── done.md                      # Completed work history with traceability
 ```
 
 **Example:**
@@ -142,20 +282,17 @@ What are the must-have features for MVP?
 [Claude asks targeted questions based on context]
 
 Creating documentation...
-✓ thoughts/shared/project/project-overview.md
-✓ thoughts/shared/project/mvp-requirements.md
-✓ thoughts/shared/project/post-mvp-features.md
-✓ thoughts/shared/project/technical-todos.md
+✓ thoughts/shared/project/project.md
+✓ thoughts/shared/project/todo.md
+✓ thoughts/shared/project/done.md
 
 Your project documentation is ready!
 ```
 
 **Templates Used:**
-- `thoughts/templates/project.md.template`
-- `thoughts/templates/musthaves.md.template`
-- `thoughts/templates/shouldhaves.md.template`
-- `thoughts/templates/todo.md.template`
-- `thoughts/templates/epics.md.template`
+- `thoughts/templates/project.md.template` - Project context
+- `thoughts/templates/todo.md.template` - Active work tracking
+- `thoughts/templates/done.md.template` - Completed work history
 
 ---
 
@@ -951,9 +1088,9 @@ You: /project Create full documentation for e-commerce platform
 
 Claude: [Interactive questions about project...]
 
-✓ thoughts/shared/project/project-overview.md
-✓ thoughts/shared/project/mvp-requirements.md
-✓ thoughts/shared/project/post-mvp-features.md
+✓ thoughts/shared/project/project.md
+✓ thoughts/shared/project/todo.md
+✓ thoughts/shared/project/done.md
 
 Your project documentation is ready!
 
@@ -1144,12 +1281,12 @@ thoughts/shared/adrs/002-three-retry-strategy.md
 
 **Project Documentation:**
 ```
-Descriptive names
+Ultra-lean 3-file structure
 
 Examples:
-thoughts/shared/project/project-overview.md
-thoughts/shared/project/mvp-requirements.md
-thoughts/shared/project/epics/epic-authentication.md
+thoughts/shared/project/project.md    # Project context
+thoughts/shared/project/todo.md       # Active work
+thoughts/shared/project/done.md       # Completed work history
 ```
 
 ---

@@ -97,13 +97,11 @@ docs/                    # Helper script documentation
 
 thoughts/
 ├── templates/       # Project documentation templates
-│   ├── adr.md.template
-│   ├── changelog.md.template
-│   ├── epics.md.template
-│   ├── musthaves.md.template
-│   ├── project.md.template
-│   ├── shouldhaves.md.template
-│   └── todo.md.template
+│   ├── project.md.template  # Project context template
+│   ├── todo.md.template     # Active work tracking template
+│   ├── done.md.template     # Completed work template
+│   ├── adr.md.template      # Architecture Decision Records template
+│   └── changelog.md.template # Changelog template
 ├── shared/
 │   ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md)
 │   ├── research/    # Research documents (dated: YYYY-MM-DD-*.md)
@@ -111,7 +109,9 @@ thoughts/
 │   ├── adrs/        # Architecture Decision Records (NNN-title.md)
 │   ├── rationalization/  # Ephemeral working docs (deleted after rationalization)
 │   └── project/     # Project documentation (created by /project)
-│       └── epics/   # Epic documents
+│       ├── project.md  # Project context (what/why/stack/constraints)
+│       ├── todo.md     # Active work (Must Haves / Should Haves)
+│       └── done.md     # Completed work with traceability
 └── technical_docs/  # Technical documentation storage
 
 claude-helpers/      # Utility scripts for workflows
@@ -175,22 +175,45 @@ Available commands (use `/` prefix in Claude Code):
 
 ### Documentation Setup
 
-Use the `/project` command to create project documentation:
+Use the `/project` command to create project documentation using the **ultra-lean 3-file structure**:
 
 1. **Describe your need**: Run `/project <what you want>` in Claude Code
-   - Examples: "Create full docs", "Document MVP features", "Create authentication epic"
+   - Examples: "Create full docs", "Set up project documentation", "Document my MVP"
 2. **Answer questions**: Provide project details based on context
 3. **Review**: Claude creates customized documentation in `thoughts/shared/project/`
 4. **Maintain**: Update documentation as your project evolves
 
-The command creates documentation such as:
-- `thoughts/shared/project/project-overview.md` - Project overview
-- `thoughts/shared/project/mvp-requirements.md` - MVP requirements
-- `thoughts/shared/project/post-mvp-features.md` - Post-MVP features
-- `thoughts/shared/project/technical-todos.md` - Technical TODOs
-- `thoughts/shared/project/epics/epic-[name].md` - Epic planning (in epics subdirectory)
+The command creates **3 essential files**:
+
+**1. project.md** - Project context (stable, rarely changes)
+- What you're building and why
+- Technical stack (backend, frontend, infrastructure)
+- Success metrics and constraints
+- Architecture overview
+- What's explicitly out of scope
+
+**2. todo.md** - Active work tracking (living document, constantly updated)
+- **Must Haves** - Critical work for MVP/current release
+- **Should Haves** - Important but not blocking work
+- Inline blocking: `[BLOCKED]` prefix with blocker description
+- Dependencies: Ordering (top-to-bottom) + explicit `(requires:)` mentions
+- Categories: Features, Bugs & Fixes, Improvements, Technical & Infrastructure
+
+**3. done.md** - Completed work history (append-only)
+- Organized by month/year (2025-10, 2025-09, etc.)
+- Links to implementation plans, research, ADRs, PRs
+- Tracks outcomes and learnings
+- Provides traceability and velocity tracking
+
+**Workflow**:
+- New work → todo.md (Must Have or Should Have)
+- Gets blocked → Add `[BLOCKED]` prefix with blocker info
+- Unblocked → Remove `[BLOCKED]` prefix
+- Completed → Move to done.md with references
 
 Templates are stored in `thoughts/templates/` and remain unchanged.
+
+**For complete methodology details**, see the "Ultra-Lean 3-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md).
 
 ### Research → Plan → Implement → Rationalize Pattern
 
@@ -217,7 +240,7 @@ This is the primary workflow pattern, based on "Faking a Rational Design Process
    - Updates plan to show final approach as if it was always intended
    - Creates ADRs for significant decisions
    - Updates CLAUDE.md with new patterns/conventions
-   - Updates project documentation (epics, requirements, TODOs, project overview)
+   - Updates project documentation (project.md, todo.md, done.md as appropriate)
    - Documents rejected alternatives
    - **Key principle**: Present clean narrative, not messy discovery process
 
@@ -239,7 +262,8 @@ From Parnas & Clements (1986): Documentation should show the cleaned-up, rationa
 - Plans reflect reality (what was actually built)
 - Decisions are documented (ADRs with rationale)
 - Patterns are captured (CLAUDE.md updates)
-- Project documentation stays in sync (epics, requirements, TODOs)
+- Project documentation stays in sync (project.md, todo.md, done.md)
+- Completed work moved to done.md with references
 - Rejected alternatives are recorded (prevents re-exploration)
 - Future AI sessions have proper context
 
@@ -279,13 +303,10 @@ The command uses parallel subagents to execute each step efficiently and provide
   - `2025-10-14-ENG-1478-parent-tracking.md`
 
 **Project Documentation:**
-- Use descriptive names: `project-overview.md`, `mvp-requirements.md`, etc.
-- Or use template names: `project.md`, `musthaves.md`, `shouldhaves.md`, `todo.md`
-
-**Epics:**
-- Saved in `thoughts/shared/project/epics/`
-- Format: `epic-[name].md`
-- Examples: `epic-authentication.md`, `epic-payment-processing.md`
+- 3 essential files in `thoughts/shared/project/`:
+  - `project.md` - Project context
+  - `todo.md` - Active work (Must Haves / Should Haves)
+  - `done.md` - Completed work with traceability
 
 **ADRs (Architecture Decision Records):**
 - Saved in `thoughts/shared/adrs/`

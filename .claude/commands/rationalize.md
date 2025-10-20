@@ -13,7 +13,7 @@ From Parnas and Clements (1986): Documentation should show the cleaned-up, ratio
 - Presents the final solution cleanly (updated plan)
 - Documents the reasoning (ADRs with rationale)
 - Learns from the process (updates to CLAUDE.md)
-- Keeps project documentation in sync (epics, requirements, TODOs)
+- Keeps project documentation in sync (project.md, todo.md, done.md)
 
 ## Initial Response
 
@@ -92,8 +92,9 @@ Spawn parallel research agents to discover implementation reality:
    - Read current CLAUDE.md
    - Review existing ADRs in thoughts/shared/adrs/
    - Check project documentation for relevant sections
-   - Find related epics in thoughts/shared/project/epics/
-   - Check musthaves, shouldhaves, and todo docs
+   - Review thoughts/shared/project/project.md for context
+   - Check thoughts/shared/project/todo.md for current/planned work
+   - Review thoughts/shared/project/done.md for completed work
 
 **IMPORTANT**: Wait for ALL sub-agents to complete before proceeding.
 
@@ -251,30 +252,26 @@ List ADRs needed for significant decisions:
 ### Project Documentation Updates
 Track what needs to change in project documentation:
 
-**Related Epic**: `thoughts/shared/project/epics/epic-[name].md` (if applicable)
-- [ ] Update epic status (in_progress → completed, or update progress)
-- [ ] Add implementation notes or learnings
-- [ ] Update acceptance criteria based on what was built
-
-**Must-Haves** (`thoughts/shared/project/musthaves.md` or `mvp-requirements.md`):
-- [ ] Mark completed features as done
-- [ ] Update requirements that changed during implementation
-- [ ] Add notes about implementation approach if relevant
-
-**Should-Haves** (`thoughts/shared/project/shouldhaves.md` or `post-mvp-features.md`):
-- [ ] Move features from should-haves to must-haves if scope changed
-- [ ] Update priority based on learnings
-- [ ] Add new features discovered during implementation
-
-**Technical TODOs** (`thoughts/shared/project/todo.md` or `technical-todos.md`):
-- [ ] Mark completed TODOs as done
-- [ ] Add new technical debt discovered
+**todo.md** (`thoughts/shared/project/todo.md`):
+- [ ] Move completed items from Must Haves/Should Haves to done.md
+- [ ] Remove `[BLOCKED]` prefix if any items were unblocked
+- [ ] Add new technical debt or work items discovered during implementation
 - [ ] Update priorities based on implementation experience
+- [ ] Reorder items if dependencies changed
 
-**Project Overview** (`thoughts/shared/project/project.md` or `project-overview.md`):
+**done.md** (`thoughts/shared/project/done.md`):
+- [ ] Add completed work items with completion date
+- [ ] Link to this implementation plan
+- [ ] Link to relevant research documents
+- [ ] Link to ADRs created during rationalization
+- [ ] Link to PR/commits
+- [ ] Add key outcomes and learnings
+
+**project.md** (`thoughts/shared/project/project.md`):
 - [ ] Update architecture section if significant changes
-- [ ] Add completed features to feature list
 - [ ] Update technical stack if new dependencies added
+- [ ] Update constraints if any were discovered
+- [ ] Update "Out of Scope" if scope decisions were made
 
 ## Code References Summary
 - `path/to/file.ext:123` - [What's there]
@@ -334,7 +331,7 @@ The plan needs updates to reflect what actually happened. Should I:
 - Let me review the changes first
 
 ### Project Documentation Updates
-[List updates needed for epics, musthaves, shouldhaves, todos, project overview]
+[List updates needed for todo.md, done.md, project.md]
 
 Which project documentation should I update?
 - All relevant documents
@@ -481,81 +478,68 @@ For each project documentation file that needs updates:
    - Read FULLY without limit/offset parameters
    - Identify what needs to be updated based on the implementation
 
-3. **Update Epic (if applicable)**:
-   - File: `thoughts/shared/project/epics/epic-[name].md`
-   - Updates:
-     - Change status from `in_progress` to `completed` (or update progress percentage)
-     - Add "Implementation Notes" section with key learnings
-     - Update acceptance criteria to match what was actually built
-     - Add references to implementation plan and ADRs
+3. **Update todo.md - Remove Completed Items**:
+   - File: `thoughts/shared/project/todo.md`
+   - Actions:
+     - Find items in Must Haves or Should Haves that were completed
+     - Note their full description, category, and any notes
+     - Prepare to move them to done.md (next step)
+     - Remove `[BLOCKED]` prefix from any items that were unblocked
+     - Add new work items discovered during implementation
+     - Reorder items if dependencies or priorities changed
+   - Example removal from todo.md:
+     ```markdown
+     ## Must Haves
+
+     ### Features
+     - [x] User authentication with OAuth2 ← REMOVE THIS, move to done.md
+     - [ ] Product catalog with search
+     ```
+
+4. **Update done.md - Add Completed Work**:
+   - File: `thoughts/shared/project/done.md`
+   - Actions:
+     - Add new month/year section if it doesn't exist (e.g., `## 2025-10 (October 2025)`)
+     - Add completed items from todo.md with full traceability
+     - Include completion date, plan reference, ADRs, PR links, outcomes
+   - Example addition to done.md:
+     ```markdown
+     ## 2025-10 (October 2025)
+
+     ### Features
+     - [x] User authentication with OAuth2 (2025-10-20)
+       - Plan: `thoughts/shared/plans/2025-10-15-oauth-support.md`
+       - Research: `thoughts/shared/research/2025-10-14-auth-libraries.md`
+       - ADR: `thoughts/shared/adrs/001-oauth-provider-choice.md`
+       - PR: #123
+       - Notes: Implemented OAuth2 with Google and GitHub providers. Initial implementation used Passport.js but switched to @auth/core after performance testing (see ADR-001). Key insight: token refresh logic at `src/auth/refresh.ts:45` needs monitoring in production.
+     ```
+
+5. **Update project.md - Architecture & Stack Changes**:
+   - File: `thoughts/shared/project/project.md`
+   - Updates only if there were significant changes:
+     - Update Technical Stack section if new dependencies added
+     - Update Architecture Overview if system design changed
+     - Update Key Constraints if new constraints discovered
+     - Update "Out of Scope" if scope decisions were made
    - Example addition:
      ```markdown
-     ## Implementation Notes
-
-     **Completed**: [Date]
-     **Implementation Plan**: `thoughts/shared/plans/YYYY-MM-DD-feature.md`
-     **Related ADRs**: ADR-001, ADR-002
-
-     Key learnings from implementation:
-     - [Learning 1 with file:line reference]
-     - [Learning 2 with file:line reference]
-     ```
-
-4. **Update Must-Haves/MVP Requirements**:
-   - File: `thoughts/shared/project/musthaves.md` or `mvp-requirements.md`
-   - Updates:
-     - Mark completed features with ✅ or update status
-     - Add implementation notes if the approach differed
-     - Update acceptance criteria if they changed
-   - Example:
-     ```markdown
-     - [x] User authentication ✅
-       - Implemented using OAuth2 (see ADR-001)
-       - `src/auth/oauth.ts:45`
-     ```
-
-5. **Update Should-Haves/Post-MVP Features**:
-   - File: `thoughts/shared/project/shouldhaves.md` or `post-mvp-features.md`
-   - Updates:
-     - Move features to must-haves if scope changed
-     - Update priorities based on implementation learnings
-     - Add new features discovered during implementation
-     - Remove features that are no longer relevant
-
-6. **Update Technical TODOs**:
-   - File: `thoughts/shared/project/todo.md` or `technical-todos.md`
-   - Updates:
-     - Mark completed TODOs as done
-     - Add new technical debt discovered during implementation
-     - Update priorities based on what was learned
-   - Example:
-     ```markdown
-     ## Completed
-     - [x] Set up authentication infrastructure (completed YYYY-MM-DD)
-
-     ## New Technical Debt
-     - [ ] Refactor auth error handling (discovered during implementation)
-       - Current approach at `src/auth/errors.ts:23` needs improvement
-       - See ADR-002 for context
-     ```
-
-7. **Update Project Overview**:
-   - File: `thoughts/shared/project/project.md` or `project-overview.md`
-   - Updates:
-     - Add completed features to the feature list
-     - Update architecture section if there were significant changes
-     - Update technical stack if new dependencies were added
-     - Update deployment info if infrastructure changed
-   - Example additions:
-     ```markdown
-     ## Completed Features
-     - Authentication system (OAuth2) - YYYY-MM-DD
-
      ## Technical Stack
-     - Added: @auth/core for OAuth2 (v1.2.3)
+
+     **Backend**:
+     - Framework: FastAPI
+     - Language: Python 3.11
+     - Database: PostgreSQL
+     - Authentication: OAuth2 via @auth/core ← ADDED
+
+     ## Architecture Overview
+
+     Added authentication layer between API gateway and backend services.
+     OAuth2 tokens validated at gateway, user context propagated via headers.
+     See ADR-001 for decision rationale.
      ```
 
-8. **Track updates in rationalization doc**:
+6. **Track updates in rationalization doc**:
    - Mark each project doc update as completed in the rationalization working document
    - Note what was changed and why
 
@@ -582,10 +566,9 @@ For each project documentation file that needs updates:
    - Added common pitfall about race conditions
 
    ### Project Documentation Updated:
-   - Epic: epic-authentication.md marked as completed
-   - Must-haves: Added implementation notes for OAuth2
-   - Technical TODOs: Added 2 new items, completed 3 items
-   - Project Overview: Updated technical stack
+   - todo.md: Moved 3 completed items to done.md, added 2 new technical debt items
+   - done.md: Added OAuth2 authentication with full traceability (plan, research, ADRs, PR)
+   - project.md: Updated technical stack to include @auth/core
 
    ## Next Step: Cleanup
 
@@ -675,7 +658,7 @@ The permanent outputs are:
 1. **Updated plan** - Shows final approach as if always intended
 2. **ADRs** - Permanent record of decisions with rationale
 3. **Updated CLAUDE.md** - Patterns and conventions for future work
-4. **Updated project documentation** - Epics, requirements, TODOs, and overview kept in sync
+4. **Updated project documentation** - project.md, todo.md, done.md kept in sync
 
 ## Integration with Workflow
 
@@ -699,7 +682,7 @@ Rationalization is **mandatory** - it ensures documentation stays current and fu
 - **ADRs** (permanent): `thoughts/shared/adrs/NNN-decision-title.md`
 - **Updated plan** (permanent): `thoughts/shared/plans/YYYY-MM-DD-feature.md`
 - **Updated CLAUDE.md** (permanent): `CLAUDE.md`
-- **Updated project docs** (permanent): `thoughts/shared/project/*.md` and `thoughts/shared/project/epics/*.md`
+- **Updated project docs** (permanent): `thoughts/shared/project/*.md` (project.md, todo.md, done.md)
 
 ## Success Criteria
 
@@ -708,6 +691,6 @@ A rationalization is complete when:
 - [ ] Plan reflects final implementation as if it was always the approach
 - [ ] Rejected alternatives are documented (in ADRs)
 - [ ] New patterns/conventions are in CLAUDE.md
-- [ ] Project documentation updated (epics, musthaves, shouldhaves, todos, project overview)
+- [ ] Project documentation updated (todo.md items moved to done.md with full traceability, project.md updated if needed)
 - [ ] Working rationalization document is deleted
 - [ ] User confirms documentation accurately reflects implementation
