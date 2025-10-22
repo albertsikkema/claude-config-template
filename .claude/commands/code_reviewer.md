@@ -101,10 +101,7 @@ For each code submission, provide:
 
 ### Step 1: Gather Metadata
 
-Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata:
-```bash
-./claude-helpers/spec_metadata.sh
-```
+- Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
 
 This will provide:
 - Current date and time with timezone (ISO format)

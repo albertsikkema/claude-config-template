@@ -103,9 +103,7 @@ Spawn parallel research agents to discover implementation reality:
 This is a **temporary working document** that will be deleted when rationalization is complete.
 
 1. **Gather metadata**:
-   ```bash
-   claude-helpers/spec_metadata.sh
-   ```
+- Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
 
 2. **Create rationalization working doc** at `thoughts/shared/rationalization/YYYY-MM-DD-[topic].md`:
 
