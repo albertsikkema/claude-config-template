@@ -130,7 +130,7 @@ your-project/
 ├── claude-helpers/          # Utility scripts
 │   ├── README.md            # Scripts overview
 │   ├── index_python.py      # Python codebase indexer
-│   ├── index_ts.py          # TypeScript codebase indexer
+│   ├── index_js_ts.py       # JavaScript/TypeScript codebase indexer
 │   ├── index_go.py          # Go codebase indexer
 │   ├── build_c4_diagrams.py # C4 PlantUML diagram builder
 │   ├── fetch-docs.py        # Documentation fetcher
@@ -323,7 +323,7 @@ This template includes several utility scripts in the `claude-helpers/` director
 
 - **Codebase Indexers**: Generate searchable markdown documentation
   - `index_python.py` - Index Python codebases (functions, classes, models)
-  - `index_ts.py` - Index TypeScript/React codebases (components, functions, interfaces)
+  - `index_js_ts.py` - Index JavaScript/TypeScript/React codebases (components, functions, interfaces)
   - `index_go.py` - Index Go codebases (structs, interfaces, functions)
   - Use via `/index_codebase` slash command
   - **📖 See [docs/README-indexers.md](docs/README-indexers.md) for detailed guide**

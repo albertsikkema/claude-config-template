@@ -4,7 +4,7 @@ You are tasked with indexing a codebase and generating comprehensive Markdown do
 
 The repository has three indexer scripts in `./claude-helpers/`:
 1. **claude-helpers/index_python.py** - For Python codebases
-2. **claude-helpers/index_ts.py** - For TypeScript/React codebases
+2. **claude-helpers/index_js_ts.py** - For JavaScript/TypeScript/React codebases
 3. **claude-helpers/index_go.py** - For Go codebases
 
 ## Your Task
@@ -13,7 +13,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
 
 1. **Detect the project type** by checking for common files/directories:
    - Python: Look for `.py` files, `requirements.txt`, `pyproject.toml`, `setup.py`, etc.
-   - TypeScript: Look for `.ts/.tsx` files, `package.json`, `tsconfig.json`, etc.
+   - JavaScript/TypeScript: Look for `.js/.jsx/.ts/.tsx` files, `package.json`, `tsconfig.json`, etc.
    - Go: Look for `.go` files, `go.mod`, `go.sum`, etc.
 
 2. **Automatically determine paths**:
@@ -24,12 +24,13 @@ The repository has three indexer scripts in `./claude-helpers/`:
      - If found, index the parent directory (e.g., `backend/` not `backend/app/`)
      - This captures root-level files like `pyproject.toml`, `requirements.txt`, tests, etc.
      - Fall back to `./` if no specific structure found
-   - For TypeScript:
-     - First check for common frontend directory names with TypeScript files:
-       - `frontend/`, `client/`, `web/`, `ui/`, `app/`, `src/`
+   - For JavaScript/TypeScript:
+     - First check for common frontend directory names with JavaScript/TypeScript files:
+       - `frontend/`, `client/`, `web/`, `ui/`, `app/`, `src/`, `static/`
      - Search in both root and nested structures (e.g., `./frontend`, `./project/frontend`)
      - If found, index the parent directory (e.g., `frontend/` not `frontend/src/`)
      - This captures config files like `package.json`, `tsconfig.json`, `vite.config.ts`, etc.
+     - Also check for static file directories (e.g., `static/js/`) commonly used in FastAPI projects
      - Fall back to `./` if no specific structure found
    - For Go:
      - First check for common Go directory names with Go files:
@@ -43,7 +44,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
    - Extract the directory name (e.g., `backend` from `./cc_wrapper/backend`)
    - For root directory (`./`), use `root` as the name
    - Format: `codebase_overview_<dirname>_py.md` for Python
-   - Format: `codebase_overview_<dirname>_ts.md` for TypeScript
+   - Format: `codebase_overview_<dirname>_js_ts.md` for JavaScript/TypeScript
    - Format: `codebase_overview_<dirname>_go.md` for Go
 
 4. **Run the appropriate indexer(s)** automatically:
@@ -51,8 +52,8 @@ The repository has three indexer scripts in `./claude-helpers/`:
    # For Python
    python ./claude-helpers/index_python.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_py.md
 
-   # For TypeScript
-   python ./claude-helpers/index_ts.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_ts.md
+   # For JavaScript/TypeScript
+   python ./claude-helpers/index_js_ts.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_js_ts.md
 
    # For Go
    python ./claude-helpers/index_go.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_go.md
@@ -70,7 +71,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
 1. Check if user specified a path in their message (e.g., "/index_codebase ./src")
 2. If not, scan current directory structure
 3. Index Python if `.py` files are found
-4. Index TypeScript if `.ts/.tsx` files are found
+4. Index JavaScript/TypeScript if `.js/.jsx/.ts/.tsx` files are found
 5. Index Go if `.go` files are found
 6. Index multiple languages if multiple are present
 7. **Smart Directory Detection for Python**:
@@ -84,17 +85,19 @@ The repository has three indexer scripts in `./claude-helpers/`:
      - `server/` (with FastAPI/Flask app) → Index `server/`
      - `api/` (with REST API structure) → Index `api/`
      - `app/` (standalone FastAPI app) → Index `app/`
-8. **Smart Directory Detection for TypeScript**:
-   - Look for common frontend directory names with TypeScript files:
-     - `frontend/`, `client/`, `web/`, `ui/`, `app/`, `src/`
+8. **Smart Directory Detection for JavaScript/TypeScript**:
+   - Look for common frontend directory names with JavaScript/TypeScript files:
+     - `frontend/`, `client/`, `web/`, `ui/`, `app/`, `src/`, `static/`
    - Search in both root (e.g., `./frontend`) and nested (e.g., `./project/frontend`) structures
    - Check for root-level indicators: `package.json`, `tsconfig.json`, `vite.config.ts`, `public/`
+   - Also detect FastAPI static file directories (`static/js/`, `static/scripts/`)
    - Index the parent directory to capture complete structure
    - Common patterns:
      - `frontend/` (with `src/`, `public/`, config files) → Index `frontend/`
      - `client/` (with React/Vue app) → Index `client/`
      - `web/` (with web app structure) → Index `web/`
-     - `src/` (standalone with TypeScript) → Index `src/`
+     - `src/` (standalone with JavaScript/TypeScript) → Index `src/`
+     - `static/` (FastAPI static files) → Index `static/`
 9. **Smart Directory Detection for Go**:
    - Look for common Go directory names with Go files:
      - `backend/`, `server/`, `cmd/`, `pkg/`, `internal/`, `api/`, `src/`
@@ -116,7 +119,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
 ### Auto-detect and index everything (root directory)
 ```bash
 python ./claude-helpers/index_python.py ./ -o thoughts/codebase/codebase_overview_root_py.md
-python ./claude-helpers/index_ts.py ./ -o thoughts/codebase/codebase_overview_root_ts.md
+python ./claude-helpers/index_js_ts.py ./ -o thoughts/codebase/codebase_overview_root_js_ts.md
 python ./claude-helpers/index_go.py ./ -o thoughts/codebase/codebase_overview_root_go.md
 ```
 
@@ -131,7 +134,8 @@ python ./claude-helpers/index_python.py ./cc_wrapper/backend -o thoughts/codebas
 ```bash
 # Directory: ./cc_wrapper/frontend -> filename includes "frontend"
 # Indexes entire frontend structure (src/, public/, config files)
-python ./claude-helpers/index_ts.py ./cc_wrapper/frontend -o thoughts/codebase/codebase_overview_frontend_ts.md
+# Includes both .js and .ts files
+python ./claude-helpers/index_js_ts.py ./cc_wrapper/frontend -o thoughts/codebase/codebase_overview_frontend_js_ts.md
 ```
 
 ### Index specific directory (Go backend)
@@ -185,23 +189,24 @@ When FastAPI is detected:
 - If it doesn't exist, create it with `mkdir -p thoughts/codebase/`
 - All output files go to `thoughts/codebase/` with directory-based naming:
   - `codebase_overview_<dirname>_py.md` - Python documentation
-  - `codebase_overview_<dirname>_ts.md` - TypeScript documentation
+  - `codebase_overview_<dirname>_js_ts.md` - JavaScript/TypeScript documentation
   - `codebase_overview_<dirname>_go.md` - Go documentation
   - `openapi.json` - FastAPI OpenAPI schema (if applicable)
 
 **Filename Examples:**
 - Scanning `./` (Python) → `codebase_overview_root_py.md`
-- Scanning `./` (TypeScript) → `codebase_overview_root_ts.md`
+- Scanning `./` (JavaScript/TypeScript) → `codebase_overview_root_js_ts.md`
 - Scanning `./` (Go) → `codebase_overview_root_go.md`
 - Scanning `./backend` (Python) → `codebase_overview_backend_py.md`
 - Scanning `./backend` (Go) → `codebase_overview_backend_go.md`
 - Scanning `./server` → `codebase_overview_server_py.md`
 - Scanning `./api` → `codebase_overview_api_py.md`
 - Scanning `./cc_wrapper/backend` → `codebase_overview_backend_py.md`
-- Scanning `./frontend` → `codebase_overview_frontend_ts.md`
-- Scanning `./client` → `codebase_overview_client_ts.md`
-- Scanning `./web` → `codebase_overview_web_ts.md`
-- Scanning `./cc_wrapper/frontend` → `codebase_overview_frontend_ts.md`
-- Scanning `./src` (standalone) → `codebase_overview_src_ts.md`
+- Scanning `./frontend` → `codebase_overview_frontend_js_ts.md`
+- Scanning `./client` → `codebase_overview_client_js_ts.md`
+- Scanning `./web` → `codebase_overview_web_js_ts.md`
+- Scanning `./static` → `codebase_overview_static_js_ts.md`
+- Scanning `./cc_wrapper/frontend` → `codebase_overview_frontend_js_ts.md`
+- Scanning `./src` (standalone) → `codebase_overview_src_js_ts.md`
 - Scanning `./cmd` (Go) → `codebase_overview_cmd_go.md`
 - Scanning `./pkg` (Go) → `codebase_overview_pkg_go.md`

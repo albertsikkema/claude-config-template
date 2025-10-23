@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **JavaScript indexing support**: JavaScript/TypeScript indexer (`claude-helpers/index_js_ts.py`) now processes `.js` and `.jsx` files in addition to `.ts` and `.tsx` files
+- Unified JavaScript/TypeScript documentation output with clear labeling
+- Better support for FastAPI static file directories and hybrid codebases
+- Documentation in `docs/README-indexers.md` explaining JavaScript support and showing comparison examples
+
+### Changed
+- **Indexer renamed**: `index_ts.py` → `index_js_ts.py` to accurately reflect JavaScript and TypeScript support
+- Default output filename changed from `codebase_overview_typescript.md` to `codebase_overview_js_ts.md` to reflect mixed language support
+- Output header now reads "JavaScript/TypeScript/React Codebase Overview"
+- `/index_codebase` command now detects and indexes JavaScript files automatically
+
+### Technical Details
+- File filter updated to include `.js` and `.jsx` extensions
+- All existing regex patterns already compatible with JavaScript syntax (use optional type annotation groups)
+- No breaking changes - existing TypeScript-only projects continue to work identically
+- Script rename is a non-breaking change - users should update their references to `index_js_ts.py`
+
 ---
 
 ## [1.2.0] - 2025-10-20

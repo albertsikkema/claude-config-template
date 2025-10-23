@@ -117,7 +117,7 @@ thoughts/
 
 claude-helpers/      # Utility scripts for workflows
 ├── index_python.py  # Python codebase indexer
-├── index_ts.py      # TypeScript codebase indexer
+├── index_js_ts.py   # JavaScript/TypeScript codebase indexer
 ├── index_go.py      # Go codebase indexer
 ├── build_c4_diagrams.py  # C4 PlantUML diagram builder
 └── fetch-docs.py    # Documentation fetcher

@@ -7,7 +7,7 @@ Generate comprehensive, searchable markdown documentation for Python, TypeScript
 These indexers automatically discover and document code structure across multiple languages:
 
 - **`index_python.py`** - Python codebases (functions, classes, Pydantic models)
-- **`index_ts.py`** - TypeScript/React codebases (components, functions, interfaces, types)
+- **`index_js_ts.py`** - JavaScript/TypeScript/React codebases (components, functions, interfaces, types)
 - **`index_go.py`** - Go codebases (packages, structs, interfaces, functions)
 
 ## Quick Start
@@ -30,8 +30,8 @@ Claude will:
 # Python
 python claude-helpers/index_python.py ./backend -o codebase_overview_backend_py.md
 
-# TypeScript
-python claude-helpers/index_ts.py ./frontend -o codebase_overview_frontend_ts.md
+# JavaScript/TypeScript
+python claude-helpers/index_js_ts.py ./frontend -o codebase_overview_frontend_js_ts.md
 
 # Go
 python claude-helpers/index_go.py ./server -o codebase_overview_server_go.md
@@ -72,7 +72,7 @@ python claude-helpers/index_go.py ./server -o codebase_overview_server_go.md
 - `backend/app/api/checkout.py::checkout_endpoint`
 ```
 
-### TypeScript Indexer (`index_ts.py`)
+### JavaScript/TypeScript Indexer (`index_js_ts.py`)
 
 **Extracts:**
 - ✅ React components (function and class components)
@@ -113,6 +113,62 @@ python claude-helpers/index_go.py ./server -o codebase_overview_server_go.md
   - `userId`: `string`
   - `onUpdate`: `(user: User) => void`
 ```
+
+### JavaScript Support
+
+The TypeScript indexer **also indexes JavaScript files** (`.js`, `.jsx`):
+
+**What gets extracted from JavaScript:**
+- ✅ Functions and arrow functions
+- ✅ Classes and methods
+- ✅ React components (function and class-based)
+- ✅ Export statements
+- ❌ Interfaces (TypeScript-only)
+- ❌ Type aliases (TypeScript-only)
+
+**Use cases:**
+- FastAPI static files (`static/js/app.js`)
+- Built SPA files (`frontend/dist/main.js`)
+- Mixed JavaScript/TypeScript codebases
+- TypeScript migration projects
+
+**Example:**
+```bash
+# Index both .js and .ts files in static directory
+python claude-helpers/index_js_ts.py ./static -o codebase_overview_static_js_ts.md
+```
+
+**What you'll see in output:**
+
+*JavaScript function:*
+```javascript
+// In: static/js/app.js
+export function handleClick(event) {
+    console.log(event);
+}
+```
+*Appears as:*
+```
+Function: handleClick
+  Signature: (event)
+  File: static/js/app.js:42
+```
+
+*TypeScript function:*
+```typescript
+// In: src/utils.ts
+export function handleClick(event: MouseEvent): void {
+    console.log(event);
+}
+```
+*Appears as:*
+```
+Function: handleClick
+  Signature: (event: MouseEvent): void
+  File: src/utils.ts:42
+```
+
+The indexer gracefully handles both - JavaScript shows parameters without types, TypeScript shows full type signatures.
 
 ### Go Indexer (`index_go.py`)
 
@@ -214,8 +270,8 @@ Options:
 python claude-helpers/index_python.py
 # → Output: codebase_overview.md
 
-python claude-helpers/index_ts.py
-# → Output: codebase_overview_typescript.md
+python claude-helpers/index_js_ts.py
+# → Output: codebase_overview_js_ts.md
 
 python claude-helpers/index_go.py
 # → Output: codebase_overview_go.md
@@ -227,8 +283,8 @@ python claude-helpers/index_go.py
 # Backend Python code
 python claude-helpers/index_python.py ./backend -o backend_docs.md
 
-# Frontend TypeScript code
-python claude-helpers/index_ts.py ./frontend/src -o frontend_docs.md
+# Frontend JavaScript/TypeScript code
+python claude-helpers/index_js_ts.py ./frontend/src -o frontend_docs.md
 
 # Go microservice
 python claude-helpers/index_go.py ./services/api -o api_docs.md
@@ -239,7 +295,7 @@ python claude-helpers/index_go.py ./services/api -o api_docs.md
 ```bash
 # Full-stack project
 python claude-helpers/index_python.py ./myapp/backend -o thoughts/codebase/backend_py.md
-python claude-helpers/index_ts.py ./myapp/frontend -o thoughts/codebase/frontend_ts.md
+python claude-helpers/index_js_ts.py ./myapp/frontend -o thoughts/codebase/frontend_js_ts.md
 python claude-helpers/index_go.py ./myapp/services -o thoughts/codebase/services_go.md
 ```
 

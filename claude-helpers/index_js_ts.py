@@ -35,7 +35,7 @@ def extract_typescript_info(directory):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS]
 
         for file in files:
-            if file.endswith(('.ts', '.tsx')):
+            if file.endswith(('.ts', '.tsx', '.js', '.jsx')):
                 file_path = os.path.join(root, file)
                 try:
                     with open(file_path, 'r', encoding='utf-8') as f:
@@ -337,7 +337,7 @@ def generate_file_tree(directory, codebase_info):
         dirs = [e for e in entries if os.path.isdir(os.path.join(current_dir, e))
                 and e not in SKIP_DIRS]
         files = [e for e in entries if os.path.isfile(os.path.join(current_dir, e))
-                 and e.endswith(('.ts', '.tsx'))]
+                 and e.endswith(('.ts', '.tsx', '.js', '.jsx'))]
 
         # Combine and sort: directories first, then files
         all_entries = [(d, True) for d in dirs] + [(f, False) for f in files]
@@ -365,7 +365,7 @@ def generate_file_tree(directory, codebase_info):
 def generate_markdown(codebase_info, output_file, directory):
     """Generate a Markdown file with TypeScript codebase overview."""
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write("# TypeScript/React Codebase Overview\n\n")
+        f.write("# JavaScript/TypeScript/React Codebase Overview\n\n")
 
         # Generate file tree
         f.write("## File Tree\n\n")
@@ -504,8 +504,8 @@ Note: Both relative paths (./dir, ../dir) and absolute paths (/path/to/dir) are 
 
     parser.add_argument(
         '-o', '--output',
-        default='codebase_overview_typescript.md',
-        help='Output Markdown file (default: codebase_overview_typescript.md)'
+        default='codebase_overview_js_ts.md',
+        help='Output Markdown file (default: codebase_overview_js_ts.md)'
     )
 
     args = parser.parse_args()
