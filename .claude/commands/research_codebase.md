@@ -69,7 +69,8 @@ Then wait for the user's research query.
    - Use the **codebase-locator** agent to find WHERE files and components live
    - Use the **codebase-analyzer** agent to understand HOW specific code works (without specific starting points)
    - Use the **codebase-pattern-finder** agent if you need examples of similar implementations
-   - Use the **technical-docs-researcher** agent to find all best practices and technical documentation for the libraries and workflows
+   - Use the **best-practices-researcher** agent to find documented best practices from previous implementations
+   - Use the **technical-docs-researcher** agent to find technical documentation for libraries and workflows
 
    **For thoughts directory:**
    - Use the **thoughts-locator** agent to discover what documents exist about the topic
@@ -173,6 +174,14 @@ Then wait for the user's research query.
 
      ## Architecture Insights
      [Patterns, conventions, and design decisions discovered]
+
+     ## Best Practices (from thoughts/best_practices/)
+     [Relevant best practices documented from previous implementations]
+     - `thoughts/best_practices/category-topic.md` - Best practice about X
+       - When to use: [Context]
+       - Key insight: [Main takeaway]
+       - Code examples: [file:line references]
+     Note: Include only best practices directly relevant to the research question
 
      ## Historical Context (from thoughts/)
      [Relevant insights from thoughts/ directory with references]
