@@ -48,9 +48,9 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 This is a **configuration template** that you install into your projects. It provides:
 
-- **Complete development workflow** - Research → Plan → Implement → Rationalize → Deploy ([see WORKFLOW.md](WORKFLOW.md))
-- **11 specialized AI agents** - Automated research, code analysis, and architecture design
-- **13 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
+- **Complete development workflow** - Research → Plan → Implement → Cleanup → Deploy ([see WORKFLOW.md](WORKFLOW.md))
+- **12 specialized AI agents** - Automated research, code analysis, and architecture design
+- **14 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
 - **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -83,7 +83,8 @@ Monitoring dashboard:
 
 **Documentation Research:**
 - `project-context-analyzer` - Extract and synthesize project documentation context
-- `technical-docs-researcher` - Search technical documentation
+- `best-practices-researcher` - Search documented best practices from previous implementations
+- `technical-docs-researcher` - Search technical documentation for libraries and frameworks
 - `thoughts-analyzer` - Deep dive into your thoughts directory
 - `thoughts-locator` - Find relevant documents
 
@@ -99,7 +100,7 @@ Monitoring dashboard:
 | `/create_plan` | Interactive implementation planning |
 | `/implement_plan` | Execute approved plans |
 | `/validate_plan` | Validate implementation correctness |
-| `/rationalize` | Rationalize implementation and update docs |
+| `/cleanup` | Document best practices and clean up ephemeral artifacts |
 | `/build_c4_docs` | Generate C4 architecture diagrams (System Context, Container, Component) |
 | `/commit` | Create well-formatted git commits |
 | `/describe_pr` | Generate comprehensive PR descriptions |
@@ -115,8 +116,8 @@ After installation, you'll have:
 ```
 your-project/
 ├── .claude/
-│   ├── agents/              # 11 specialized agents
-│   ├── commands/            # 13 slash commands
+│   ├── agents/              # 12 specialized agents
+│   ├── commands/            # 14 slash commands
 │   ├── hooks/               # Observability hooks (if monitoring enabled)
 │   └── settings.json        # Configuration and hooks
 │
@@ -145,13 +146,13 @@ your-project/
     │   ├── adr.md.template      # Architecture Decision Records template
     │   └── changelog.md.template # Changelog template
     │
+    ├── best_practices/      # Best practices documentation from implementations
     ├── technical_docs/      # Technical documentation storage
     │
     └── shared/
-        ├── plans/           # Implementation plans
-        ├── research/        # Research documents
-        ├── adrs/            # Architecture Decision Records
-        ├── rationalization/ # Ephemeral working docs (auto-deleted)
+        ├── plans/           # Implementation plans (deleted after cleanup)
+        ├── research/        # Research documents (deleted after cleanup)
+        ├── rationalization/ # Ephemeral working docs (deleted after cleanup)
         └── project/         # Project documentation (3-file structure)
 ```
 
@@ -347,7 +348,7 @@ This template includes several utility scripts in the `claude-helpers/` director
 
 ## 📚 Complete Development Workflow
 
-This template provides a systematic **Research → Plan → Implement → Rationalize** workflow based on "Faking a Rational Design Process in the AI Era".
+This template provides a systematic **Research → Plan → Implement → Cleanup** workflow based on "Faking a Rational Design Process in the AI Era".
 
 **📖 See [WORKFLOW.md](WORKFLOW.md) for the complete guide** covering:
 
@@ -357,7 +358,7 @@ This template provides a systematic **Research → Plan → Implement → Ration
 - **Phase 3**: Plan
 - **Phase 4**: Implement
 - **Phase 5**: Validate
-- **Phase 6**: Rationalize (MANDATORY)
+- **Phase 6**: Cleanup (MANDATORY - documents best practices, removes ephemeral artifacts)
 - **Phase 7**: Commit & PR
 
 ### Quick Start Example
@@ -381,8 +382,8 @@ You: /implement_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
 # 6. Validate implementation
 You: /validate_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
 
-# 7. Rationalize (MANDATORY - updates docs with clean narrative)
-You: /rationalize thoughts/shared/plans/2025-10-14-stripe-integration.md
+# 7. Cleanup (MANDATORY - documents best practices, removes artifacts)
+You: /cleanup thoughts/shared/plans/2025-10-14-stripe-integration.md
 
 # 8. Commit and create PR
 You: /commit
@@ -406,10 +407,11 @@ thoughts/shared/project/todo.md       # Active work (Must Haves/Should Haves)
 thoughts/shared/project/done.md       # Completed work history
 ```
 
-**ADRs**: Sequential numbering as `NNN-decision-title.md`
+**Best Practices**: Category-based naming as `[category]-[topic].md`
 ```
-thoughts/shared/adrs/001-use-optimistic-locking.md
-thoughts/shared/adrs/002-cache-invalidation-strategy.md
+thoughts/best_practices/authentication-oauth-patterns.md
+thoughts/best_practices/database-transaction-handling.md
+thoughts/best_practices/api-error-handling.md
 ```
 
 ## 🎨 Customization
@@ -478,14 +480,14 @@ Edit `.claude/settings.json`:
 
 ## 🌟 Key Features Explained
 
-### Research → Plan → Implement → Rationalize Pattern
+### Research → Plan → Implement → Cleanup Pattern
 
 The core workflow ensures quality and preserves knowledge:
 
-1. **Research**: Understand before building
-2. **Plan**: Design before coding
-3. **Implement**: Execute with clarity
-4. **Rationalize**: Clean up the narrative (see [WORKFLOW.md](WORKFLOW.md))
+1. **Research**: Understand before building (spawns parallel agents, documents findings)
+2. **Plan**: Design before coding (interactive planning with user)
+3. **Implement**: Execute with clarity (step-by-step with validation)
+4. **Cleanup**: Document best practices and remove ephemeral artifacts (see [WORKFLOW.md](WORKFLOW.md))
 
 ### Intelligent Agents
 
@@ -496,11 +498,11 @@ Agents work autonomously and can be:
 
 ### Structured Documentation
 
-Ultra-lean 3-file structure:
+Ultra-lean 3-file structure + best practices:
 - **project.md** - Project context (what/why/stack/constraints)
 - **todo.md** - Active work with MoSCoW prioritization (Must Haves/Should Haves)
 - **done.md** - Completed work history with full traceability
-- **ADRs** - Architecture Decision Records
+- **best_practices/** - Documented patterns, decisions, and lessons learned from implementations
 
 See the "Ultra-Lean 3-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md) for methodology details.
 
@@ -514,7 +516,8 @@ You: /research_codebase I need to add two-factor authentication
 Claude uses agents to:
 1. Research existing auth code (codebase-analyzer)
 2. Find similar implementations (codebase-pattern-finder)
-3. Check technical docs (technical-docs-researcher)
+3. Check best practices (best-practices-researcher)
+4. Check technical docs (technical-docs-researcher)
 
 Then read and use the created research file to create a plan, implement etc.
 ```
@@ -569,8 +572,8 @@ For questions or larger contributions, contact: license@albertsikkema.com
 1. **Follow the workflow** - See [WORKFLOW.md](WORKFLOW.md) for the complete process
 2. **Index first** - Run `/index_codebase` before research for faster results
 3. **Research before planning** - Always understand before building
-4. **Never skip rationalization** - It preserves knowledge for future AI sessions
-5. **Create meaningful ADRs** - Document significant decisions, not everything
+4. **Never skip cleanup** - It documents best practices and removes clutter for future AI sessions
+5. **Document best practices** - Capture lessons learned, not just decisions
 6. **Review permissions** - Audit `settings.local.json` regularly
 
 ## 📊 Version
@@ -634,7 +637,7 @@ After installation:
 - [ ] **Read [WORKFLOW.md](WORKFLOW.md)** to understand the complete process
 - [ ] Run `/index_codebase` to create searchable indexes (optional but recommended)
 - [ ] Run `/project` to document your project (if command not found, see troubleshooting)
-- [ ] Follow the workflow: Research → Plan → Implement → Validate → Rationalize → PR
+- [ ] Follow the workflow: Research → Plan → Implement → Validate → Cleanup → PR
 - [ ] Add project-specific agents if needed
 - [ ] Share with your team!
 

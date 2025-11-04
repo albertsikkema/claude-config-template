@@ -85,7 +85,7 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 
 ```
 .claude/
-├── agents/          # 11 specialized agents for different tasks
+├── agents/          # 12 specialized agents for different tasks
 ├── commands/        # 14 slash commands for common workflows
 └── settings.local.json  # Pre-approved tool permissions
 
@@ -103,17 +103,17 @@ thoughts/
 │   ├── done.md.template     # Completed work template
 │   ├── adr.md.template      # Architecture Decision Records template
 │   └── changelog.md.template # Changelog template
-├── shared/
-│   ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md)
-│   ├── research/    # Research documents (dated: YYYY-MM-DD-*.md)
-│   ├── reviews/     # Security and code reviews (dated: security-analysis-YYYY-MM-DD.md)
-│   ├── adrs/        # Architecture Decision Records (NNN-title.md)
-│   ├── rationalization/  # Ephemeral working docs (deleted after rationalization)
-│   └── project/     # Project documentation (created by /project)
-│       ├── project.md  # Project context (what/why/stack/constraints)
-│       ├── todo.md     # Active work (Must Haves / Should Haves)
-│       └── done.md     # Completed work with traceability
-└── technical_docs/  # Technical documentation storage
+├── best_practices/  # Best practices documentation from implementations
+├── technical_docs/  # Technical documentation storage
+└── shared/
+    ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md, deleted after cleanup)
+    ├── research/    # Research documents (dated: YYYY-MM-DD-*.md, deleted after cleanup)
+    ├── reviews/     # Security and code reviews (dated: security-analysis-YYYY-MM-DD.md)
+    ├── rationalization/  # Ephemeral working docs (deleted after cleanup)
+    └── project/     # Project documentation (created by /project)
+        ├── project.md  # Project context (what/why/stack/constraints)
+        ├── todo.md     # Active work (Must Haves / Should Haves)
+        └── done.md     # Completed work with traceability
 
 claude-helpers/      # Utility scripts for workflows
 ├── index_python.py  # Python codebase indexer
@@ -125,7 +125,7 @@ claude-helpers/      # Utility scripts for workflows
 
 ### Agent System
 
-The repository includes 11 specialized agents that are automatically invoked by Claude Code or can be explicitly requested:
+The repository includes 12 specialized agents that are automatically invoked by Claude Code or can be explicitly requested:
 
 **Codebase Analysis:**
 - `codebase-locator` - Finds WHERE files and features exist
@@ -139,7 +139,8 @@ The repository includes 11 specialized agents that are automatically invoked by 
 
 **Documentation Research:**
 - `project-context-analyzer` - Extracts and synthesizes project documentation context
-- `technical-docs-researcher` - Searches `thoughts/technical_docs/` for best practices
+- `best-practices-researcher` - Searches `thoughts/best_practices/` for documented patterns and lessons learned
+- `technical-docs-researcher` - Searches `thoughts/technical_docs/` for library and framework documentation
 - `thoughts-locator` - Finds relevant documents in `thoughts/` directory
 - `thoughts-analyzer` - Deep analysis of thoughts directory content
 
@@ -157,7 +158,7 @@ Available commands (use `/` prefix in Claude Code):
 - `/create_plan` - Interactive implementation plan creation (saves to `thoughts/shared/plans/`)
 - `/implement_plan <path>` - Execute an approved plan file (includes automatic validation at end)
 - `/validate_plan <path>` - Validate implementation correctness (standalone, optional if using `/implement_plan`)
-- `/rationalize <path>` - Rationalize implementation and update documentation
+- `/cleanup <path>` - Document best practices and clean up ephemeral artifacts (plan, research)
 
 **Architecture Documentation:**
 - `/build_c4_docs` - Generate C4 architecture diagrams (System Context, Container, Component levels in Mermaid and PlantUML formats)
@@ -220,12 +221,12 @@ Templates are stored in `thoughts/templates/` and remain unchanged.
 
 **For complete methodology details**, see the "Ultra-Lean 3-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md).
 
-### Research → Plan → Implement → Rationalize Pattern
+### Research → Plan → Implement → Cleanup Pattern
 
 This is the primary workflow pattern, based on "Faking a Rational Design Process in the AI Era":
 
 1. **Research**: Use `/research_codebase <topic>` to investigate
-   - Spawns parallel agents to analyze codebase
+   - Spawns parallel agents to analyze codebase and documented best practices
    - Saves findings to `thoughts/shared/research/YYYY-MM-DD-<topic>.md`
 
 2. **Plan**: Use `/create_plan` with research findings
@@ -240,37 +241,37 @@ This is the primary workflow pattern, based on "Faking a Rational Design Process
    - Appends validation report to the plan file
    - Only completes when validation passes
 
-4. **Rationalize** (MANDATORY): Use `/rationalize thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
+4. **Cleanup** (MANDATORY): Use `/cleanup thoughts/shared/plans/YYYY-MM-DD-<feature>.md`
    - Analyzes what actually happened vs. what was planned
-   - Updates plan to show final approach as if it was always intended
-   - Creates ADRs for significant decisions
+   - Documents best practices with lessons learned, trade-offs, and examples
    - Updates CLAUDE.md with new patterns/conventions
    - Updates project documentation (project.md, todo.md, done.md as appropriate)
-   - Documents rejected alternatives
-   - **Key principle**: Present clean narrative, not messy discovery process
+   - Deletes ephemeral artifacts (plan, research, rationalization documents)
+   - **Key principle**: Extract knowledge, remove clutter
 
 5. **Commit & PR**: Use `/commit` and `/describe_pr`
    - Create well-formatted commits
    - Generate comprehensive PR description
 
-#### Why Rationalization Matters
+#### Why Cleanup Matters
 
 From Parnas & Clements (1986): Documentation should show the cleaned-up, rationalized version of what happened, not the messy discovery process.
 
 **For AI-assisted development:**
 - AI assistants have no memory between sessions
 - Documentation becomes the "single source of truth"
-- Without rationalized docs, design decisions get lost
-- Prevents the codebase from becoming a patchwork of different "styles"
+- Without documented best practices, lessons learned get lost
+- Ephemeral artifacts clutter the repository without providing value
 
-**Rationalization ensures:**
-- Plans reflect reality (what was actually built)
-- Decisions are documented (ADRs with rationale)
+**Cleanup ensures:**
+- Best practices are documented with real examples (thoughts/best_practices/)
+- Lessons learned and trade-offs are captured for future work
 - Patterns are captured (CLAUDE.md updates)
 - Project documentation stays in sync (project.md, todo.md, done.md)
-- Completed work moved to done.md with references
-- Rejected alternatives are recorded (prevents re-exploration)
-- Future AI sessions have proper context
+- Completed work moved to done.md with references to best practices
+- Rejected alternatives are documented (prevents re-exploration)
+- Ephemeral artifacts (plans, research) are removed after knowledge extraction
+- Future AI sessions have clean, actionable context
 
 ### Deployment Workflow
 
@@ -313,11 +314,12 @@ The command uses parallel subagents to execute each step efficiently and provide
   - `todo.md` - Active work (Must Haves / Should Haves)
   - `done.md` - Completed work with traceability
 
-**ADRs (Architecture Decision Records):**
-- Saved in `thoughts/shared/adrs/`
-- Format: `NNN-decision-title.md` (sequential numbering)
-- Examples: `001-use-optimistic-locking.md`, `002-cache-invalidation-strategy.md`
-- Created during `/rationalize` workflow
+**Best Practices:**
+- Saved in `thoughts/best_practices/`
+- Format: `[category]-[topic].md` (category-based naming)
+- Examples: `authentication-oauth-patterns.md`, `database-transaction-handling.md`, `api-error-handling.md`
+- Created during `/cleanup` workflow
+- Include implementation examples, trade-offs, and lessons learned
 
 **Documentation Templates:**
 - Stored in `thoughts/templates/` with `.template` extension
@@ -362,6 +364,7 @@ When installing this template into a project:
 3. **Add project-specific agents** in `.claude/agents/` if needed
 4. **Add project-specific commands** in `.claude/commands/` if needed
 5. **Store technical documentation** in `thoughts/technical_docs/` for the `technical-docs-researcher` agent
+6. **Document best practices** as you implement features - the `/cleanup` command will help structure them
 
 ## Development on This Template
 
