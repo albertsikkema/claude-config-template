@@ -7,22 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [1.3.0] - 2025-11-04
+
+### Breaking Changes
+
+- **Command renamed**: `/describe_pr` → `/pr` for more concise usage
+- **Command renamed**: `/rationalize` → `/cleanup` to better reflect the workflow phase (extract knowledge, clean up artifacts)
+- **Workflow structure changed**: 8-phase workflow replaces previous approach with clearer separation of concerns (Research → Plan → Implement → Validate → Cleanup → Commit → PR → Deploy)
+- **Cleanup behavior changed**: Ephemeral artifacts (plans, research, rationalization documents) are now automatically deleted after knowledge extraction during cleanup phase
+
 ### Added
-- **JavaScript indexing support**: JavaScript/TypeScript indexer (`claude-helpers/index_js_ts.py`) now processes `.js` and `.jsx` files in addition to `.ts` and `.tsx` files
+
+**Command Enhancements:**
+- New `/pr` command with enhanced PR description generation workflow
+- Code review phase integrated into workflow (before commit)
+- Enhanced interactive prompts for better PR descriptions
+
+**JavaScript/TypeScript Indexing:**
+- JavaScript indexing support: JavaScript/TypeScript indexer (`claude-helpers/index_js_ts.py`) now processes `.js` and `.jsx` files in addition to `.ts` and `.tsx` files
 - Unified JavaScript/TypeScript documentation output with clear labeling
 - Better support for FastAPI static file directories and hybrid codebases
 - Documentation in `docs/README-indexers.md` explaining JavaScript support and showing comparison examples
 
+**Best Practices System:**
+- Comprehensive best practices documentation framework
+- `/cleanup` command now creates structured best practices documentation with lessons learned and trade-offs
+- Best practices stored with real implementation examples in `thoughts/best_practices/`
+
 ### Changed
+
+**Workflow System:**
+- 8-phase workflow with dedicated cleanup phase replacing rationalization
+- Cleanup phase now documents best practices with category-based naming
+- Ephemeral documents (plans, research) deleted after cleanup (knowledge extraction principle)
+- Project documentation (project.md, todo.md, done.md) synchronized during cleanup
+
+**Indexer:**
 - **Indexer renamed**: `index_ts.py` → `index_js_ts.py` to accurately reflect JavaScript and TypeScript support
 - Default output filename changed from `codebase_overview_typescript.md` to `codebase_overview_js_ts.md` to reflect mixed language support
 - Output header now reads "JavaScript/TypeScript/React Codebase Overview"
 - `/index_codebase` command now detects and indexes JavaScript files automatically
 
+**Documentation & Instructions:**
+- CLAUDE.md expanded with 8-phase workflow explanation and cleanup methodology
+- WORKFLOW.md updated to reflect cleanup (not rationalization) workflow
+- README.md command count updated (14 slash commands)
+
+### Fixed
+
+- PR template path corrected to `thoughts/templates/pr_description.md`
+- Improved error handling in indexing scripts
+- Enhanced documentation fetching reliability
+- Better validation reporting in plan-validator
+- More robust file detection in deployment workflow
+
 ### Technical Details
-- File filter updated to include `.js` and `.jsx` extensions
-- All existing regex patterns already compatible with JavaScript syntax (use optional type annotation groups)
-- No breaking changes - existing TypeScript-only projects continue to work identically
+
+- File filter updated to include `.js` and `.jsx` extensions for JavaScript support
+- All existing regex patterns already compatible with JavaScript syntax
+- Command rename transparent to underlying functionality (backward compatible implementation)
 - Script rename is a non-breaking change - users should update their references to `index_js_ts.py`
 
 ---
@@ -144,7 +189,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thoughts directory structure for documentation and planning
 - Installation and uninstallation scripts
 
-[Unreleased]: https://github.com/albertsikkema/claude-config-template/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/albertsikkema/claude-config-template/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/albertsikkema/claude-config-template/releases/tag/v1.0.0
