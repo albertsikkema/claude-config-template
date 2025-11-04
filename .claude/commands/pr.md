@@ -5,8 +5,8 @@ You are tasked with generating a comprehensive pull request description followin
 ## Steps to follow:
 
 1. **Read the PR description template:**
-   - First, check if `thoughts/templates/pr_description.md.template` exists
-   - If it doesn't exist, inform the user that their template setup is incomplete and they need to create a PR description template at `thoughts/templates/pr_description.md.template`
+   - First, check if `thoughts/templates/pr_description.md` exists
+   - If it doesn't exist, inform the user that their template setup is incomplete and they need to create a PR description template at `thoughts/templates/pr_description.md`
    - Read the template carefully to understand all sections and requirements
 
 2. **Identify the PR to describe:**
