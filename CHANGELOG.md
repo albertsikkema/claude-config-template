@@ -83,10 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Build/test automation with project type detection
 - Release preparation with platform-specific instructions
 
-**Implementation & Rationalization:**
-- `/rationalize` command following Parnas & Clements methodology
+**Implementation & Cleanup:**
+- `/cleanup` command following Parnas & Clements methodology
 - Updates plans to reflect actual implementation (not discovery process)
-- Creates ADRs for significant decisions during rationalization
+- Creates ADRs for significant decisions during cleanup
 - Updates CLAUDE.md with new patterns and conventions
 - Synchronizes project documentation (project.md, todo.md, done.md)
 - Documents rejected alternatives to prevent re-exploration

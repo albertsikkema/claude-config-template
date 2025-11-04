@@ -168,7 +168,7 @@ Available commands (use `/` prefix in Claude Code):
 
 **Git Workflows:**
 - `/commit` - Create well-formatted git commits
-- `/describe_pr` - Generate comprehensive PR descriptions
+- `/pr` - Generate comprehensive PR descriptions
 
 **Code Quality:**
 - `/code_reviewer` - Review code quality and suggest improvements
@@ -249,7 +249,7 @@ This is the primary workflow pattern, based on "Faking a Rational Design Process
    - Deletes ephemeral artifacts (plan, research, rationalization documents)
    - **Key principle**: Extract knowledge, remove clutter
 
-5. **Commit & PR**: Use `/commit` and `/describe_pr`
+5. **Commit & PR**: Use `/commit` and `/pr`
    - Create well-formatted commits
    - Generate comprehensive PR description
 

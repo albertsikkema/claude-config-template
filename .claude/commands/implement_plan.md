@@ -159,8 +159,9 @@ The `/implement_plan` command is part of the broader workflow:
 3. **`/implement_plan <path>`** - Execute the approved plan (YOU ARE HERE)
    - Includes automatic validation at the end
    - Addresses validation findings before completion
-4. `/rationalize <path>` - Rationalize implementation (MANDATORY after validation passes)
-5. `/commit` - Create well-formatted commits
-6. `/describe_pr` - Generate PR description
+4. `/code_reviewer` - Review code quality and security
+5. `/cleanup <path>` - Document best practices and clean up artifacts (MANDATORY)
+6. `/commit` - Create well-formatted commits
+7. `/pr` - Generate PR description
 
-**Important**: The implementation is NOT complete until validation passes. The validation step (built into this command) ensures all requirements are met before moving to rationalization.
+**Important**: The implementation is NOT complete until validation passes. The validation step (built into this command) ensures all requirements are met before moving to code review.

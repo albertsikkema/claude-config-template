@@ -1,14 +1,25 @@
-# PR Description Template
+# PR Description - [Title]
 
 ## What Changed
-<!-- 2-3 sentences: what this PR does -->
-
-## Why
-<!-- What problem does this solve? -->
+<!-- 2-3 comprehensive but concise sentences covering the main changes. Include: what was implemented, key features added, infrastructure/testing changes, and documentation updates. -->
 
 ## How to Test
-- [ ] Tests pass
-- [ ] Manual testing:
+<!-- Checklist format with clear distinction between automated and manual tests -->
+- [ ] All tests pass ([X] unit tests + [Y] integration tests in [Z] seconds)
+- [ ] Unit tests run without external dependencies
+- [ ] Integration tests verified
+- [ ] Manual testing required: [Describe what needs manual verification]
+
+## [Additional Sections as Needed]
+<!-- Add relevant sections for your changes, such as:
+- API Endpoints Added/Modified
+- Database Changes
+- Configuration Changes
+- Breaking Changes
+- Migration Steps
+- Performance Impact
+- Security Considerations
+-->
 
 ## Notes
-<!-- Anything reviewers should know? Breaking changes? Related work? -->
+<!-- Anything reviewers should know? Related work? Future improvements? -->

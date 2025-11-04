@@ -479,7 +479,7 @@ Use metadata when it adds value:
 
 - `/create_plan` - Creates plans that can include metadata
 - `/research_codebase` - Research that benefits from session tracking
-- `/rationalize` - Documentation that should track decision context
+- `/cleanup` - Documentation that should track decision context
 
 ## See Also
 

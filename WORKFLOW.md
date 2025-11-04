@@ -180,9 +180,11 @@ Phase 4: Implement
     ↓
 Phase 5: Validate
     ↓
-Phase 6: Rationalize (MANDATORY)
+Phase 6: Code Review
     ↓
-Phase 7: Commit & PR
+Phase 7: Cleanup (MANDATORY)
+    ↓
+Phase 8: Commit & PR
 ```
 
 ---
@@ -667,7 +669,7 @@ Claude: Validating implementation against plan...
 - Consider adding integration test for full retry flow
 - Update API documentation with retry endpoints
 
-Implementation is solid! Address linting, then rationalize.
+Implementation is solid! Address linting, then run cleanup.
 ```
 
 **Validation Report Sections:**
@@ -679,20 +681,87 @@ Implementation is solid! Address linting, then rationalize.
 
 ---
 
-## Phase 6: Rationalize (MANDATORY)
+## Phase 6: Code Review
 
-**Purpose:** Update documentation to reflect what actually happened, presented as if it was always the plan.
+**Purpose:** Review code quality, security, and best practices before documenting and committing changes.
+
+**When to do this:**
+- After validation passes (Phase 5)
+- Before cleanup (Phase 7)
+- Recommended for all non-trivial implementations
+
+**Command:**
+```bash
+/code_reviewer
+```
+
+**What it does:**
+1. **Analyzes Code Quality**:
+   - Reviews recent changes in the codebase
+   - Identifies code smells and anti-patterns
+   - Checks adherence to language-specific best practices
+   - Reviews error handling and edge cases
+
+2. **Security Review**:
+   - Identifies potential security vulnerabilities
+   - Checks for common OWASP issues
+   - Reviews input validation and sanitization
+   - Checks for secure coding practices
+
+3. **Provides Actionable Feedback**:
+   - Prioritized list of issues (critical, high, medium, low)
+   - Specific code locations with line numbers
+   - Suggested fixes with code examples
+   - Explains why each issue matters
+
+**Example:**
+```bash
+You: /code_reviewer
+
+Claude: Reviewing recent code changes...
+
+[Analyzes git diff, security patterns, best practices]
+
+## Code Review Report
+
+### Critical Issues (2)
+1. **SQL Injection Risk** (src/api/payments.ts:45)
+   - User input directly concatenated in query
+   - Fix: Use parameterized queries
+
+2. **Missing Error Handling** (src/services/retry.ts:78)
+   - Unhandled promise rejection
+   - Fix: Add try/catch block
+
+### High Priority (3)
+...
+
+### Medium Priority (5)
+...
+
+All critical issues should be addressed before proceeding to cleanup.
+```
+
+**When to skip:**
+- Trivial changes (documentation, config)
+- Urgent hotfixes (review after deployment)
+
+---
+
+## Phase 7: Cleanup (MANDATORY)
+
+**Purpose:** Document best practices and update documentation to reflect what actually happened, presented as if it was always the plan.
 
 **This is the most important phase** - it captures the messy reality of implementation and transforms it into a clean, coherent narrative that will guide future AI sessions.
 
 **When to do this:**
-- After validation (Phase 5)
-- Before creating commits (Phase 7)
+- After code review (Phase 6)
+- Before creating commits (Phase 8)
 - **MANDATORY** - Never skip this step
 
 **Command:**
 ```bash
-/rationalize thoughts/shared/plans/YYYY-MM-DD-feature.md
+/cleanup thoughts/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **What it does:**
@@ -723,11 +792,11 @@ Implementation is solid! Address linting, then rationalize.
    - **ADRs**: Architecture Decision Records with full rationale
    - **Updated Plan**: Shows final approach as if it was always intended
    - **CLAUDE.md Updates**: New patterns and conventions
-   - **Deleted Working Doc**: Removes ephemeral rationalization document
+   - **Deleted Working Doc**: Removes ephemeral cleanup working document
 
 **Example:**
 ```bash
-You: /rationalize thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /cleanup thoughts/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: Analyzing implementation vs plan...
 
@@ -922,15 +991,15 @@ Use Celery with Redis backend for payment retry queue.
 
 ---
 
-## Phase 7: Commit & PR
+## Phase 8: Commit & PR
 
 **Purpose:** Create well-formatted git commits and comprehensive PR description.
 
 **When to do this:**
-- After rationalization (Phase 6)
+- After cleanup (Phase 7)
 - When implementation is complete and documented
 
-### Step 7a: Create Commits
+### Step 8a: Create Commits
 
 **Command:**
 ```bash
@@ -982,7 +1051,7 @@ Claude: Creating commits...
 ✓ Commit 2/3: Implement exponential backoff retry service
 ✓ Commit 3/3: Add monitoring and alerting for retries
 
-All commits created! Next: /describe_pr
+All commits created! Next: /pr
 ```
 
 **Commit Message Format:**
@@ -997,11 +1066,11 @@ Body explaining:
 References: ENG-1234
 ```
 
-### Step 7b: Create PR Description
+### Step 8b: Create PR Description
 
 **Command:**
 ```bash
-/describe_pr
+/pr
 ```
 
 **What it does:**
@@ -1015,7 +1084,7 @@ References: ENG-1234
 
 **Example:**
 ```bash
-You: /describe_pr
+You: /pr
 
 Claude: Generating PR description...
 
@@ -1158,12 +1227,43 @@ Deviations:
 - Used exponential backoff (improvement over linear)
 - Added retry_reason field (enhancement)
 
-Ready for rationalization after fixing lint!
+Ready for code review after fixing lint!
 
 # ============================================================
-# Phase 6: Rationalize (MANDATORY)
+# Phase 6: Code Review
 # ============================================================
-You: /rationalize thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /code_reviewer
+
+Claude: Reviewing recent code changes...
+
+[Analyzes git diff, security patterns, best practices]
+
+## Code Review Report
+
+### Summary
+Payment retry logic implementation looks solid. Found 2 minor issues and several good practices.
+
+### Critical Issues
+None found.
+
+### Improvements (2)
+1. **Add input validation** (src/services/retry.ts:45)
+   - Consider validating retry_count before processing
+
+2. **Error logging enhancement** (src/services/retry.ts:78)
+   - Add structured logging for better observability
+
+### Well Done
+- Excellent error handling throughout
+- Good separation of concerns
+- Comprehensive test coverage
+
+All issues are minor - safe to proceed to cleanup.
+
+# ============================================================
+# Phase 7: Cleanup (MANDATORY)
+# ============================================================
+You: /cleanup thoughts/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: [Analyzes what actually happened vs plan...]
 
@@ -1192,7 +1292,7 @@ Claude: ✓ Created ADR-001: Celery for payment retry
 Rationalization complete! All knowledge captured.
 
 # ============================================================
-# Phase 7: Commit & PR
+# Phase 8: Commit & PR
 # ============================================================
 You: /commit
 
@@ -1202,9 +1302,9 @@ Claude: Proposing 3 logical commits...
 You: Looks good
 
 Claude: ✓ Created 3 commits
-Next: /describe_pr
+Next: /pr
 
-You: /describe_pr
+You: /pr
 
 Claude: [Analyzes diff, runs tests, generates description...]
 
@@ -1349,11 +1449,11 @@ thoughts/shared/project/done.md       # Completed work history
 ### "Plan doesn't match codebase reality"
 - **Solution**: This is normal! Plans assume perfect knowledge
 - During `/implement_plan`, adjust as needed
-- Document changes during `/rationalize`
+- Document changes during `/cleanup`
 - Update plan to show final approach as intended
 
-### "I forgot to rationalize"
-- **Solution**: You can still rationalize after commits
+### "I forgot to run cleanup"
+- **Solution**: You can still run cleanup after commits
 - Git history shows what changed
 - ADRs and CLAUDE.md still valuable
 - Better late than never!

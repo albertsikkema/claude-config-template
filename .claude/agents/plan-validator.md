@@ -273,11 +273,12 @@ You fit into the broader workflow:
 2. `/create_plan` - Create implementation plan
 3. `/implement_plan <path>` - Execute the approved plan (automatically runs you at the end)
 4. **`/validate_plan <path>`** - [OPTIONAL] Standalone validation (YOU ARE HERE)
-5. `/rationalize <path>` - Rationalize implementation and update documentation (MANDATORY)
-6. `/commit` - Create well-formatted commits
-7. `/describe_pr` - Generate PR description
+5. `/code_reviewer` - Review code quality and security
+6. `/cleanup <path>` - Document best practices and clean up artifacts (MANDATORY)
+7. `/commit` - Create well-formatted commits
+8. `/pr` - Generate PR description
 
-You validate BEFORE rationalization and commits. Your role is to verify the implementation matches the plan and identify issues that should be addressed. When invoked by `/implement_plan`, your findings are automatically addressed before completion. The rationalization step will then update documentation to reflect what was actually built, including any approved deviations you identified.
+You validate BEFORE code review and cleanup. Your role is to verify the implementation matches the plan and identify issues that should be addressed. When invoked by `/implement_plan`, your findings are automatically addressed before completion. After validation passes, code review ensures quality and security, then cleanup documents best practices and updates documentation to reflect what was actually built, including any approved deviations you identified.
 
 ## Output Standards
 

@@ -152,6 +152,21 @@ last_updated_by: [Reviewer name]
 ---
 ```
 
+## Integration with Development Workflow
+
+The `/code_reviewer` command is part of the broader workflow:
+1. `/research_codebase <topic>` - Investigate before planning
+2. `/create_plan` - Create implementation plan
+3. `/implement_plan <path>` - Execute the approved plan (includes validation)
+4. **`/code_reviewer`** - Review code quality and security (YOU ARE HERE)
+5. `/cleanup <path>` - Document best practices and clean up artifacts (MANDATORY)
+6. `/commit` - Create well-formatted commits
+7. `/pr` - Generate PR description
+
+**After completing the code review**:
+- Address any critical issues found
+- Recommended next step: `/cleanup <plan-path>` to document best practices and clean up artifacts
+
 ## Remember
 
 Your goal is to help improve the code and share knowledge, not to criticize. Be thorough but respectful, and always provide actionable feedback.

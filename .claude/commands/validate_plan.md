@@ -32,8 +32,9 @@ Based on the agent's findings, guide the user on next steps:
 - Minor issues can be fixed now or documented as acceptable trade-offs
 
 **If validation passed**:
-- User can proceed to `/rationalize` to update documentation
-- Then `/commit` and `/describe_pr`
+- User can proceed to `/code_reviewer` to review code quality and security
+- Then `/cleanup` to document best practices and update documentation
+- Then `/commit` and `/pr`
 
 ## Troubleshooting
 
@@ -64,10 +65,11 @@ Based on the agent's findings, guide the user on next steps:
 2. `/create_plan` - Create implementation plan
 3. `/implement_plan <path>` - Execute the approved plan (includes automatic validation)
 4. `/validate_plan <path>` - **[OPTIONAL]** Standalone validation if needed (YOU ARE HERE)
-5. `/rationalize <path>` - Rationalize implementation and update documentation (MANDATORY)
-6. `/commit` - Create well-formatted commits
-7. `/describe_pr` - Generate PR description
+5. `/code_reviewer` - Review code quality and security
+6. `/cleanup <path>` - Document best practices and clean up artifacts (MANDATORY)
+7. `/commit` - Create well-formatted commits
+8. `/pr` - Generate PR description
 
-The validation happens BEFORE rationalization and commits. It verifies that the implementation matches the plan and identifies any issues that should be addressed before rationalization.
+The validation happens BEFORE cleanup and commits. It verifies that the implementation matches the plan and identifies any issues that should be addressed before cleanup.
 
 Remember: The `plan-validator` agent is the expert. Your job is simply to invoke it and present its findings to the user.

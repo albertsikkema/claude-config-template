@@ -5,8 +5,8 @@ You are tasked with generating a comprehensive pull request description followin
 ## Steps to follow:
 
 1. **Read the PR description template:**
-   - First, check if `thoughts/shared/pr_description.md` exists
-   - If it doesn't exist, inform the user that their `humanlayer thoughts` setup is incomplete and they need to create a PR description template at `thoughts/shared/pr_description.md`
+   - First, check if `thoughts/templates/pr_description.md.template` exists
+   - If it doesn't exist, inform the user that their template setup is incomplete and they need to create a PR description template at `thoughts/templates/pr_description.md.template`
    - Read the template carefully to understand all sections and requirements
 
 2. **Identify the PR to describe:**
@@ -14,10 +14,9 @@ You are tasked with generating a comprehensive pull request description followin
    - If no PR exists for the current branch, or if on main/master, list open PRs: `gh pr list --limit 10 --json number,title,headRefName,author`
    - Ask the user which PR they want to describe
 
-3. **Check for existing description:**
-   - Check if `thoughts/shared/prs/{number}_description.md` already exists
-   - If it exists, read it and inform the user you'll be updating it
-   - Consider what has changed since the last description was written
+3. **Check for existing PR:**
+   - Determine if a PR already exists for this branch/number
+   - Note whether you'll be creating a new PR or updating an existing one
 
 4. **Gather comprehensive PR information:**
    - Get the full PR diff: `gh pr diff {number}`
@@ -51,14 +50,24 @@ You are tasked with generating a comprehensive pull request description followin
      - Write a concise changelog entry
    - Ensure all checklist items are addressed (checked or explained)
 
-8. **Save and sync the description:**
-   - Write the completed description to `thoughts/shared/prs/{number}_description.md`
-   - Run `humanlayer thoughts sync` to sync the thoughts directory
-   - Show the user the generated description
+8. **Show the description to the user:**
+   - Display the complete generated PR description
+   - Check if a PR already exists for this branch/number
+   - Ask the user whether to:
+     - Create a new PR (if no PR exists yet)
+     - Update the existing PR (if PR already exists)
+     - Cancel (if they want to make changes first)
 
-9. **Update the PR:**
-   - Update the PR description directly: `gh pr edit {number} --body-file thoughts/shared/prs/{number}_description.md`
-   - Confirm the update was successful
+9. **Create or update the PR (upon user confirmation):**
+   - If creating a new PR:
+     - Use `gh pr create --title "[PR title]" --body "[generated description]"`
+     - Confirm the PR was created successfully
+   - If updating an existing PR:
+     - First save the description to a temporary file
+     - Use `gh pr edit {number} --body-file [temp_file]`
+     - Clean up the temporary file
+     - Confirm the update was successful
+   - Optionally save the description to `thoughts/shared/prs/{number}_description.md` for reference
    - If any verification steps remain unchecked, remind the user to complete them before merging
 
 ## Important notes:

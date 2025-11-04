@@ -103,7 +103,7 @@ Monitoring dashboard:
 | `/cleanup` | Document best practices and clean up ephemeral artifacts |
 | `/build_c4_docs` | Generate C4 architecture diagrams (System Context, Container, Component) |
 | `/commit` | Create well-formatted git commits |
-| `/describe_pr` | Generate comprehensive PR descriptions |
+| `/pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
 | `/deploy` | Automated deployment preparation (version, changelog, build, release) |
 | `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
@@ -387,7 +387,7 @@ You: /cleanup thoughts/shared/plans/2025-10-14-stripe-integration.md
 
 # 8. Commit and create PR
 You: /commit
-You: /describe_pr
+You: /pr
 ```
 
 **👉 Read [WORKFLOW.md](WORKFLOW.md) for detailed explanations, examples, and best practices.**

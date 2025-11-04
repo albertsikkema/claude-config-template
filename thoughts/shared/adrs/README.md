@@ -37,13 +37,13 @@ ADRs can have the following statuses:
 
 ## Creating ADRs
 
-ADRs are typically created during the `/rationalize` workflow after implementation, when the rationale and trade-offs are clearly understood.
+ADRs are typically created during the `/cleanup` workflow after implementation, when the rationale and trade-offs are clearly understood.
 
 You can also create them manually using the template at `thoughts/templates/adr.md.template`.
 
 ## Index
 
-<!-- This section is automatically updated by the /rationalize command -->
+<!-- This section is automatically updated by the /cleanup command -->
 <!-- List ADRs in reverse chronological order (newest first) -->
 
-No ADRs yet. Use `/rationalize` after implementation to document decisions.
+No ADRs yet. Use `/cleanup` after implementation to document decisions.

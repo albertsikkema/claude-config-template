@@ -147,8 +147,8 @@ researcher: [Username from metadata]
 git_commit: [Current commit hash]
 branch: [Branch name]
 repository: [Repository name]
-topic: "[What was rationalized]"
-tags: [rationalization, relevant-components]
+topic: "[What was cleaned up]"
+tags: [cleanup, relevant-components]
 status: in_progress
 last_updated: [YYYY-MM-DD HH:mm]
 last_updated_by: [Username]
@@ -568,7 +568,7 @@ Present a concise summary of what was done:
 Your implementation is now properly documented with clean, permanent knowledge.
 Ephemeral artifacts have been removed.
 
-Recommended next step: /describe_pr to create PR description
+Recommended next step: /pr to create PR description
 ```
 
 ## Important Guidelines
@@ -634,10 +634,11 @@ The complete workflow is:
 ```
 1. /research_codebase → thoughts/shared/research/YYYY-MM-DD-topic.md
 2. /create_plan → thoughts/shared/plans/YYYY-MM-DD-feature.md
-3. /implement_plan → Code changes + updated plan checkboxes
-4. /cleanup → Document best practices + update CLAUDE.md + update project docs + delete artifacts
-5. /commit → Create git commits
-6. /describe_pr → Create PR description
+3. /implement_plan → Code changes + updated plan checkboxes + validation
+4. /code_reviewer → Review code quality and security
+5. /cleanup → Document best practices + update CLAUDE.md + update project docs + delete artifacts
+6. /commit → Create git commits
+7. /pr → Create PR description
 ```
 
 Cleanup is **mandatory** - it ensures documentation stays current, ephemeral artifacts are removed, and future AI sessions have proper context.
