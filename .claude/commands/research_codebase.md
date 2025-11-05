@@ -69,8 +69,8 @@ Then wait for the user's research query.
    - Use the **codebase-locator** agent to find WHERE files and components live
    - Use the **codebase-analyzer** agent to understand HOW specific code works (without specific starting points)
    - Use the **codebase-pattern-finder** agent if you need examples of similar implementations
-   - Use the **best-practices-researcher** agent to find documented best practices from previous implementations
-   - Use the **technical-docs-researcher** agent to find technical documentation for libraries and workflows
+   - Use the **best-practices-researcher** agent to search `thoughts/best_practices/` for documented patterns, lessons learned, trade-offs, and proven approaches from previous implementations (provides actionable insights with exact file paths and code references)
+   - Use the **technical-docs-researcher** agent to search `thoughts/technical_docs/` for library documentation, package recommendations, implementation patterns, and use case guidance (extracts best practices, version requirements, and configuration examples)
 
    **For thoughts directory:**
    - Use the **thoughts-locator** agent to discover what documents exist about the topic
@@ -96,10 +96,22 @@ Then wait for the user's research query.
 
 5. **Wait for all sub-agents to complete and synthesize findings:**
    - IMPORTANT: Wait for ALL sub-agent tasks to complete before proceeding
-   - Compile all sub-agent results (codebase, project context, and thoughts findings)
-   - Start with project context to frame your understanding
-   - Prioritize live codebase findings as primary source of truth
-   - Use thoughts/ findings as supplementary historical context
+   - Compile all sub-agent results using the following **priority order**:
+
+   **Information Source Priority (highest to lowest):**
+   1. **Project context** - Frames the why/what/goals (always start here)
+   2. **Live codebase** - Primary source of truth about current implementation
+   3. **Best practices** (`thoughts/best_practices/`) - Lessons learned from THIS project's implementations
+   4. **Technical docs** (`thoughts/technical_docs/`) - External library/framework documentation
+   5. **Historical thoughts** - Supplementary historical context from thoughts/ directory
+   6. **Web research** - General information (only when explicitly requested, lowest priority)
+
+   **Synthesis Guidelines:**
+   - When sources conflict, prefer higher-priority sources
+   - Best practices trump external docs when deciding project-specific approaches
+   - Live codebase is authoritative for "what exists now"
+   - Best practices are authoritative for "how we should do it"
+   - Technical docs are authoritative for "how libraries work"
    - Connect findings back to project goals and requirements
    - Connect findings across different components
    - Include specific file paths and line numbers for reference
