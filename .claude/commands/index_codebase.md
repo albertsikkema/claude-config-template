@@ -61,10 +61,18 @@ The repository has three indexer scripts in `./claude-helpers/`:
 
    **Important**: All output files must be saved to `thoughts/codebase/` directory.
 
-5. **Report the results** concisely:
+5. **Update CLAUDE.md** with codebase overview documentation:
+   - Check if CLAUDE.md exists and search for existing codebase section
+   - If no mention exists, add a new "Codebase Overview Files" section
+   - If mention exists, update it with current information
+   - Document the location, content, and how to regenerate indexes
+   - See "Update CLAUDE.md Documentation" section below for detailed instructions
+
+6. **Report the results** concisely:
    - Show what was indexed
    - Show output file locations
    - Brief summary of findings
+   - Confirm CLAUDE.md has been updated
 
 ## Detection Strategy
 
@@ -160,7 +168,8 @@ bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/o
 - DO NOT use AskUserQuestion tool
 - Be autonomous and intelligent about detection
 - Both scripts automatically skip `node_modules`, `.venv`, `.git`, etc.
-- Output files are created in the current working directory
+- Output files are created in `thoughts/codebase/` directory
+- After indexing, always update CLAUDE.md to document the codebase overview files
 - Work silently and efficiently
 
 ## FastAPI Schema Fetching
@@ -210,3 +219,56 @@ When FastAPI is detected:
 - Scanning `./src` (standalone) → `codebase_overview_src_js_ts.md`
 - Scanning `./cmd` (Go) → `codebase_overview_cmd_go.md`
 - Scanning `./pkg` (Go) → `codebase_overview_pkg_go.md`
+
+## Update CLAUDE.md Documentation
+
+**IMPORTANT**: After successfully creating index files, update CLAUDE.md to document the codebase overview files:
+
+1. **Check if CLAUDE.md exists** in the project root
+2. **Search for existing codebase documentation section**:
+   - Look for mentions of `thoughts/codebase/` or "codebase overview files" or "index files"
+3. **If no mention exists, add a new section** after the main documentation sections:
+
+```markdown
+## Codebase Overview Files
+
+This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
+
+### Available Index Files
+- `codebase_overview_*_py.md` - Python codebase overview
+- `codebase_overview_*_js_ts.md` - JavaScript/TypeScript codebase overview
+- `codebase_overview_*_go.md` - Go codebase overview
+- `openapi.json` - FastAPI OpenAPI schema (if applicable)
+
+### What These Files Contain
+Each overview file provides a comprehensive map of the codebase including:
+- **Complete file tree** of the scanned directory
+- **All classes and functions** with descriptions
+- **Full function signatures**: input parameters, return types, and expected outputs
+- **Call relationships**: where each function/class is called from (caller information)
+
+### Why These Files Matter
+These files are essential for:
+- **Fast navigation**: Instantly find where code lives without extensive searching
+- **Understanding structure**: See the complete architecture and organization
+- **Analyzing relationships**: Understand how components interact and depend on each other
+- **Code analysis**: Get function signatures and contracts without reading implementation
+
+### Regenerating Indexes
+To regenerate the codebase overview files, run:
+```bash
+/index_codebase
+```
+
+The indexer will automatically detect your project type and generate appropriate overview files.
+```
+
+4. **If a mention already exists, update it** to match the format above, ensuring:
+   - The location `thoughts/codebase/` is correct
+   - All file types are mentioned (Python, JS/TS, Go)
+   - The content description includes: file tree, classes/functions, signatures (input params, return types), and call relationships
+   - The regeneration command `/index_codebase` is documented
+
+5. **Preserve any existing project-specific notes** about the codebase structure
+
+6. **Report to the user** that CLAUDE.md has been updated with codebase overview documentation
