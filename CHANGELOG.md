@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.4.0] - 2025-11-05
+
+### Added
+
+**Security:**
+- Project Codeguard integration with 108 comprehensive security rules (22 core + 86 OWASP-based)
+- Language-specific secure coding guidance for Python, JavaScript, Go, Java, C, and more
+- Framework-specific security patterns (Django, FastAPI, Node.js, Laravel, Ruby on Rails, etc.)
+- Automatic rule loading in `/security` command based on detected technology stack
+- Security analysis reports now include Codeguard rule references with file paths
+
+**Documentation:**
+- New directory: `thoughts/security_rules/` with `core/` and `owasp/` subdirectories
+- Project Codeguard Security Integration section in README
+- Security workflow documentation in CLAUDE.md
+- Automatic CLAUDE.md updates after codebase indexing
+
+### Changed
+
+**Codebase Analysis:**
+- `codebase-analyzer` is now truly language-agnostic (Python/JS/TS/Go support)
+- All codebase agents now prioritize reading codebase overview files
+- `best-practices-researcher` upgraded to Claude Opus model for higher quality output
+- Enhanced agent documentation with better examples and output format guidelines
+
+**Commands:**
+- `/security` command now loads 3-5 relevant Codeguard rules during Phase 0
+- `/index_codebase` command automatically updates CLAUDE.md after indexing
+- `research_codebase` provides better information source prioritization
+
+**Documentation:**
+- README updated with security integration prominently featured
+- CLAUDE.md enhanced with security rules workflow documentation
+- Directory structure documentation updated to include security_rules/
+
+### Technical Details
+
+- Security rules include YAML frontmatter for language filtering
+- Rules provide comprehensive guidance with code examples and implementation checklists
+- Source: https://github.com/project-codeguard/rules (Cisco-curated, OWASP-aligned)
+
+---
+
 ## [1.3.0] - 2025-11-04
 
 ### Breaking Changes
@@ -189,7 +232,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Thoughts directory structure for documentation and planning
 - Installation and uninstallation scripts
 
-[Unreleased]: https://github.com/albertsikkema/claude-config-template/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/albertsikkema/claude-config-template/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/albertsikkema/claude-config-template/compare/v1.0.0...v1.1.0
