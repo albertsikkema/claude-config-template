@@ -62,7 +62,16 @@ Conduct a thorough security assessment using a **4-phase approach** informed by 
   - Java: `pom.xml`, `build.gradle` (Spring, Hibernate, etc.)
 - Examine project structure to understand architectural patterns (MVC, microservices, monolith, etc.)
 - Research security best practices for identified frameworks and languages
-- Create a framework-specific and language-specific security checklist
+- **Load relevant security rules from Project Codeguard**:
+  - Use Glob to list all rules: `thoughts/security_rules/core/*.md` and `thoughts/security_rules/owasp/*.md`
+  - Use Grep to filter by detected languages (search YAML frontmatter for `languages:` field)
+  - Example: `grep -l "languages:" thoughts/security_rules/core/*.md | xargs grep -l "python"`
+  - Use Read to load 3-5 most relevant rule files based on:
+    1. Exact language match in frontmatter
+    2. Security topic relevance (authentication, injection, authorization, etc.)
+    3. Framework-specific guidance (API security, web services, etc.)
+  - Extract key guidance: secure coding patterns, implementation checklists, code examples
+- Create a framework-specific and language-specific security checklist (incorporating Codeguard rules)
 
 ##### **Phase 1: Critical Security Areas (6 areas)**
 
@@ -175,10 +184,11 @@ Examine architectural and coding security:
 #### For Each Security Area:
 
 - Assess current implementation and framework-specific features
+- **Compare against Codeguard rules** loaded in Phase 0 for language-specific secure coding patterns
 - Identify vulnerabilities and risk levels (CRITICAL | HIGH | MEDIUM | LOW)
 - Include evidence with code examples and file locations (file:line format)
-- Provide actionable recommendations aligned with framework and language best practices
-- Reference relevant security standards (OWASP Top 10, CWE, language-specific guidelines)
+- Provide actionable recommendations aligned with framework, language best practices, and Codeguard guidance
+- Reference relevant security standards (OWASP Top 10, CWE, language-specific guidelines, **Codeguard rules from thoughts/security_rules/**)
 
 ---
 
@@ -249,6 +259,10 @@ last_updated_by: [Reviewer name]
      - Stack identification (languages, frameworks, libraries)
      - Built-in security features detected
      - Security tools and configurations in use
+   - **Codeguard Rules Applied** (NEW):
+     - List of Codeguard rule files referenced (from thoughts/security_rules/)
+     - Language-specific secure coding patterns identified
+     - Key security guidance extracted from rules
    - **Detailed Phase 1-3 Findings**:
      - For each of 18 security areas, include:
        - Current state assessment

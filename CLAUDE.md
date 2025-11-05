@@ -105,6 +105,9 @@ thoughts/
 │   └── changelog.md.template # Changelog template
 ├── best_practices/  # Best practices documentation from implementations
 ├── technical_docs/  # Technical documentation storage
+├── security_rules/  # Project Codeguard security rules (108 rules)
+│   ├── core/        # 22 Cisco-curated core security rules
+│   └── owasp/       # 86 OWASP-based security rules
 └── shared/
     ├── plans/       # Implementation plans (dated: YYYY-MM-DD-*.md, deleted after cleanup)
     ├── research/    # Research documents (dated: YYYY-MM-DD-*.md, deleted after cleanup)
@@ -299,6 +302,49 @@ The `/deploy` command is **generic and language-agnostic**. Customize for your p
 ```
 
 The command uses parallel subagents to execute each step efficiently and provides clear deployment instructions at the end.
+
+### Security Analysis with Codeguard Rules
+
+The `/security` command now integrates **Project Codeguard** security rules for language-specific secure coding guidance.
+
+**What are Codeguard Rules?**
+- **108 comprehensive security rules** (22 core + 86 OWASP-based)
+- Curated by Cisco and aligned with OWASP best practices
+- Language-specific secure coding patterns (Python, JavaScript, Go, Java, C, etc.)
+- Framework-specific security guidance
+- Code examples demonstrating safe implementations
+
+**How it works:**
+1. **Phase 0**: `/security` detects your technology stack (languages, frameworks)
+2. **Phase 0 (continued)**: Loads relevant Codeguard rules from `thoughts/security_rules/`
+   - Filters by language using YAML frontmatter
+   - Loads 3-5 most relevant rules based on stack and security topics
+   - Extracts secure coding patterns, checklists, and code examples
+3. **Phases 1-3**: Security analysis references Codeguard rules alongside framework-specific checks
+4. **Report**: Includes Codeguard rule references with file paths
+
+**Rule Structure:**
+```
+thoughts/security_rules/
+├── core/      # 22 core rules (authentication, input validation, authorization, etc.)
+└── owasp/     # 86 OWASP rules (SQL injection, XSS, CSRF, session management, etc.)
+```
+
+**Example rules:**
+- `codeguard-0-authentication-mfa.md` - Authentication & MFA best practices
+- `codeguard-0-input-validation-injection.md` - Input validation & injection defense
+- `codeguard-0-sql-injection-prevention.md` - SQL injection prevention
+- `codeguard-0-authorization-access-control.md` - Authorization & access control
+
+**Usage:**
+```bash
+/security
+```
+
+The command automatically loads relevant rules based on your project's technology stack.
+
+**Source:**
+Project Codeguard: https://github.com/project-codeguard/rules
 
 ### File Naming Conventions
 

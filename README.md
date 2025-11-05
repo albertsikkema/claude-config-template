@@ -51,6 +51,7 @@ This is a **configuration template** that you install into your projects. It pro
 - **Complete development workflow** - Research → Plan → Implement → Cleanup → Deploy ([see WORKFLOW.md](WORKFLOW.md))
 - **12 specialized AI agents** - Automated research, code analysis, and architecture design
 - **14 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
+- **108 security rules** - Language-specific secure coding guidance from [Project Codeguard](https://github.com/project-codeguard/rules)
 - **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -62,6 +63,9 @@ Think of it as a **productivity multiplier** for Claude Code - install once, ben
 Partly based on/ inspired by:
 - https://github.com/humanlayer/humanlayer
 - https://github.com/Wirasm/PRPs-agentic-eng
+
+Security rules integration:
+- https://github.com/project-codeguard/rules (108 OWASP-aligned security rules)
 
 Monitoring dashboard:
 - https://github.com/disler/claude-code-hooks-multi-agent-observability
@@ -105,6 +109,7 @@ Monitoring dashboard:
 | `/commit` | Create well-formatted git commits |
 | `/pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
+| `/security` | Comprehensive security analysis with Codeguard rules |
 | `/deploy` | Automated deployment preparation (version, changelog, build, release) |
 | `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
 | `/index_codebase` | Index Python/TypeScript/Go codebases |
@@ -148,6 +153,9 @@ your-project/
     │
     ├── best_practices/      # Best practices documentation from implementations
     ├── technical_docs/      # Technical documentation storage
+    ├── security_rules/      # Project Codeguard security rules (108 rules)
+    │   ├── core/            # 22 Cisco-curated core security rules
+    │   └── owasp/           # 86 OWASP-based security rules
     │
     └── shared/
         ├── plans/           # Implementation plans (deleted after cleanup)
@@ -479,6 +487,24 @@ Edit `.claude/settings.json`:
 
 
 ## 🌟 Key Features Explained
+
+### Project Codeguard Security Integration
+
+The `/security` command integrates **108 comprehensive security rules** from [Project Codeguard](https://github.com/project-codeguard/rules):
+
+- **22 core rules** - Authentication, input validation, authorization, cryptography, etc.
+- **86 OWASP rules** - SQL injection, XSS, CSRF, session management, etc.
+- **Language-specific guidance** - Python, JavaScript, Go, Java, C, and more
+- **Code examples** - Safe implementations and secure coding patterns
+- **Automatic loading** - Rules filtered by your project's detected technology stack
+
+When you run `/security`, it automatically:
+1. Detects your languages and frameworks
+2. Loads relevant Codeguard rules from `thoughts/security_rules/`
+3. Analyzes your code against 18 security areas + Codeguard patterns
+4. Generates reports with rule references and recommendations
+
+**Source**: Curated by Cisco and aligned with OWASP best practices.
 
 ### Research → Plan → Implement → Cleanup Pattern
 
