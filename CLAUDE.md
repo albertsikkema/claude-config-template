@@ -22,11 +22,13 @@ This repository is meant to be installed into other projects using the `install.
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
 
 # Install from a specific branch (e.g., for testing new features)
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch orchestrator-agent
 
 # Install from a specific branch with other options
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing --force
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch orchestrator-agent --force
 ```
+
+> **Note**: Always use `/main/install.sh` in the URL. The `--branch` argument specifies which branch's content to install.
 
 **Manual Install**:
 ```bash
@@ -78,6 +80,32 @@ If `.gitignore` doesn't exist, it will be created. Existing entries are preserve
 # Generate metadata for research/plan documents
 ./claude-helpers/spec_metadata.sh
 ```
+
+### Orchestrator Agent
+
+```bash
+# Create .env.claude file with API key
+echo "OPENAI_API_KEY=sk-..." > .env.claude
+
+# Run orchestrator (uv auto-installs dependencies)
+uv run claude-helpers/orchestrator.py "Add user authentication"
+uv run claude-helpers/orchestrator.py --json "Refactor database"
+```
+
+The orchestrator automates the full workflow:
+1. Indexes codebase (`/index_codebase`)
+2. Researches topic (`/research_codebase`)
+3. Creates plan (`/create_plan`)
+4. Implements plan (`/implement_plan`)
+5. Reviews code (`/code_reviewer`)
+
+Use `--no-implement` to stop after creating the plan. Streams progress to stderr, outputs results to stdout. Supports both OpenAI and Azure OpenAI (auto-detected from `.env`).
+
+**Tip**: Add an alias to your `~/.zshrc` or `~/.bashrc` for easy access:
+```bash
+alias orchestrate='uv run /path/to/claude-helpers/orchestrator.py'
+```
+Then use: `orchestrate "Add user authentication"`
 
 ## Architecture
 
@@ -431,3 +459,33 @@ When modifying this template repository itself:
 - Agents use frontmatter metadata (name, description, model, color)
 - Commands are plain markdown with instructions
 - Both are read by Claude Code at runtime
+
+## Codebase Overview Files
+
+This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
+
+### Available Index Files
+- `codebase_overview_claude-helpers_py.md` - Python helper scripts overview
+- `codebase_overview_hooks_py.md` - Claude Code hooks overview
+
+### What These Files Contain
+Each overview file provides a comprehensive map of the codebase including:
+- **Complete file tree** of the scanned directory
+- **All classes and functions** with descriptions
+- **Full function signatures**: input parameters, return types, and expected outputs
+- **Call relationships**: where each function/class is called from (caller information)
+
+### Why These Files Matter
+These files are essential for:
+- **Fast navigation**: Instantly find where code lives without extensive searching
+- **Understanding structure**: See the complete architecture and organization
+- **Analyzing relationships**: Understand how components interact and depend on each other
+- **Code analysis**: Get function signatures and contracts without reading implementation
+
+### Regenerating Indexes
+To regenerate the codebase overview files, run:
+```bash
+/index_codebase
+```
+
+The indexer will automatically detect your project type and generate appropriate overview files.

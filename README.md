@@ -11,7 +11,7 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 **Install from a specific branch:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch orchestrator-agent
 ```
 
 **Clean reinstall (⚠️ overwrites important stuff):**
@@ -21,8 +21,10 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 **Clean reinstall from a specific branch:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing --force
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch orchestrator-agent --force
 ```
+
+> **Note**: Always use `/main/install.sh` in the URL. The `--branch` argument specifies which branch's content to actually install.
 
 **Optional: Start monitoring dashboard** (requires [Bun](https://bun.sh)):
 ```bash
@@ -351,6 +353,26 @@ This template includes several utility scripts in the `claude-helpers/` director
   - `spec_metadata.sh` - Generate comprehensive metadata
   - Used in plans, research, and ADRs
   - **📖 See [docs/README-spec-metadata.md](docs/README-spec-metadata.md) for detailed guide**
+
+- **Orchestrator Agent**: Automate the full Claude Code workflow
+  - `orchestrator.py` - Runs index → research → plan → implement → review
+  - Supports both OpenAI and Azure OpenAI (auto-detected from `.env.claude`)
+  - Single-file script with `uv run` support
+  ```bash
+  # Create .env.claude with API key
+  echo "OPENAI_API_KEY=sk-..." > .env.claude
+
+  # Run full workflow
+  uv run claude-helpers/orchestrator.py "Add user authentication"
+
+  # Stop after planning (no implementation)
+  uv run claude-helpers/orchestrator.py --no-implement "Refactor database"
+  ```
+  **Tip**: Add an alias for easy access:
+  ```bash
+  # Add to ~/.zshrc or ~/.bashrc
+  alias orchestrate='uv run /path/to/claude-helpers/orchestrator.py'
+  ```
 
 **📖 Full scripts overview: [claude-helpers/README.md](claude-helpers/README.md)**
 

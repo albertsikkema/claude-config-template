@@ -79,6 +79,7 @@ logs/
 .env
 .env.local
 .env.*.local
+.env.claude
 
 # Monitoring dashboard (cloned by start-monitoring.sh)
 claude-code-hooks-multi-agent-observability/
@@ -105,3 +106,6 @@ credentials.json
 
 # for local files that should not be in repo
 local/
+
+# Commit history reference
+commits.md
