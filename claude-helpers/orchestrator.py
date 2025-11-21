@@ -11,11 +11,11 @@
 Orchestrate Claude Code workflows: index → research → plan → implement → review.
 
 Usage:
-    uv run orchestrator.py "Add user authentication"
-    uv run orchestrator.py --json "Refactor database layer"
+    uv run claude-helpers/orchestrator.py "Add user authentication"
+    uv run claude-helpers/orchestrator.py --json "Refactor database layer"
 
 Tip: Add an alias to your ~/.zshrc or ~/.bashrc for easy access:
-    alias orchestrate='uv run /path/to/claude-helpers/orchestrator.py'
+    alias orchestrate='uv run claude-helpers/orchestrator.py'
 
 Then use: orchestrate "Add user authentication"
 """
