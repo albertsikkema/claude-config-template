@@ -11,7 +11,7 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 **Install from a specific branch:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch orchestrator-agent
 ```
 
 **Clean reinstall (⚠️ overwrites important stuff):**
@@ -21,8 +21,10 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 **Clean reinstall from a specific branch:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch improved_indexing --force
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --branch orchestrator-agent --force
 ```
+
+> **Note**: Always use `/main/install.sh` in the URL. The `--branch` argument specifies which branch's content to actually install.
 
 **Optional: Start monitoring dashboard** (requires [Bun](https://bun.sh)):
 ```bash
