@@ -350,6 +350,20 @@ main() {
                 cp -r "$SCRIPT_DIR/claude-helpers" "$TARGET_DIR/"
             fi
             print_message "$GREEN" "  ✓ Copied claude-helpers/ directory"
+
+            # Create .env.claude from example if it doesn't exist
+            if [ -f "$SCRIPT_DIR/claude-helpers/.env.claude.example" ]; then
+                if [ ! -f "$TARGET_DIR/.env.claude" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        print_message "$GREEN" "  [DRY RUN] Would create .env.claude from example"
+                    else
+                        cp "$SCRIPT_DIR/claude-helpers/.env.claude.example" "$TARGET_DIR/.env.claude"
+                        print_message "$GREEN" "  ✓ Created .env.claude (configure your API keys)"
+                    fi
+                else
+                    print_message "$YELLOW" "  ⊘ .env.claude already exists, skipping"
+                fi
+            fi
         fi
     fi
 
@@ -370,16 +384,17 @@ main() {
         print_message "$BLUE" "Next steps:"
 
         if [ "$INSTALL_CLAUDE" = true ]; then
-            echo "  1. Review .claude/settings.local.json and adjust permissions as needed"
-            echo "  2. Explore available agents in .claude/agents/"
-            echo "  3. Check out slash commands in .claude/commands/"
+            echo "  1. Configure .env.claude with your OpenAI or Azure OpenAI API keys"
+            echo "  2. Review .claude/settings.local.json and adjust permissions as needed"
+            echo "  3. Explore available agents in .claude/agents/"
+            echo "  4. Check out slash commands in .claude/commands/"
         fi
 
         if [ "$INSTALL_THOUGHTS" = true ]; then
-            echo "  4. Review .gitignore for Claude Code entries"
-            echo "  5. Use /project command to create project documentation"
-            echo "  6. Start creating plans in thoughts/shared/plans/"
-            echo "  7. Document research in thoughts/shared/research/"
+            echo "  5. Review .gitignore for Claude Code entries"
+            echo "  6. Use /project command to create project documentation"
+            echo "  7. Start creating plans in thoughts/shared/plans/"
+            echo "  8. Document research in thoughts/shared/research/"
         fi
 
         echo ""
