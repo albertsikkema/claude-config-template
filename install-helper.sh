@@ -172,6 +172,7 @@ update_gitignore() {
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
         entries_to_add+=("claude-helpers/")
+        entries_to_add+=(".env.claude")
     fi
 
     if [ "$INSTALL_THOUGHTS" = true ]; then

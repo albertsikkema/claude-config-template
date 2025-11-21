@@ -352,6 +352,26 @@ This template includes several utility scripts in the `claude-helpers/` director
   - Used in plans, research, and ADRs
   - **📖 See [docs/README-spec-metadata.md](docs/README-spec-metadata.md) for detailed guide**
 
+- **Orchestrator Agent**: Automate the full Claude Code workflow
+  - `orchestrator.py` - Runs index → research → plan → implement → review
+  - Supports both OpenAI and Azure OpenAI (auto-detected from `.env.claude`)
+  - Single-file script with `uv run` support
+  ```bash
+  # Create .env.claude with API key
+  echo "OPENAI_API_KEY=sk-..." > .env.claude
+
+  # Run full workflow
+  uv run claude-helpers/orchestrator.py "Add user authentication"
+
+  # Stop after planning (no implementation)
+  uv run claude-helpers/orchestrator.py --no-implement "Refactor database"
+  ```
+  **Tip**: Add an alias for easy access:
+  ```bash
+  # Add to ~/.zshrc or ~/.bashrc
+  alias orchestrate='uv run /path/to/claude-helpers/orchestrator.py'
+  ```
+
 **📖 Full scripts overview: [claude-helpers/README.md](claude-helpers/README.md)**
 
 ## 📚 Complete Development Workflow
