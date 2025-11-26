@@ -1,5 +1,15 @@
 # Claude Code Configuration Template
 
+> **DEPRECATION NOTICE**
+> 
+> This repository is **no longer actively maintained**. I have switched to [OpenCode](https://opencode.ai/) - it's open source, feels faster, offers more model choices, and isn't tied to a single company. The Claude Code subscription limitations, rate limiting, and frequent "resources not available" errors also became frustrating.
+> 
+> This repository will remain available until **January 1, 2026** for reference purposes. Feel free to fork, copy, or use any code from this repository before then.
+> 
+> Updates will be sporadic at best.
+
+---
+
 A powerful, reusable configuration system for [Claude Code](https://claude.com/code) that supercharges your development workflow with custom agents, intelligent slash commands, and structured project documentation.
 
 ## ⚡ Quick Install
