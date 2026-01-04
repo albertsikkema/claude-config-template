@@ -84,6 +84,9 @@ logs/
 # Monitoring dashboard (cloned by start-monitoring.sh)
 claude-code-hooks-multi-agent-observability/
 
+# Nested git repos (managed separately)
+claude-flow/claude-flow-board/
+
 # Node modules (if you add Node.js tooling)
 node_modules/
 
@@ -92,9 +95,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 .Python
+.venv/
 venv/
 env/
 *.egg-info/
+.ruff_cache/
 
 # Secrets and credentials
 secrets/
@@ -113,5 +118,7 @@ commits.md
 .env.opencode
 AGENTS.md
 thoughts/
+*.db
+*.sqlite3
 
-fastapi_app/
+
