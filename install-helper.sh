@@ -172,6 +172,7 @@ update_gitignore() {
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
         entries_to_add+=("claude-helpers/")
+        entries_to_add+=("claude-helpers/claude-flow/claude-flow-board/")
         entries_to_add+=(".env.claude")
     fi
 
@@ -364,6 +365,42 @@ main() {
                     print_message "$YELLOW" "  ⊘ .env.claude already exists, skipping"
                 fi
             fi
+
+            # Clone claude-flow-board frontend if claude-flow exists and frontend doesn't
+            if [ -d "$TARGET_DIR/claude-helpers/claude-flow" ]; then
+                local frontend_dir="$TARGET_DIR/claude-helpers/claude-flow/claude-flow-board"
+                if [ ! -d "$frontend_dir" ]; then
+                    print_message "$BLUE" "Cloning claude-flow-board frontend..."
+                    if [ "$DRY_RUN" = true ]; then
+                        print_message "$GREEN" "  [DRY RUN] Would clone claude-flow-board from GitHub"
+                    else
+                        if command -v git &> /dev/null; then
+                            if git clone --quiet https://github.com/albertsikkema/claude-flow-board.git "$frontend_dir" 2>/dev/null; then
+                                print_message "$GREEN" "  ✓ Cloned claude-flow-board frontend"
+                            else
+                                print_message "$YELLOW" "  ⚠ Could not clone frontend (repo may be private or network issue)"
+                                print_message "$YELLOW" "    Clone manually: git clone https://github.com/albertsikkema/claude-flow-board.git $frontend_dir"
+                            fi
+                        else
+                            print_message "$YELLOW" "  ⚠ git not found, skipping frontend clone"
+                            print_message "$YELLOW" "    Clone manually: git clone https://github.com/albertsikkema/claude-flow-board.git $frontend_dir"
+                        fi
+                    fi
+                else
+                    print_message "$YELLOW" "  ⊘ claude-flow-board already exists, skipping"
+                fi
+
+                # Copy start-claude-flow.sh script
+                if [ -f "$SCRIPT_DIR/start-claude-flow.sh" ]; then
+                    if [ "$DRY_RUN" = true ]; then
+                        print_message "$GREEN" "  [DRY RUN] Would copy start-claude-flow.sh"
+                    else
+                        cp "$SCRIPT_DIR/start-claude-flow.sh" "$TARGET_DIR/start-claude-flow.sh"
+                        chmod +x "$TARGET_DIR/start-claude-flow.sh"
+                        print_message "$GREEN" "  ✓ Copied start-claude-flow.sh"
+                    fi
+                fi
+            fi
         fi
     fi
 
@@ -395,6 +432,16 @@ main() {
             echo "  6. Use /project command to create project documentation"
             echo "  7. Start creating plans in thoughts/shared/plans/"
             echo "  8. Document research in thoughts/shared/research/"
+        fi
+
+        # Check if claude-flow was installed
+        if [ -d "$TARGET_DIR/claude-helpers/claude-flow" ]; then
+            echo ""
+            print_message "$BLUE" "Claude Flow (Kanban Board):"
+            echo "  Run: ./start-claude-flow.sh"
+            echo "  Or manually:"
+            echo "    Backend:  cd claude-helpers/claude-flow && make run"
+            echo "    Frontend: cd claude-helpers/claude-flow/claude-flow-board && npm run dev"
         fi
 
         echo ""
