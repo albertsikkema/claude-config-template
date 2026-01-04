@@ -85,7 +85,7 @@ logs/
 claude-code-hooks-multi-agent-observability/
 
 # Nested git repos (managed separately)
-claude-flow/claude-flow-board/
+claude-helpers/claude-flow/claude-flow-board/
 
 # Node modules (if you add Node.js tooling)
 node_modules/
