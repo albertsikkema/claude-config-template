@@ -109,3 +109,9 @@ local/
 
 # Commit history reference
 commits.md
+.opencode/
+.env.opencode
+AGENTS.md
+thoughts/
+
+fastapi_app/
