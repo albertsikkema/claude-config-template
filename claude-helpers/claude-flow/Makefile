@@ -2,7 +2,7 @@
 
 # Start the backend server in development mode
 run: sync
-	uv run uvicorn kanban.main:app --reload --port 8000
+	uv run uvicorn kanban.main:app --reload --port 9118
 
 # Alias for run
 dev: run

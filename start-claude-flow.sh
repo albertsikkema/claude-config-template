@@ -90,15 +90,15 @@ install_frontend() {
 
 # Start backend
 start_backend() {
-    print_message "$BLUE" "Starting backend on http://localhost:8000..."
+    print_message "$BLUE" "Starting backend on http://localhost:9118..."
     cd "$BACKEND_DIR"
-    uv run uvicorn kanban.main:app --reload --port 8000 &
+    uv run uvicorn kanban.main:app --reload --port 9118 &
     BACKEND_PID=$!
 }
 
 # Start frontend
 start_frontend() {
-    print_message "$BLUE" "Starting frontend on http://localhost:5173..."
+    print_message "$BLUE" "Starting frontend on http://localhost:8119..."
     cd "$FRONTEND_DIR"
     if command -v bun &> /dev/null; then
         bun run dev &
@@ -136,9 +136,9 @@ main() {
     echo ""
     print_message "$GREEN" "========================================="
     print_message "$GREEN" "  Services running:"
-    print_message "$GREEN" "  - Backend:  http://localhost:8000"
-    print_message "$GREEN" "  - API Docs: http://localhost:8000/docs"
-    print_message "$GREEN" "  - Frontend: http://localhost:5173"
+    print_message "$GREEN" "  - Backend:  http://localhost:9118"
+    print_message "$GREEN" "  - API Docs: http://localhost:9118/docs"
+    print_message "$GREEN" "  - Frontend: http://localhost:8119"
     print_message "$GREEN" "========================================="
     print_message "$YELLOW" "Press Ctrl+C to stop all services"
     echo ""

@@ -16,7 +16,7 @@
 #               - opus:   Most capable model. Best for complex research and planning.
 #               - haiku:  Fastest and most affordable. Good for simple tasks.
 
-API_URL="${KANBAN_API_URL:-http://localhost:8000/api/tasks}"
+API_URL="${KANBAN_API_URL:-http://localhost:9118/api/tasks}"
 
 # Default values
 PRIORITY="medium"

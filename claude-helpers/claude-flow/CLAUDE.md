@@ -13,9 +13,9 @@ Claude Workflow Kanban - A FastAPI backend with React frontend for managing Clau
 uv sync
 
 # Run the server
-uv run uvicorn kanban.main:app --reload --port 8000
+uv run uvicorn kanban.main:app --reload --port 9118
 
-# API docs at http://localhost:8000/docs
+# API docs at http://localhost:9118/docs
 ```
 
 ## Codebase Overview Files
