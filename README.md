@@ -1,12 +1,10 @@
 # Claude Code Configuration Template
 
-> **DEPRECATION NOTICE**
-> 
-> This repository is **no longer actively maintained**. I have switched to [OpenCode](https://opencode.ai/) - it's open source, feels faster, offers more model choices, and isn't tied to a single company. The Claude Code subscription limitations, rate limiting, and frequent "resources not available" errors also became frustrating.
-> 
-> This repository will remain available until **January 1, 2026** for reference purposes. Feel free to fork, copy, or use any code from this repository before then.
-> 
-> Updates will be sporadic at best.
+> **⚠️ ALPHA STATUS**
+>
+> The newest features in this repository (last 6 commits) are **highly experimental and in alpha stage**. They may contain bugs, have breaking changes, or be incomplete. Use at your own risk and expect instability.
+>
+> Feedback and bug reports are welcome!
 
 ---
 
