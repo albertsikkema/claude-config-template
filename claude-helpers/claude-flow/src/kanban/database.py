@@ -49,6 +49,7 @@ class TaskDB(Base):
     # Claude Code integration fields
     research_path = Column(String(500), nullable=True)
     plan_path = Column(String(500), nullable=True)
+    review_path = Column(String(500), nullable=True)
     job_status = Column(Enum(JobStatus), nullable=True)
     job_output = Column(Text, nullable=True)
     job_error = Column(Text, nullable=True)

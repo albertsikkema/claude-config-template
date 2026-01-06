@@ -92,7 +92,8 @@ install_frontend() {
 start_backend() {
     print_message "$BLUE" "Starting backend on http://localhost:9118..."
     cd "$BACKEND_DIR"
-    uv run uvicorn kanban.main:app --reload --port 9118 &
+    # Use .venv binaries directly instead of uv run to avoid subprocess spawning issues
+    ./.venv/bin/python -m uvicorn kanban.main:app --reload --port 9118 &
     BACKEND_PID=$!
 }
 

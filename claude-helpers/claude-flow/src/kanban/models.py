@@ -78,6 +78,7 @@ class TaskBase(BaseModel):
     # Claude Code integration fields
     research_path: str | None = Field(default=None, max_length=500)
     plan_path: str | None = Field(default=None, max_length=500)
+    review_path: str | None = Field(default=None, max_length=500)
     job_status: JobStatus | None = None
     job_output: str | None = None  # Real-time output buffer
     job_error: str | None = None  # Error message if failed
@@ -107,6 +108,7 @@ class TaskUpdate(BaseModel):
     # Claude Code integration fields
     research_path: str | None = Field(default=None, max_length=500)
     plan_path: str | None = Field(default=None, max_length=500)
+    review_path: str | None = Field(default=None, max_length=500)
     job_status: JobStatus | None = None
     job_output: str | None = None
     job_error: str | None = None

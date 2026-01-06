@@ -18,8 +18,8 @@ from kanban.models import JobStatus, Stage, WorkflowComplexity
 running_jobs: dict[str, asyncio.subprocess.Process] = {}
 
 # Project root path (where Claude Code should run)
-# jobs.py -> kanban/ -> src/ -> fastapi_app/ -> claude-config-template/
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+# jobs.py -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 
 # Find claude executable
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
@@ -27,45 +27,81 @@ CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "cl
 # Maximum characters to store in job_output for UI display.
 # This is for display purposes only - actual workflow artifacts (research docs, plans)
 # are saved as complete files on disk. Next stages reference file paths, not job_output.
-MAX_OUTPUT_LENGTH = 10000
+# Increased from 10K to 100K to capture more verbose output from Claude operations
+MAX_OUTPUT_LENGTH = 100000
+
+
+def _read_slash_command(command_name: str) -> str | None:
+    """Read a slash command file from .claude/commands/.
+
+    Returns the command content or None if not found.
+    """
+    cmd_path = PROJECT_ROOT / ".claude" / "commands" / f"{command_name}.md"
+    if cmd_path.exists():
+        return cmd_path.read_text()
+    return None
+
+
+def _build_task_context(task: TaskDB) -> str:
+    """Build context string from task title and description."""
+    context = task.title
+    if task.description:
+        context = f"{task.title}\n\nDescription: {task.description}"
+    return context
 
 
 def get_prompt_for_stage(stage: Stage, task: TaskDB) -> str | None:
     """Get the prompt for a stage transition.
 
-    Returns a descriptive prompt that works in non-interactive mode.
-    Slash commands only work in interactive mode.
+    Reads the full slash command content and appends task-specific context.
+    This allows subagents to be spawned in non-interactive mode.
+
+    Returns None if command file not found or prerequisites not met.
     """
-    # Combine title and description for context
-    context = task.title
-    if task.description:
-        context = f"{task.title}\n\nDescription: {task.description}"
+    context = _build_task_context(task)
 
     if stage == Stage.RESEARCH:
-        return f"""Research the following topic in this codebase:
+        cmd_content = _read_slash_command("research_codebase")
+        if not cmd_content:
+            return None
+        return f"""{cmd_content}
+
+## Research Topic
 
 {context}
-
-Find existing patterns, implementations, best practices, and relevant code.
-Create a research document and save it to thoughts/shared/research/ with today's date.
 """
+
     elif stage == Stage.PLANNING:
-        if task.research_path:
-            return f"""Based on the research in {task.research_path}, create an implementation plan.
+        if not task.research_path:
+            return None  # Need research first
 
-Context: {context}
+        cmd_content = _read_slash_command("create_plan")
+        if not cmd_content:
+            return None
+        return f"""{cmd_content}
 
-Create a detailed plan with steps, architecture decisions, and success criteria.
-Save the plan to thoughts/shared/plans/ with today's date.
+## Planning Context
+
+Task: {context}
+
+Research document: {task.research_path}
+
+Use the research findings to inform the implementation plan.
 """
-        return None  # Need research first
+
     elif stage == Stage.IMPLEMENTATION:
         if task.plan_path:
             # Complete workflow - use plan
-            return f"""Implement the plan in {task.plan_path}.
+            cmd_content = _read_slash_command("implement_plan")
+            if not cmd_content:
+                return None
+            return f"""{cmd_content}
 
-Follow each step in the plan and make the necessary code changes.
-Run tests and verify everything works.
+## Implementation Context
+
+Plan file: {task.plan_path}
+
+Task: {context}
 """
         elif task.complexity == WorkflowComplexity.SIMPLE:
             # Simple workflow - implement directly from title/description
@@ -78,110 +114,60 @@ Focus on minimal, targeted changes. Run tests if applicable.
 Do not create research documents or plans - just implement the change.
 """
         return None  # Complete workflow needs plan first
+
     elif stage == Stage.REVIEW:
-        # Build the review context section based on workflow type
+        cmd_content = _read_slash_command("code_reviewer")
+        if not cmd_content:
+            return None
+
+        # Build review context based on workflow type
         if task.plan_path:
-            # Complete workflow - reference the plan
-            review_context = f"""## Context
+            review_context = f"""## Review Context
 
 The implementation followed the plan in {task.plan_path}.
 
 Task: {context}
-
-**Step 0 - Gather Changes**: Before starting the review, run these commands to understand what changed:
-1. Run `git diff --name-only` to see which files were modified
-2. Run `git diff` to see the actual code changes
-3. Read the plan file to understand the requirements
 """
         elif task.complexity == WorkflowComplexity.SIMPLE:
-            # Simple workflow - use git diff as the source of truth
-            review_context = f"""## Context
+            review_context = f"""## Review Context
 
 Task: {context}
 
-**Step 0 - Gather Changes**: Before starting the review, run these commands to understand what changed:
-1. Run `git diff --name-only` to see which files were modified
-2. Run `git diff` to see the actual code changes
-3. These changes should address the task described above
+This was a simple/quick change implemented directly without a plan.
 """
         else:
-            # Fallback
-            review_context = f"""## Context
+            review_context = f"""## Review Context
 
 Task: {context}
-
-**Step 0 - Gather Changes**: Run `git diff` to see the code changes to review.
 """
 
-        # Full code_reviewer prompt
-        return f"""{review_context}
+        return f"""{cmd_content}
 
-# Code Review
-
-You are a senior software engineer conducting thorough code reviews. Your role is to analyze code for quality, security, performance, and maintainability.
-
-## Critical First Step
-
-**ALWAYS read relevant docs in `/thoughts/technical_docs`** before starting the review.
-
-## Review Priorities
-
-When reviewing code, evaluate these areas:
-
-### 1. Correctness
-- Does the code do what it's supposed to do?
-- Are there logical errors or edge cases not handled?
-
-### 2. Security
-- Look for vulnerabilities like SQL injection, XSS, exposed credentials
-- Check for unsafe operations or improper input validation
-
-### 3. Performance
-- Identify inefficient algorithms or unnecessary computations
-- Look for memory leaks or operations that could be optimized
-
-### 4. Code Quality
-- Is the code readable and self-documenting?
-- Are naming conventions clear and consistent?
-- Is there appropriate separation of concerns?
-- Are functions/methods focused on a single responsibility?
-
-### 5. Best Practices
-- Does the code follow established patterns and conventions for the language/framework?
-
-### 6. Error Handling
-- Are errors properly caught, logged, and handled?
-- Are there appropriate fallbacks?
-
-### 7. Testing
-- Is the code testable?
-- Are there suggestions for test cases that should be written?
-
-## Review Format
-
-Provide:
-
-- **Summary**: Brief overview of what the code does and your overall assessment
-- **Critical Issues**: Must-fix problems that could cause bugs, security issues, or system failures
-- **Improvements**: Suggestions that would enhance code quality, performance, or maintainability
-- **Minor Notes**: Style issues, naming suggestions, or other low-priority observations
-- **Positive Feedback**: Highlight what was done well
-
-## Review Approach
-
-- Be constructive and specific in your feedback
-- Provide code examples when suggesting improvements
-- Explain **why** something should be changed, not just what to change
-- Consider the context and requirements of the project
-- Balance perfectionism with pragmatism
+{review_context}
 """
+
     elif stage == Stage.CLEANUP:
         if task.plan_path:
-            return f"""Clean up after implementing {task.plan_path}.
+            cmd_content = _read_slash_command("cleanup")
+            if not cmd_content:
+                return None
+            return f"""{cmd_content}
 
-Document any best practices learned.
-Remove temporary files if any.
-Update documentation as needed.
+## Cleanup Context
+
+Plan file: {task.plan_path}
+Research file: {task.research_path or "N/A"}
+Review file: {task.review_path or "N/A"}
+
+Task: {context}
+"""
+        elif task.research_path:
+            # Research-only task - no implementation happened
+            return f"""This was a research-only task. The research document at {task.research_path} is the permanent output.
+
+Review the research document and determine if any best practices should be documented.
+If this research leads to implementation, create a plan using /create_plan.
+Otherwise, the research document remains as reference material.
 """
         return None
 
@@ -194,6 +180,8 @@ def extract_file_path(output: str, stage: Stage) -> str | None:
         matches = re.findall(r"thoughts/shared/research/[\w\-]+\.md", output)
     elif stage == Stage.PLANNING:
         matches = re.findall(r"thoughts/shared/plans/[\w\-]+\.md", output)
+    elif stage == Stage.REVIEW:
+        matches = re.findall(r"thoughts/shared/reviews/[\w\-]+\.md", output)
     else:
         return None
 
@@ -207,6 +195,7 @@ def update_task_status(
     job_error: str | None = None,
     research_path: str | None = None,
     plan_path: str | None = None,
+    review_path: str | None = None,
     session_id: str | None = None,
     set_started: bool = False,
     set_completed: bool = False,
@@ -227,6 +216,8 @@ def update_task_status(
                 task.research_path = research_path
             if plan_path is not None:
                 task.plan_path = plan_path
+            if review_path is not None:
+                task.review_path = review_path
             if session_id is not None:
                 task.session_id = session_id
             if set_started:
@@ -299,6 +290,7 @@ async def run_claude_command(
         text_parts: list[str] = []
         raw_lines: list[str] = []
         captured_session_id: str | None = None
+        current_tool: str = ""  # Track current tool for result display
 
         # Read stdout line by line (stream-json outputs newline-delimited JSON)
         async def read_stream():
@@ -331,42 +323,57 @@ async def run_claude_command(
                         if block_type == "text":
                             text = block.get("text", "")
                             if text.strip():
-                                text_parts.append(f"\n{text}\n")
+                                text_parts.append(f"\n⏺ {text}\n")
                         elif block_type == "tool_use":
-                            # Show tool usage with nice formatting
+                            # Format like Claude Code terminal output
                             tool_name = block.get("name", "unknown")
                             tool_input = block.get("input", {})
 
-                            # Format based on tool type
+                            # Build tool call display
                             if tool_name == "Bash":
-                                cmd = tool_input.get("command", "")[:80]
-                                desc = tool_input.get("description", "")
-                                text_parts.append(f"\n▶ {desc or 'Running command'}\n  $ {cmd}\n")
+                                cmd = tool_input.get("command", "")
+                                current_tool = "Bash"
+                                text_parts.append(f"\n⏺ Bash({cmd[:100]}{'...' if len(cmd) > 100 else ''})\n")
                             elif tool_name == "Read":
                                 path = tool_input.get("file_path", "")
-                                # Show just filename
-                                filename = path.split("/")[-1] if "/" in path else path
-                                text_parts.append(f"\n📄 Reading: {filename}\n")
+                                current_tool = "Read"
+                                text_parts.append(f"\n⏺ Read({path})\n")
                             elif tool_name == "Glob":
                                 pattern = tool_input.get("pattern", "")
-                                text_parts.append(f"\n🔍 Searching: {pattern}\n")
+                                current_tool = "Glob"
+                                text_parts.append(f"\n⏺ Glob({pattern})\n")
                             elif tool_name == "Grep":
                                 pattern = tool_input.get("pattern", "")
-                                text_parts.append(f"\n🔍 Grep: {pattern}\n")
+                                path = tool_input.get("path", "")
+                                current_tool = "Grep"
+                                text_parts.append(f"\n⏺ Grep({pattern}{', ' + path if path else ''})\n")
                             elif tool_name == "Write":
                                 path = tool_input.get("file_path", "")
-                                filename = path.split("/")[-1] if "/" in path else path
-                                text_parts.append(f"\n✏️  Writing: {filename}\n")
+                                current_tool = "Write"
+                                text_parts.append(f"\n⏺ Write({path})\n")
                             elif tool_name == "Edit":
                                 path = tool_input.get("file_path", "")
-                                filename = path.split("/")[-1] if "/" in path else path
-                                text_parts.append(f"\n✏️  Editing: {filename}\n")
+                                current_tool = "Edit"
+                                text_parts.append(f"\n⏺ Edit({path})\n")
                             elif tool_name == "Task":
-                                desc = tool_input.get("description", "")[:60]
-                                text_parts.append(f"\n🤖 Agent: {desc}\n")
+                                desc = tool_input.get("description", "")
+                                agent = tool_input.get("subagent_type", "")
+                                current_tool = "Task"
+                                text_parts.append(f"\n⏺ Task({agent}: {desc})\n")
+                            elif tool_name == "TodoWrite":
+                                current_tool = "TodoWrite"
+                                text_parts.append(f"\n⏺ TodoWrite()\n")
+                            elif tool_name == "WebSearch":
+                                query = tool_input.get("query", "")
+                                current_tool = "WebSearch"
+                                text_parts.append(f"\n⏺ WebSearch({query})\n")
+                            elif tool_name == "WebFetch":
+                                url = tool_input.get("url", "")
+                                current_tool = "WebFetch"
+                                text_parts.append(f"\n⏺ WebFetch({url})\n")
                             else:
-                                desc = tool_input.get("description", "")[:60]
-                                text_parts.append(f"\n⚡ {tool_name}: {desc}\n")
+                                current_tool = tool_name
+                                text_parts.append(f"\n⏺ {tool_name}(...)\n")
 
                 elif msg_type == "content_block_delta":
                     # Incremental streaming content
@@ -381,16 +388,27 @@ async def run_claude_command(
                         if text:
                             text_parts.append(text)
                 elif msg_type == "user":
-                    # User message (includes tool results) - show compact result
+                    # User message (includes tool results) - show like terminal
                     message = data.get("message", {})
                     for block in message.get("content", []):
                         if block.get("type") == "tool_result":
                             content = str(block.get("content", ""))
-                            # Show abbreviated result (first line or truncated)
-                            first_line = content.split("\n")[0][:80]
-                            if len(content) > 80:
-                                first_line += "..."
-                            text_parts.append(f"  ✓ {first_line}\n")
+                            lines = content.strip().split("\n")
+
+                            # Format result like Claude terminal with ⎿
+                            if not content.strip():
+                                text_parts.append("  ⎿  (No output)\n")
+                            elif len(lines) == 1:
+                                text_parts.append(f"  ⎿  {lines[0][:120]}\n")
+                            elif len(lines) <= 6:
+                                # Show all lines for short output
+                                for line in lines:
+                                    text_parts.append(f"  ⎿  {line[:120]}\n")
+                            else:
+                                # Show first 3 lines + count for longer output
+                                for line in lines[:3]:
+                                    text_parts.append(f"  ⎿  {line[:120]}\n")
+                                text_parts.append(f"  ⎿  ... +{len(lines) - 3} more lines\n")
                 elif msg_type == "result":
                     # Final result
                     result = data.get("result", "")
@@ -446,6 +464,34 @@ async def run_claude_command(
                     JobStatus.COMPLETED,
                     job_output=full_output[-MAX_OUTPUT_LENGTH:],
                     plan_path=file_path,
+                    set_completed=True,
+                )
+            elif stage == Stage.REVIEW:
+                update_task_status(
+                    task_id,
+                    JobStatus.COMPLETED,
+                    job_output=full_output[-MAX_OUTPUT_LENGTH:],
+                    review_path=file_path,
+                    set_completed=True,
+                )
+            elif stage == Stage.CLEANUP:
+                # /cleanup command handles artifact deletion
+                # Clear the paths in the database since cleanup removes the files
+                db = SessionLocal()
+                try:
+                    task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+                    if task:
+                        task.plan_path = None
+                        task.research_path = None
+                        task.review_path = None
+                        db.commit()
+                finally:
+                    db.close()
+
+                update_task_status(
+                    task_id,
+                    JobStatus.COMPLETED,
+                    job_output=full_output[-MAX_OUTPUT_LENGTH:],
                     set_completed=True,
                 )
             else:

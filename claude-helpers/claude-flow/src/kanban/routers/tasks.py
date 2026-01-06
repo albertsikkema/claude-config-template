@@ -22,7 +22,8 @@ from kanban.models import (
 )
 
 # Project root for reading document files
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+# tasks.py -> routers -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 
@@ -44,6 +45,7 @@ def task_db_to_model(db_task: TaskDB) -> Task:
         updated_at=db_task.updated_at,
         research_path=db_task.research_path,
         plan_path=db_task.plan_path,
+        review_path=db_task.review_path,
         job_status=db_task.job_status,
         job_output=db_task.job_output,
         job_error=db_task.job_error,
@@ -161,13 +163,13 @@ class DocumentResponse(BaseModel):
 
 @router.get("/tasks/{task_id}/document", response_model=DocumentResponse)
 def get_task_document(task_id: UUID, db: Session = Depends(get_db)):
-    """Get the research or plan document content for a task."""
+    """Get the research, plan, or review document content for a task."""
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Prefer plan_path over research_path
-    doc_path = db_task.plan_path or db_task.research_path
+    # Prefer review_path > plan_path > research_path (most recent workflow stage first)
+    doc_path = db_task.review_path or db_task.plan_path or db_task.research_path
     if not doc_path:
         raise HTTPException(status_code=404, detail="No document available for this task")
 

@@ -3,19 +3,22 @@
 import asyncio
 import fcntl
 import os
+import platform
 import pty
 import shutil
 import signal
 import struct
+import subprocess
 import termios
 from pathlib import Path
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 
 router = APIRouter(tags=["terminal"])
 
 # Project root path
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+# terminal.py -> routers -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
 
 # Find claude executable
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
@@ -60,8 +63,8 @@ async def terminal_websocket(websocket: WebSocket, session_id: str):
         env["HOME"] = str(Path.home())
         env["COLORTERM"] = "truecolor"
 
-        # Execute claude with resume
-        os.execve(CLAUDE_PATH, [CLAUDE_PATH, "--resume", session_id], env)
+        # Execute claude with resume in yolo mode
+        os.execve(CLAUDE_PATH, [CLAUDE_PATH, "--resume", session_id, "--dangerously-skip-permissions"], env)
     else:
         # Parent process
         os.close(slave_fd)
@@ -141,3 +144,77 @@ async def terminal_websocket(websocket: WebSocket, session_id: str):
                 os.waitpid(pid, 0)
             except OSError:
                 pass
+
+
+@router.post("/api/terminal/{session_id}/open")
+async def open_native_terminal(session_id: str):
+    """Open a native system terminal with Claude resume session.
+
+    Supports macOS, Linux, and Windows.
+    """
+    try:
+        system = platform.system()
+
+        if system == "Darwin":  # macOS
+            # Use AppleScript to open Terminal.app and run the command
+            script = f"""
+            tell application "Terminal"
+                activate
+                do script "cd '{str(PROJECT_ROOT)}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"
+            end tell
+            """
+            subprocess.run(
+                ["osascript", "-e", script],
+                check=True,
+                capture_output=True,
+            )
+            return {"status": "success", "message": "Terminal opened on macOS"}
+
+        elif system == "Linux":
+            # Try common Linux terminal emulators
+            terminals = [
+                ["gnome-terminal", "--", "bash", "-c", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
+                ["xterm", "-e", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
+                ["xfce4-terminal", "--execute", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
+                ["konsole", "-e", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
+            ]
+
+            for terminal_cmd in terminals:
+                try:
+                    subprocess.Popen(terminal_cmd)
+                    return {"status": "success", "message": f"Terminal opened on Linux"}
+                except FileNotFoundError:
+                    continue
+
+            raise HTTPException(
+                status_code=400,
+                detail="No supported terminal emulator found. Install gnome-terminal, xterm, xfce4-terminal, or konsole.",
+            )
+
+        elif system == "Windows":
+            # Use Windows Terminal or Command Prompt
+            cmd = f"cd /d {PROJECT_ROOT} && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"
+            try:
+                # Try Windows Terminal first
+                subprocess.Popen(["wt", "cmd", "/k", cmd])
+            except FileNotFoundError:
+                # Fallback to cmd.exe
+                subprocess.Popen(["cmd", "/k", cmd])
+            return {"status": "success", "message": "Terminal opened on Windows"}
+
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported platform: {system}",
+            )
+
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to open terminal: {e.stderr.decode() if e.stderr else str(e)}",
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error opening terminal: {str(e)}",
+        )
