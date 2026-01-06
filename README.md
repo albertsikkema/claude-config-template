@@ -2,7 +2,7 @@
 
 > **⚠️ ALPHA STATUS**
 >
-> The newest features in this repository (last 6 commits) are **highly experimental and in alpha stage**. They may contain bugs, have breaking changes, or be incomplete. Use at your own risk and expect instability.
+> Features added since January 1st, 2026 are **highly experimental and in alpha stage**. They may contain bugs, have breaking changes, or be incomplete. Use at your own risk and expect instability.
 >
 > Feedback and bug reports are welcome!
 
