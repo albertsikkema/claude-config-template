@@ -1,10 +1,51 @@
-"""AI-powered task improvement using OpenAI via PydanticAI."""
+"""AI-powered task improvement using OpenAI via PydanticAI.
 
+Tag Taxonomy
+------------
+Tags are automatically generated to categorize tasks. The following categories are used:
+
+**Type Tags** (what kind of work):
+    - feature: New functionality
+    - bugfix: Bug fixes
+    - refactor: Code restructuring without behavior change
+    - docs: Documentation changes
+    - test: Test additions or modifications
+    - chore: Maintenance tasks (dependencies, configs)
+    - security: Security-related changes
+    - performance: Performance improvements
+
+**Component Tags** (where the work is):
+    - frontend: UI/client-side code
+    - backend: Server-side code
+    - api: API endpoints or contracts
+    - database: Database schemas or queries
+    - ui: User interface components
+    - cli: Command-line interface
+
+**Domain Tags** (what area it affects):
+    - authentication, deployment, monitoring, etc.
+
+**Priority Tags** (urgency indicators):
+    - urgent: High priority work
+    - breaking-change: Requires careful rollout
+
+All tags are lowercase and hyphenated (e.g., "bug-fix", "api-endpoint").
+Maximum of 4 tags per task.
+"""
+
+import logging
+import re
 import os
 from pathlib import Path
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from pydantic_ai import Agent
+
+logger = logging.getLogger(__name__)
+
+# Constants for tag validation
+MAX_TAGS = 4
+MAX_TAG_LENGTH = 50
 
 
 class OpenAIKeyNotConfiguredError(Exception):
@@ -12,16 +53,78 @@ class OpenAIKeyNotConfiguredError(Exception):
 
     pass
 
+
+class AIServiceError(Exception):
+    """Raised when the AI service fails (rate limits, API errors, etc.)."""
+
+    pass
+
+
 # Project root for reading context files
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 
+def sanitize_tags(tags: list[str]) -> list[str]:
+    """Sanitize and validate tags from AI output.
+
+    Ensures tags are:
+    - Lowercase
+    - Hyphenated (no spaces or special chars except hyphens)
+    - Unique (no duplicates)
+    - Limited to MAX_TAGS (4)
+    - Each tag max MAX_TAG_LENGTH (50) characters
+
+    Args:
+        tags: Raw tags from AI
+
+    Returns:
+        Sanitized list of tags
+    """
+    sanitized = []
+    seen: set[str] = set()
+
+    for tag in tags[:MAX_TAGS + 2]:  # Allow some extra to filter from
+        if len(sanitized) >= MAX_TAGS:
+            break
+
+        # Convert to lowercase and strip whitespace
+        clean = tag.lower().strip()
+
+        # Replace spaces with hyphens, remove special chars except hyphens
+        clean = re.sub(r"\s+", "-", clean)
+        clean = re.sub(r"[^a-z0-9\-]", "", clean)
+
+        # Remove multiple consecutive hyphens
+        clean = re.sub(r"-+", "-", clean)
+
+        # Strip leading/trailing hyphens
+        clean = clean.strip("-")
+
+        if clean and clean not in seen and len(clean) <= MAX_TAG_LENGTH:
+            sanitized.append(clean)
+            seen.add(clean)
+
+    return sanitized
+
+
 class ImprovedTask(BaseModel):
-    """Structured response for improved task."""
+    """Structured response for improved task.
+
+    Attributes:
+        title: Improved task title (max 100 chars, actionable)
+        description: Improved task description (max 500 chars, informative)
+        tags: List of categorization tags (max 4, lowercase, hyphenated)
+    """
 
     title: str
     description: str
     tags: list[str]
+
+    @field_validator("tags", mode="after")
+    @classmethod
+    def validate_and_sanitize_tags(cls, v: list[str]) -> list[str]:
+        """Validate and sanitize tags after parsing."""
+        return sanitize_tags(v)
 
 
 def get_context() -> str:
@@ -97,7 +200,7 @@ When improving tasks:
 3. Make the description informative with relevant details (under 500 characters)
 4. Reference relevant files, modules, or patterns if applicable
 5. Keep the original intent but make it clearer
-6. Generate 3-5 relevant tags based on the task content
+6. Generate 2-4 relevant tags based on the task content (maximum 4 tags)
 
 Tags should categorize the task by:
 - Type (feature, bugfix, refactor, docs, test, chore, security, performance)
@@ -106,6 +209,7 @@ Tags should categorize the task by:
 - Priority indicators if applicable (urgent, breaking-change)
 
 Use lowercase, hyphenated tags (e.g., "bug-fix", "api-endpoint", "user-auth").
+IMPORTANT: Return no more than 4 tags.
 """,
         output_type=ImprovedTask,
     )
@@ -118,7 +222,12 @@ Description: {description or "(no description)"}
 
 Return an improved version with:
 1. Better clarity and proper technical terminology
-2. 3-5 relevant tags that categorize the task appropriately"""
+2. 2-4 relevant tags that categorize the task (maximum 4 tags)"""
 
-    result = await agent.run(prompt)
-    return result.output
+    try:
+        result = await agent.run(prompt)
+        return result.output
+    except Exception as e:
+        # Log the error for debugging
+        logger.error(f"AI service error during task improvement: {e}")
+        raise AIServiceError(f"Failed to improve task: {e}") from e

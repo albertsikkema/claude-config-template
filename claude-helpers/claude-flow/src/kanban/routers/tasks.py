@@ -295,8 +295,10 @@ async def improve_content_endpoint(request: ImproveRequest):
 
     Calls OpenAI to generate improved title, description, and relevant tags based on
     project context. Use this for previewing improvements before creating a task.
+
+    Returns max 4 tags, sanitized to lowercase hyphenated format.
     """
-    from kanban.ai import OpenAIKeyNotConfiguredError, improve_task_content
+    from kanban.ai import AIServiceError, OpenAIKeyNotConfiguredError, improve_task_content
 
     try:
         improved = await improve_task_content(request.title, request.description)
@@ -308,6 +310,11 @@ async def improve_content_endpoint(request: ImproveRequest):
             status_code=503,
             detail={"error": "api_key_not_configured", "message": str(e)},
         )
+    except AIServiceError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={"error": "ai_service_unavailable", "message": str(e)},
+        )
 
 
 @router.post("/tasks/{task_id}/improve", response_model=Task)
@@ -316,8 +323,11 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
 
     Calls OpenAI to generate improved title, description, and relevant tags based on
     project context (CLAUDE.md and indexed codebase).
+
+    Note: This endpoint modifies and persists the task immediately. Use POST /tasks/improve
+    for preview without saving. Returns max 4 tags, sanitized to lowercase hyphenated format.
     """
-    from kanban.ai import OpenAIKeyNotConfiguredError, improve_task_content
+    from kanban.ai import AIServiceError, OpenAIKeyNotConfiguredError, improve_task_content
 
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
@@ -330,6 +340,11 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503,
             detail={"error": "api_key_not_configured", "message": str(e)},
+        )
+    except AIServiceError as e:
+        raise HTTPException(
+            status_code=503,
+            detail={"error": "ai_service_unavailable", "message": str(e)},
         )
 
     # Update task with improved values
