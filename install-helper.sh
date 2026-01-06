@@ -172,7 +172,6 @@ update_gitignore() {
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
         entries_to_add+=("claude-helpers/")
-        entries_to_add+=("claude-helpers/claude-flow/claude-flow-board/")
         entries_to_add+=(".env.claude")
     fi
 
