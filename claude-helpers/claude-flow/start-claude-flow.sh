@@ -10,8 +10,8 @@ NC='\033[0m' # No Color
 
 # Script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BACKEND_DIR="$SCRIPT_DIR/claude-helpers/claude-flow"
-FRONTEND_DIR="$SCRIPT_DIR/claude-helpers/claude-flow/claude-flow-board"
+BACKEND_DIR="$SCRIPT_DIR"
+FRONTEND_DIR="$SCRIPT_DIR/claude-flow-board"
 
 # PIDs for cleanup
 BACKEND_PID=""

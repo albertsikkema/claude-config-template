@@ -389,17 +389,6 @@ main() {
                 else
                     print_message "$YELLOW" "  ⊘ claude-flow-board already exists, skipping"
                 fi
-
-                # Copy start-claude-flow.sh script
-                if [ -f "$SCRIPT_DIR/start-claude-flow.sh" ]; then
-                    if [ "$DRY_RUN" = true ]; then
-                        print_message "$GREEN" "  [DRY RUN] Would copy start-claude-flow.sh"
-                    else
-                        cp "$SCRIPT_DIR/start-claude-flow.sh" "$TARGET_DIR/start-claude-flow.sh"
-                        chmod +x "$TARGET_DIR/start-claude-flow.sh"
-                        print_message "$GREEN" "  ✓ Copied start-claude-flow.sh"
-                    fi
-                fi
             fi
         fi
     fi
@@ -438,7 +427,7 @@ main() {
         if [ -d "$TARGET_DIR/claude-helpers/claude-flow" ]; then
             echo ""
             print_message "$BLUE" "Claude Flow (Kanban Board):"
-            echo "  Run: ./start-claude-flow.sh"
+            echo "  Run: ./claude-helpers/claude-flow/start-claude-flow.sh"
             echo "  Or manually:"
             echo "    Backend:  cd claude-helpers/claude-flow && make run"
             echo "    Frontend: cd claude-helpers/claude-flow/claude-flow-board && npm run dev"
