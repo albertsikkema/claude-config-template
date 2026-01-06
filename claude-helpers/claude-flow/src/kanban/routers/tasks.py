@@ -286,20 +286,23 @@ class ImproveResponse(BaseModel):
 
     title: str
     description: str
+    tags: list[str]
 
 
 @router.post("/tasks/improve", response_model=ImproveResponse)
 async def improve_content_endpoint(request: ImproveRequest):
-    """Improve task title and description using AI (without saving).
+    """Improve task title, description, and generate tags using AI (without saving).
 
-    Calls OpenAI to generate improved title and description based on
+    Calls OpenAI to generate improved title, description, and relevant tags based on
     project context. Use this for previewing improvements before creating a task.
     """
     from kanban.ai import OpenAIKeyNotConfiguredError, improve_task_content
 
     try:
         improved = await improve_task_content(request.title, request.description)
-        return ImproveResponse(title=improved.title, description=improved.description)
+        return ImproveResponse(
+            title=improved.title, description=improved.description, tags=improved.tags
+        )
     except OpenAIKeyNotConfiguredError as e:
         raise HTTPException(
             status_code=503,
@@ -309,9 +312,9 @@ async def improve_content_endpoint(request: ImproveRequest):
 
 @router.post("/tasks/{task_id}/improve", response_model=Task)
 async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
-    """Improve task title and description using AI.
+    """Improve task title, description, and generate tags using AI.
 
-    Calls OpenAI to generate improved title and description based on
+    Calls OpenAI to generate improved title, description, and relevant tags based on
     project context (CLAUDE.md and indexed codebase).
     """
     from kanban.ai import OpenAIKeyNotConfiguredError, improve_task_content
@@ -332,6 +335,7 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
     # Update task with improved values
     db_task.title = improved.title
     db_task.description = improved.description
+    db_task.tags = improved.tags
     db_task.updated_at = datetime.utcnow()
     db.commit()
     db.refresh(db_task)

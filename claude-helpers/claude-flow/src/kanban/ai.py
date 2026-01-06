@@ -21,6 +21,7 @@ class ImprovedTask(BaseModel):
 
     title: str
     description: str
+    tags: list[str]
 
 
 def get_context() -> str:
@@ -59,14 +60,14 @@ def get_context() -> str:
 
 
 async def improve_task_content(title: str, description: str | None) -> ImprovedTask:
-    """Improve task title and description using OpenAI.
+    """Improve task title, description, and generate tags using OpenAI.
 
     Args:
         title: Current task title
         description: Current task description (may be None)
 
     Returns:
-        ImprovedTask with improved title and description
+        ImprovedTask with improved title, description, and auto-generated tags
 
     Raises:
         OpenAIKeyNotConfiguredError: If OPENAI_API_KEY is not set
@@ -84,7 +85,7 @@ async def improve_task_content(title: str, description: str | None) -> ImprovedT
     # Create agent with OpenAI
     agent = Agent(
         "openai:gpt-4o-mini",
-        system_prompt=f"""You are helping improve task titles and descriptions for a Kanban board.
+        system_prompt=f"""You are helping improve task titles, descriptions, and generate relevant tags for a Kanban board.
 
 Use the following project context to understand terminology and conventions:
 
@@ -96,6 +97,15 @@ When improving tasks:
 3. Make the description informative with relevant details (under 500 characters)
 4. Reference relevant files, modules, or patterns if applicable
 5. Keep the original intent but make it clearer
+6. Generate 3-5 relevant tags based on the task content
+
+Tags should categorize the task by:
+- Type (feature, bugfix, refactor, docs, test, chore, security, performance)
+- Technology/component (frontend, backend, api, database, ui, cli, etc.)
+- Domain/area (authentication, deployment, monitoring, etc.)
+- Priority indicators if applicable (urgent, breaking-change)
+
+Use lowercase, hyphenated tags (e.g., "bug-fix", "api-endpoint", "user-auth").
 """,
         output_type=ImprovedTask,
     )
@@ -106,7 +116,9 @@ When improving tasks:
 Title: {title}
 Description: {description or "(no description)"}
 
-Return an improved version with better clarity and proper technical terminology."""
+Return an improved version with:
+1. Better clarity and proper technical terminology
+2. 3-5 relevant tags that categorize the task appropriately"""
 
     result = await agent.run(prompt)
     return result.output
