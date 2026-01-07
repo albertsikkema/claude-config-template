@@ -17,10 +17,44 @@ FRONTEND_DIR="$SCRIPT_DIR/claude-flow-board"
 BACKEND_PID=""
 FRONTEND_PID=""
 
+# Ports (will be set by find_available_ports)
+FRONTEND_PORT=""
+BACKEND_PORT=""
+
 print_message() {
     local color=$1
     local message=$2
     echo -e "${color}${message}${NC}"
+}
+
+# Check if a port is available
+is_port_available() {
+    local port=$1
+    ! lsof -i:"$port" >/dev/null 2>&1
+}
+
+# Find available port pair (frontend, backend)
+find_available_ports() {
+    local frontend_base=8119
+    local backend_base=9118
+    local max_attempts=10
+
+    for ((i=0; i<max_attempts; i++)); do
+        local frontend_port=$((frontend_base + i))
+        local backend_port=$((backend_base + i))
+
+        if is_port_available "$frontend_port" && is_port_available "$backend_port"; then
+            FRONTEND_PORT=$frontend_port
+            BACKEND_PORT=$backend_port
+            return 0
+        fi
+        print_message "$YELLOW" "  Ports $frontend_port/$backend_port in use, trying next..."
+    done
+
+    print_message "$RED" "Error: Could not find available port pair after $max_attempts attempts"
+    print_message "$RED" "Tried frontend ports ${frontend_base}-$((frontend_base + max_attempts - 1))"
+    print_message "$RED" "Tried backend ports ${backend_base}-$((backend_base + max_attempts - 1))"
+    return 1
 }
 
 cleanup() {
@@ -90,21 +124,24 @@ install_frontend() {
 
 # Start backend
 start_backend() {
-    print_message "$BLUE" "Starting backend on http://localhost:9118..."
+    print_message "$BLUE" "Starting backend on http://localhost:$BACKEND_PORT..."
     cd "$BACKEND_DIR"
     # Use .venv binaries directly instead of uv run to avoid subprocess spawning issues
-    ./.venv/bin/python -m uvicorn kanban.main:app --reload --port 9118 &
+    ./.venv/bin/python -m uvicorn kanban.main:app --reload --port "$BACKEND_PORT" &
     BACKEND_PID=$!
 }
 
 # Start frontend
 start_frontend() {
-    print_message "$BLUE" "Starting frontend on http://localhost:8119..."
+    print_message "$BLUE" "Starting frontend on http://localhost:$FRONTEND_PORT..."
     cd "$FRONTEND_DIR"
+    # Export backend URL for Vite environment variables
+    export VITE_BACKEND_URL="http://localhost:$BACKEND_PORT"
+    export VITE_WS_URL="ws://localhost:$BACKEND_PORT"
     if command -v bun &> /dev/null; then
-        bun run dev &
+        bun run dev --port "$FRONTEND_PORT" &
     else
-        npm run dev &
+        npm run dev -- --port "$FRONTEND_PORT" &
     fi
     FRONTEND_PID=$!
 }
@@ -123,6 +160,12 @@ main() {
         exit 1
     fi
 
+    print_message "$BLUE" "Finding available ports..."
+    if ! find_available_ports; then
+        exit 1
+    fi
+    print_message "$GREEN" "  ✓ Using ports: frontend=$FRONTEND_PORT, backend=$BACKEND_PORT"
+
     install_backend
     install_frontend
 
@@ -137,9 +180,9 @@ main() {
     echo ""
     print_message "$GREEN" "========================================="
     print_message "$GREEN" "  Services running:"
-    print_message "$GREEN" "  - Backend:  http://localhost:9118"
-    print_message "$GREEN" "  - API Docs: http://localhost:9118/docs"
-    print_message "$GREEN" "  - Frontend: http://localhost:8119"
+    print_message "$GREEN" "  - Backend:  http://localhost:$BACKEND_PORT"
+    print_message "$GREEN" "  - API Docs: http://localhost:$BACKEND_PORT/docs"
+    print_message "$GREEN" "  - Frontend: http://localhost:$FRONTEND_PORT"
     print_message "$GREEN" "========================================="
     print_message "$YELLOW" "Press Ctrl+C to stop all services"
     echo ""

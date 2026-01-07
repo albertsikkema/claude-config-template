@@ -1,5 +1,6 @@
 """FastAPI application for Kanban workflow board."""
 
+import subprocess
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from kanban.database import init_db, seed_db  # noqa: E402
-from kanban.routers import tasks, terminal  # noqa: E402
+from kanban.routers import docs, tasks, terminal  # noqa: E402
 
 
 @asynccontextmanager
@@ -31,12 +32,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS for local development
+# CORS for local development (port range 8119-8129 for dynamic port allocation)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:8119",
-        "http://127.0.0.1:8119",
+        *[f"http://localhost:{port}" for port in range(8119, 8130)],
+        *[f"http://127.0.0.1:{port}" for port in range(8119, 8130)],
         "http://localhost:5173",
         "http://localhost:3000",
     ],
@@ -47,6 +48,7 @@ app.add_middleware(
 
 app.include_router(tasks.router)
 app.include_router(terminal.router)
+app.include_router(docs.router)
 
 
 @app.get("/")
@@ -59,3 +61,43 @@ def root():
 def health():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/api/repo")
+def get_repo_info():
+    """Get repository information."""
+    repo_name = None
+    cwd = None
+
+    # Get current working directory
+    try:
+        cwd = str(Path.cwd())
+    except Exception:
+        pass
+
+    # Try to get repo name from git remote origin URL
+    try:
+        result = subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            url = result.stdout.strip()
+            # Extract repo name from URL (handles both HTTPS and SSH)
+            # e.g., https://github.com/user/repo.git -> repo
+            # e.g., git@github.com:user/repo.git -> repo
+            if url:
+                repo_name = url.rstrip("/").rstrip(".git").split("/")[-1].split(":")[-1]
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    # Fall back to current directory name if no git remote
+    if not repo_name:
+        try:
+            repo_name = Path.cwd().name
+        except Exception:
+            pass
+
+    return {"name": repo_name, "cwd": cwd}
