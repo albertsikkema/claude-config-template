@@ -1,6 +1,7 @@
 """WebSocket terminal endpoint for interactive Claude sessions."""
 
 import asyncio
+import contextlib
 import fcntl
 import os
 import platform
@@ -64,7 +65,11 @@ async def terminal_websocket(websocket: WebSocket, session_id: str):
         env["COLORTERM"] = "truecolor"
 
         # Execute claude with resume in yolo mode
-        os.execve(CLAUDE_PATH, [CLAUDE_PATH, "--resume", session_id, "--dangerously-skip-permissions"], env)
+        os.execve(
+            CLAUDE_PATH,
+            [CLAUDE_PATH, "--resume", session_id, "--dangerously-skip-permissions"],
+            env,
+        )
     else:
         # Parent process
         os.close(slave_fd)
@@ -132,10 +137,8 @@ async def terminal_websocket(websocket: WebSocket, session_id: str):
             loop.remove_reader(master_fd)
             send_task.cancel()
 
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await send_task
-            except asyncio.CancelledError:
-                pass
 
             # Cleanup
             os.close(master_fd)
@@ -173,16 +176,34 @@ async def open_native_terminal(session_id: str):
         elif system == "Linux":
             # Try common Linux terminal emulators
             terminals = [
-                ["gnome-terminal", "--", "bash", "-c", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
-                ["xterm", "-e", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
-                ["xfce4-terminal", "--execute", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
-                ["konsole", "-e", f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions"],
+                [
+                    "gnome-terminal",
+                    "--",
+                    "bash",
+                    "-c",
+                    f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions",
+                ],
+                [
+                    "xterm",
+                    "-e",
+                    f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions",
+                ],
+                [
+                    "xfce4-terminal",
+                    "--execute",
+                    f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions",
+                ],
+                [
+                    "konsole",
+                    "-e",
+                    f"cd '{PROJECT_ROOT}' && {CLAUDE_PATH} --resume {session_id} --dangerously-skip-permissions",
+                ],
             ]
 
             for terminal_cmd in terminals:
                 try:
                     subprocess.Popen(terminal_cmd)
-                    return {"status": "success", "message": f"Terminal opened on Linux"}
+                    return {"status": "success", "message": "Terminal opened on Linux"}
                 except FileNotFoundError:
                     continue
 
@@ -212,9 +233,9 @@ async def open_native_terminal(session_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to open terminal: {e.stderr.decode() if e.stderr else str(e)}",
-        )
+        ) from e
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Error opening terminal: {str(e)}",
-        )
+        ) from e

@@ -1,6 +1,7 @@
 """Background job execution for Claude Code commands."""
 
 import asyncio
+import contextlib
 import json
 import os
 import re
@@ -276,7 +277,6 @@ async def run_claude_command(
         text_parts: list[str] = []
         raw_lines: list[str] = []
         captured_session_id: str | None = None
-        current_tool: str = ""  # Track current tool for result display
 
         # Read stdout line by line (stream-json outputs newline-delimited JSON)
         async def read_stream():
@@ -318,47 +318,40 @@ async def run_claude_command(
                             # Build tool call display
                             if tool_name == "Bash":
                                 cmd = tool_input.get("command", "")
-                                current_tool = "Bash"
-                                text_parts.append(f"\n⏺ Bash({cmd[:100]}{'...' if len(cmd) > 100 else ''})\n")
+                                text_parts.append(
+                                    f"\n⏺ Bash({cmd[:100]}{'...' if len(cmd) > 100 else ''})\n"
+                                )
                             elif tool_name == "Read":
                                 path = tool_input.get("file_path", "")
-                                current_tool = "Read"
                                 text_parts.append(f"\n⏺ Read({path})\n")
                             elif tool_name == "Glob":
                                 pattern = tool_input.get("pattern", "")
-                                current_tool = "Glob"
                                 text_parts.append(f"\n⏺ Glob({pattern})\n")
                             elif tool_name == "Grep":
                                 pattern = tool_input.get("pattern", "")
                                 path = tool_input.get("path", "")
-                                current_tool = "Grep"
-                                text_parts.append(f"\n⏺ Grep({pattern}{', ' + path if path else ''})\n")
+                                text_parts.append(
+                                    f"\n⏺ Grep({pattern}{', ' + path if path else ''})\n"
+                                )
                             elif tool_name == "Write":
                                 path = tool_input.get("file_path", "")
-                                current_tool = "Write"
                                 text_parts.append(f"\n⏺ Write({path})\n")
                             elif tool_name == "Edit":
                                 path = tool_input.get("file_path", "")
-                                current_tool = "Edit"
                                 text_parts.append(f"\n⏺ Edit({path})\n")
                             elif tool_name == "Task":
                                 desc = tool_input.get("description", "")
                                 agent = tool_input.get("subagent_type", "")
-                                current_tool = "Task"
                                 text_parts.append(f"\n⏺ Task({agent}: {desc})\n")
                             elif tool_name == "TodoWrite":
-                                current_tool = "TodoWrite"
-                                text_parts.append(f"\n⏺ TodoWrite()\n")
+                                text_parts.append("\n⏺ TodoWrite()\n")
                             elif tool_name == "WebSearch":
                                 query = tool_input.get("query", "")
-                                current_tool = "WebSearch"
                                 text_parts.append(f"\n⏺ WebSearch({query})\n")
                             elif tool_name == "WebFetch":
                                 url = tool_input.get("url", "")
-                                current_tool = "WebFetch"
                                 text_parts.append(f"\n⏺ WebFetch({url})\n")
                             else:
-                                current_tool = tool_name
                                 text_parts.append(f"\n⏺ {tool_name}(...)\n")
 
                 elif msg_type == "content_block_delta":
@@ -415,7 +408,9 @@ async def run_claude_command(
                 # Update database with current progress
                 current_text = "".join(text_parts)
                 if current_text:
-                    update_task_status(task_id, JobStatus.RUNNING, job_output=current_text[-MAX_OUTPUT_LENGTH:])
+                    update_task_status(
+                        task_id, JobStatus.RUNNING, job_output=current_text[-MAX_OUTPUT_LENGTH:]
+                    )
             except json.JSONDecodeError:
                 # Not JSON, append as raw text
                 text_parts.append(line + "\n")
@@ -518,11 +513,8 @@ def cancel_running_job(task_id: str) -> bool:
         return False
 
     process = running_jobs[task_id]
-    try:
+    with contextlib.suppress(ProcessLookupError):
         process.terminate()
-    except ProcessLookupError:
-        # Process already finished
-        pass
 
     # Update task status
     update_task_status(

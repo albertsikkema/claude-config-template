@@ -26,10 +26,10 @@ class FetchDocsRequest(BaseModel):
         ...,
         min_length=1,
         max_length=50,
-        description="List of package names to fetch documentation for"
+        description="List of package names to fetch documentation for",
     )
 
-    @field_validator('packages')
+    @field_validator("packages")
     @classmethod
     def validate_packages(cls, v: list[str]) -> list[str]:
         """Validate package names are non-empty and properly formatted."""
@@ -43,14 +43,14 @@ class FetchDocsRequest(BaseModel):
                 raise ValueError("Package names cannot be empty or whitespace")
 
             # Allow alphanumeric, hyphens, underscores, @, and / (for scoped packages)
-            if not all(c.isalnum() or c in '-_@/.' for c in pkg_clean):
+            if not all(c.isalnum() or c in "-_@/." for c in pkg_clean):
                 raise ValueError(
                     f"Package name '{pkg_clean}' contains invalid characters. "
                     "Only alphanumeric, hyphens, underscores, @, /, and . are allowed."
                 )
 
             # Prevent path traversal patterns (defense-in-depth)
-            if '..' in pkg_clean or pkg_clean.startswith('/') or pkg_clean.endswith('/'):
+            if ".." in pkg_clean or pkg_clean.startswith("/") or pkg_clean.endswith("/"):
                 raise ValueError(
                     f"Package name '{pkg_clean}' contains suspicious path patterns. "
                     "Leading/trailing slashes and '..' are not allowed."
@@ -191,15 +191,11 @@ def fetch_technical_docs(request: FetchDocsRequest):
     logger.info(f"Received fetch request for {package_count} package(s): {request.packages}")
 
     # Spawn daemon thread to run Claude Code
-    thread = threading.Thread(
-        target=_run_fetch_in_thread,
-        args=(request.packages,),
-        daemon=True
-    )
+    thread = threading.Thread(target=_run_fetch_in_thread, args=(request.packages,), daemon=True)
     thread.start()
 
     return FetchDocsResponse(
         status="started",
         message=f"Fetching documentation for {package_count} package(s) using Claude Code. "
-                f"Files will appear in thoughts/technical_docs/"
+        f"Files will appear in thoughts/technical_docs/",
     )

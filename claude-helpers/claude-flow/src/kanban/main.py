@@ -1,5 +1,6 @@
 """FastAPI application for Kanban workflow board."""
 
+import contextlib
 import subprocess
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -70,10 +71,8 @@ def get_repo_info():
     cwd = None
 
     # Get current working directory
-    try:
+    with contextlib.suppress(Exception):
         cwd = str(Path.cwd())
-    except Exception:
-        pass
 
     # Try to get repo name from git remote origin URL
     try:
@@ -95,9 +94,7 @@ def get_repo_info():
 
     # Fall back to current directory name if no git remote
     if not repo_name:
-        try:
+        with contextlib.suppress(Exception):
             repo_name = Path.cwd().name
-        except Exception:
-            pass
 
     return {"name": repo_name, "cwd": cwd}

@@ -26,6 +26,6 @@ def read_slash_command(command_name: str) -> str | None:
             # Find the closing ---
             end_idx = content.find("---", 3)
             if end_idx != -1:
-                content = content[end_idx + 3:].lstrip()
+                content = content[end_idx + 3 :].lstrip()
         return content
     return None

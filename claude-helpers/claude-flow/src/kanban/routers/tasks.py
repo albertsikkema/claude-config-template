@@ -309,12 +309,12 @@ async def improve_content_endpoint(request: ImproveRequest):
         raise HTTPException(
             status_code=503,
             detail={"error": "api_key_not_configured", "message": str(e)},
-        )
+        ) from e
     except AIServiceError as e:
         raise HTTPException(
             status_code=503,
             detail={"error": "ai_service_unavailable", "message": str(e)},
-        )
+        ) from e
 
 
 @router.post("/tasks/{task_id}/improve", response_model=Task)
@@ -340,12 +340,12 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503,
             detail={"error": "api_key_not_configured", "message": str(e)},
-        )
+        ) from e
     except AIServiceError as e:
         raise HTTPException(
             status_code=503,
             detail={"error": "ai_service_unavailable", "message": str(e)},
-        )
+        ) from e
 
     # Update task with improved values
     db_task.title = improved.title

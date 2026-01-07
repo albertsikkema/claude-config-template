@@ -34,8 +34,8 @@ Maximum of 4 tags per task.
 """
 
 import logging
-import re
 import os
+import re
 from pathlib import Path
 
 from pydantic import BaseModel, field_validator
@@ -83,7 +83,7 @@ def sanitize_tags(tags: list[str]) -> list[str]:
     sanitized = []
     seen: set[str] = set()
 
-    for tag in tags[:MAX_TAGS + 2]:  # Allow some extra to filter from
+    for tag in tags[: MAX_TAGS + 2]:  # Allow some extra to filter from
         if len(sanitized) >= MAX_TAGS:
             break
 
