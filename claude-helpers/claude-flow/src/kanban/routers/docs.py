@@ -1,14 +1,19 @@
 """Documentation management endpoints."""
 
+import asyncio
 import logging
+import os
+import shutil
 import threading
 from pathlib import Path
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator
 
-# Project root for accessing fetch-docs.py
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+from kanban.utils import PROJECT_ROOT, read_slash_command
+
+# Find claude executable (same pattern as jobs.py)
+CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
 
 router = APIRouter(prefix="/api", tags=["docs"])
 logger = logging.getLogger(__name__)
@@ -44,6 +49,13 @@ class FetchDocsRequest(BaseModel):
                     "Only alphanumeric, hyphens, underscores, @, /, and . are allowed."
                 )
 
+            # Prevent path traversal patterns (defense-in-depth)
+            if '..' in pkg_clean or pkg_clean.startswith('/') or pkg_clean.endswith('/'):
+                raise ValueError(
+                    f"Package name '{pkg_clean}' contains suspicious path patterns. "
+                    "Leading/trailing slashes and '..' are not allowed."
+                )
+
             cleaned.append(pkg_clean)
 
         return cleaned
@@ -56,13 +68,109 @@ class FetchDocsResponse(BaseModel):
     message: str = Field(..., description="Human-readable message describing the result")
 
 
+async def _run_claude_fetch(packages: list[str]) -> None:
+    """Run Claude Code with /fetch_technical_docs command asynchronously."""
+    thread_id = threading.get_ident()
+
+    # Read the slash command
+    cmd_content = read_slash_command("fetch_technical_docs")
+    if not cmd_content:
+        logger.error(f"[Thread {thread_id}] Could not read fetch_technical_docs command")
+        return
+
+    # Build prompt with specific packages to fetch
+    packages_list = "\n".join(f"- {pkg}" for pkg in packages)
+    prompt = f"""{cmd_content}
+
+## Packages to Fetch
+
+The user has requested documentation for these specific packages:
+
+{packages_list}
+
+**Important**: Skip the discover step. Only search and fetch documentation for the packages listed above.
+For each package:
+1. Search Context7 for the package
+2. Select the best result (prefer VIP, high trust score, high stars)
+3. Fetch the documentation
+4. Report success or failure
+
+Begin fetching documentation now.
+"""
+
+    logger.info(f"[Thread {thread_id}] Starting Claude Code for {len(packages)} packages")
+
+    try:
+        # Ensure HOME env var is set for claude to find its config
+        env = os.environ.copy()
+        env["HOME"] = str(Path.home())
+
+        # Build args for non-interactive execution (same pattern as jobs.py)
+        args = [
+            CLAUDE_PATH,
+            "--dangerously-skip-permissions",
+            "--verbose",
+            "--model",
+            "haiku",  # Use haiku for fast, simple task
+            "-p",
+            prompt,
+            "--output-format",
+            "stream-json",
+        ]
+
+        process = await asyncio.create_subprocess_exec(
+            *args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(PROJECT_ROOT),
+            env=env,
+        )
+
+        # Wait for completion (fire-and-forget, but log output)
+        stdout, stderr = await process.communicate()
+
+        if process.returncode == 0:
+            logger.info(f"[Thread {thread_id}] Claude Code completed successfully")
+        else:
+            logger.warning(
+                f"[Thread {thread_id}] Claude Code exited with code {process.returncode}"
+            )
+            if stderr:
+                logger.warning(f"[Thread {thread_id}] stderr: {stderr.decode()[:500]}")
+
+    except Exception as e:
+        logger.error(f"[Thread {thread_id}] Error running Claude Code: {e}", exc_info=True)
+
+
+def _run_fetch_in_thread(packages: list[str]) -> None:
+    """Run the async fetch in a new event loop within the thread."""
+    thread_id = threading.get_ident()
+    logger.info(f"[Thread {thread_id}] Starting background fetch thread")
+
+    try:
+        # Create new event loop for this thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            loop.run_until_complete(_run_claude_fetch(packages))
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.error(f"[Thread {thread_id}] Error in fetch thread: {e}", exc_info=True)
+
+
 @router.post("/docs/fetch", response_model=FetchDocsResponse)
 def fetch_technical_docs(request: FetchDocsRequest):
-    """Fetch technical documentation from Context7 in background.
+    """Fetch technical documentation from Context7 using Claude Code.
 
-    This is a fire-and-forget endpoint. It spawns a background thread to fetch
-    documentation and returns immediately. Users should check the
-    thoughts/technical_docs/ directory for downloaded files.
+    This is a fire-and-forget endpoint. It spawns Claude Code in a background
+    thread to intelligently fetch documentation and returns immediately.
+    Users should check the thoughts/technical_docs/ directory for downloaded files.
+
+    The endpoint uses the /fetch_technical_docs slash command which:
+    - Searches Context7 for each package
+    - Intelligently selects the best result (VIP, trust score, stars)
+    - Fetches and saves documentation to thoughts/technical_docs/
 
     Args:
         request: FetchDocsRequest with list of package names
@@ -71,7 +179,7 @@ def fetch_technical_docs(request: FetchDocsRequest):
         FetchDocsResponse with status 'started' and message
 
     Raises:
-        HTTPException 400: Invalid request (caught by Pydantic validation)
+        HTTPException 422: Invalid request (caught by Pydantic validation)
     """
     # Check that target directory exists
     docs_dir = PROJECT_ROOT / "thoughts" / "technical_docs"
@@ -82,58 +190,16 @@ def fetch_technical_docs(request: FetchDocsRequest):
     package_count = len(request.packages)
     logger.info(f"Received fetch request for {package_count} package(s): {request.packages}")
 
-    def run_fetch():
-        """Background thread function to fetch documentation."""
-        import sys
-
-        # Add claude-helpers to path to import fetch-docs
-        sys.path.insert(0, str(PROJECT_ROOT / "claude-helpers"))
-
-        try:
-            from fetch_docs import get_docs, search_context7
-
-            logger.info(f"Starting documentation fetch for {package_count} packages")
-
-            for package in request.packages:
-                try:
-                    logger.info(f"Searching Context7 for package: {package}")
-                    results = search_context7(package, limit=5)
-
-                    if not results:
-                        logger.warning(f"No Context7 results found for package: {package}")
-                        continue
-
-                    # Use first result (simple first-match strategy)
-                    best_match = results[0]
-                    project_path = best_match['project']
-
-                    logger.info(
-                        f"Found match for {package}: {best_match['title']} "
-                        f"(stars: {best_match['stars']}, trust: {best_match['trustScore']})"
-                    )
-
-                    # Fetch documentation
-                    success = get_docs(project_path, package, overwrite=True)
-                    if success:
-                        logger.info(f"Successfully fetched documentation for {package}")
-                    else:
-                        logger.warning(f"Failed to fetch documentation for {package}")
-
-                except Exception as e:
-                    logger.error(f"Error fetching documentation for {package}: {e}", exc_info=True)
-                    # Continue with next package instead of failing entire batch
-
-            logger.info(f"Completed documentation fetch for {package_count} packages")
-
-        except Exception as e:
-            logger.error(f"Critical error in documentation fetch thread: {e}", exc_info=True)
-
-    # Spawn daemon thread (exits when main process exits)
-    thread = threading.Thread(target=run_fetch, daemon=True)
+    # Spawn daemon thread to run Claude Code
+    thread = threading.Thread(
+        target=_run_fetch_in_thread,
+        args=(request.packages,),
+        daemon=True
+    )
     thread.start()
 
     return FetchDocsResponse(
         status="started",
-        message=f"Fetching documentation for {package_count} package(s). "
+        message=f"Fetching documentation for {package_count} package(s) using Claude Code. "
                 f"Files will appear in thoughts/technical_docs/"
     )

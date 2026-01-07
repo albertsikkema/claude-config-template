@@ -13,13 +13,10 @@ from sqlalchemy.orm import Session
 
 from kanban.database import SessionLocal, TaskDB
 from kanban.models import JobStatus, Stage, WorkflowComplexity
+from kanban.utils import PROJECT_ROOT, read_slash_command
 
 # Store running processes for potential cancellation
 running_jobs: dict[str, asyncio.subprocess.Process] = {}
-
-# Project root path (where Claude Code should run)
-# jobs.py -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
 
 # Find claude executable
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
@@ -29,17 +26,6 @@ CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "cl
 # are saved as complete files on disk. Next stages reference file paths, not job_output.
 # Increased from 10K to 100K to capture more verbose output from Claude operations
 MAX_OUTPUT_LENGTH = 100000
-
-
-def _read_slash_command(command_name: str) -> str | None:
-    """Read a slash command file from .claude/commands/.
-
-    Returns the command content or None if not found.
-    """
-    cmd_path = PROJECT_ROOT / ".claude" / "commands" / f"{command_name}.md"
-    if cmd_path.exists():
-        return cmd_path.read_text()
-    return None
 
 
 def _build_task_context(task: TaskDB) -> str:
@@ -61,7 +47,7 @@ def get_prompt_for_stage(stage: Stage, task: TaskDB) -> str | None:
     context = _build_task_context(task)
 
     if stage == Stage.RESEARCH:
-        cmd_content = _read_slash_command("research_codebase")
+        cmd_content = read_slash_command("research_codebase")
         if not cmd_content:
             return None
         return f"""{cmd_content}
@@ -75,7 +61,7 @@ def get_prompt_for_stage(stage: Stage, task: TaskDB) -> str | None:
         if not task.research_path:
             return None  # Need research first
 
-        cmd_content = _read_slash_command("create_plan")
+        cmd_content = read_slash_command("create_plan")
         if not cmd_content:
             return None
         return f"""{cmd_content}
@@ -92,7 +78,7 @@ Use the research findings to inform the implementation plan.
     elif stage == Stage.IMPLEMENTATION:
         if task.plan_path:
             # Complete workflow - use plan
-            cmd_content = _read_slash_command("implement_plan")
+            cmd_content = read_slash_command("implement_plan")
             if not cmd_content:
                 return None
             return f"""{cmd_content}
@@ -116,7 +102,7 @@ Do not create research documents or plans - just implement the change.
         return None  # Complete workflow needs plan first
 
     elif stage == Stage.REVIEW:
-        cmd_content = _read_slash_command("code_reviewer")
+        cmd_content = read_slash_command("code_reviewer")
         if not cmd_content:
             return None
 
@@ -148,7 +134,7 @@ Task: {context}
 
     elif stage == Stage.CLEANUP:
         if task.plan_path:
-            cmd_content = _read_slash_command("cleanup")
+            cmd_content = read_slash_command("cleanup")
             if not cmd_content:
                 return None
             return f"""{cmd_content}

@@ -1,4 +1,4 @@
-.PHONY: run dev sync check format clean
+.PHONY: run dev sync check format clean test
 
 # Start the backend server in development mode
 run: sync
@@ -7,9 +7,9 @@ run: sync
 # Alias for run
 dev: run
 
-# Install dependencies
+# Install dependencies (including dev extras)
 sync:
-	uv sync --dev
+	uv sync --extra dev
 
 # Run linting checks
 check:
@@ -18,6 +18,10 @@ check:
 # Format code
 format:
 	uv run ruff format src/
+
+# Run tests
+test: sync
+	uv run pytest tests/ -v
 
 # Remove database and cache files
 clean:
