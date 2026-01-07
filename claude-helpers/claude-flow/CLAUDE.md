@@ -23,7 +23,7 @@ uv run uvicorn kanban.main:app --reload --port 9118
 This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
 
 ### Available Index Files
-- `codebase_overview_src_py.md` - Python backend overview (FastAPI, routers, models)
+- `codebase_overview_claude-flow_py.md` - Python backend overview (FastAPI, routers, models, jobs)
 - `codebase_overview_claude-flow-board_js_ts.md` - TypeScript/React frontend overview
 - `openapi.json` - FastAPI OpenAPI schema
 
