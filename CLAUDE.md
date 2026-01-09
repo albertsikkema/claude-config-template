@@ -155,7 +155,25 @@ For background operations without progress tracking:
 - Sync HTTP handler spawns daemon thread
 - Thread creates isolated asyncio event loop
 - Returns immediately (<1s) while task runs in background
-- Use for: batch exports, background cleanup, doc fetching
+- Use for: batch exports, background cleanup, doc fetching, security checks
+
+### Security Check UI Feature
+The Claude-Flow frontend provides a Security Check panel that triggers the `/security` command:
+- Click "Security Check" button in the header
+- Click "Run Security Check" to start comprehensive analysis
+- Reports are saved to `thoughts/shared/reviews/security-analysis-*.md`
+- Previous reports are listed with timestamps and file sizes
+- Click any report to view its markdown content
+
+**API Endpoints**:
+- `POST /api/security/check` - Start new security analysis (fire-and-forget)
+- `GET /api/security/checks` - List all security reports (most recent first)
+- `GET /api/security/report/{filename}` - Get report content
+
+**Security Features**:
+- 30-minute subprocess timeout prevents runaway processes
+- Path traversal protection with defense-in-depth validation
+- Filename pattern validation (only `security-analysis-*.md` allowed)
 
 ### Slash Command Integration from Backend
 Read commands from `.claude/commands/`, strip frontmatter, inject context:

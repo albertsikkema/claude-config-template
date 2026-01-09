@@ -15,6 +15,14 @@ from kanban.utils import PROJECT_ROOT, read_slash_command
 # Find claude executable (same pattern as docs.py)
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
 
+# Security report file naming constants
+SECURITY_REPORT_PREFIX = "security-analysis-"
+SECURITY_REPORT_SUFFIX = ".md"
+SECURITY_REPORT_PATTERN = f"{SECURITY_REPORT_PREFIX}*{SECURITY_REPORT_SUFFIX}"
+
+# Subprocess timeout (30 minutes max for comprehensive security analysis)
+SECURITY_CHECK_TIMEOUT_SECONDS = 1800
+
 router = APIRouter(prefix="/api/security", tags=["security"])
 
 
@@ -45,7 +53,9 @@ async def _run_claude_security() -> None:
     # Read /security command
     cmd_content = read_slash_command("security")
     if not cmd_content:
-        raise RuntimeError("Security command not found")
+        raise RuntimeError(
+            "Security command not found. Expected file: .claude/commands/security.md"
+        )
 
     prompt = cmd_content  # Use command as-is
 
@@ -73,15 +83,29 @@ async def _run_claude_security() -> None:
             env=env,
         )
 
-        # Wait for completion (fire-and-forget, but wait for process)
-        stdout, stderr = await process.communicate()
+        # Wait for completion with timeout
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(),
+                timeout=SECURITY_CHECK_TIMEOUT_SECONDS,
+            )
 
-        if process.returncode == 0:
-            print(f"[Thread {thread_id}] Security analysis completed successfully")
-        else:
-            print(f"[Thread {thread_id}] Security analysis exited with code {process.returncode}")
-            if stderr:
-                print(f"[Thread {thread_id}] stderr: {stderr.decode()[:500]}")
+            if process.returncode == 0:
+                print(f"[Thread {thread_id}] Security analysis completed successfully")
+            else:
+                print(
+                    f"[Thread {thread_id}] Security analysis exited with code {process.returncode}"
+                )
+                if stderr:
+                    print(f"[Thread {thread_id}] stderr: {stderr.decode()[:500]}")
+
+        except TimeoutError:
+            process.kill()
+            await process.wait()
+            print(
+                f"[Thread {thread_id}] Security analysis timed out after "
+                f"{SECURITY_CHECK_TIMEOUT_SECONDS // 60} minutes"
+            )
 
     except Exception as e:
         print(f"[Thread {thread_id}] Error running security analysis: {e}")
@@ -148,7 +172,7 @@ def list_security_reports():
         return []
 
     # Find all security-analysis-*.md files
-    security_files = list(reviews_dir.glob("security-analysis-*.md"))
+    security_files = list(reviews_dir.glob(SECURITY_REPORT_PATTERN))
 
     # Sort by modified time (most recent first)
     security_files.sort(key=lambda f: f.stat().st_mtime, reverse=True)
@@ -188,9 +212,12 @@ def get_security_report(filename: str):
         raise HTTPException(status_code=400, detail="Invalid filename")
 
     # Security: Only allow security-analysis-*.md files
-    if not filename.startswith("security-analysis-") or not filename.endswith(".md"):
+    if not filename.startswith(SECURITY_REPORT_PREFIX) or not filename.endswith(
+        SECURITY_REPORT_SUFFIX
+    ):
         raise HTTPException(
-            status_code=400, detail="Invalid filename format. Expected security-analysis-*.md"
+            status_code=400,
+            detail=f"Invalid filename format. Expected {SECURITY_REPORT_PATTERN}",
         )
 
     reviews_dir = PROJECT_ROOT / "thoughts" / "shared" / "reviews"
