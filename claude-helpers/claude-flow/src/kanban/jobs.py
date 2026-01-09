@@ -3,18 +3,23 @@
 import asyncio
 import contextlib
 import json
+import logging
 import os
 import re
 import shutil
 import threading
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+import kanban.models as models
 from kanban.database import SessionLocal, TaskDB
 from kanban.models import JobStatus, Stage, WorkflowComplexity
 from kanban.utils import PROJECT_ROOT, read_slash_command
+
+logger = logging.getLogger(__name__)
 
 # Store running processes for potential cancellation
 running_jobs: dict[str, asyncio.subprocess.Process] = {}
@@ -188,8 +193,6 @@ def update_task_status(
     set_completed: bool = False,
 ) -> None:
     """Update task job status in database."""
-    from datetime import datetime
-
     db = SessionLocal()
     try:
         task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
@@ -214,6 +217,161 @@ def update_task_status(
             db.commit()
     finally:
         db.close()
+
+
+def auto_progress_task(
+    task_id: str,
+    from_stage: Stage,
+    to_stage: Stage,
+    order: int | None = None,
+    db: Session | None = None,
+) -> bool:
+    """Automatically progress a task to the next stage after job completion.
+
+    This function:
+    1. Updates the task's stage in the database
+    2. Triggers the command for the new stage (if any)
+
+    Args:
+        task_id: UUID of the task
+        from_stage: Current stage of the task (for verification)
+        to_stage: Target stage to move to
+        order: Position in the new stage column (default: None = use config default)
+        db: Optional database session to reuse (creates new if None).
+            When provided, the caller is responsible for session lifecycle.
+
+    Returns:
+        True if auto-progression succeeded, False otherwise
+    """
+    # Check if auto-progression is globally enabled
+    if not models.AUTO_PROGRESSION_CONFIG.enabled:
+        logger.debug("Auto-progression disabled globally", extra={"task_id": task_id})
+        return False
+
+    # Check if this specific stage transition is configured
+    configured_target = models.AUTO_PROGRESSION_CONFIG.stage_transitions.get(from_stage)
+    if configured_target != to_stage:
+        logger.debug(
+            "Stage transition not configured for auto-progression",
+            extra={
+                "task_id": task_id,
+                "from_stage": from_stage,
+                "to_stage": to_stage,
+                "configured_transitions": models.AUTO_PROGRESSION_CONFIG.stage_transitions,
+            },
+        )
+        return False
+
+    # Use configured default order if not specified
+    if order is None:
+        order = models.AUTO_PROGRESSION_CONFIG.default_order
+
+    # Session management: create new session if not provided
+    should_close_session = False
+    if db is None:
+        db = SessionLocal()
+        should_close_session = True
+
+    try:
+        task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+        if not task:
+            logger.warning(
+                "Auto-progress failed: Task not found",
+                extra={
+                    "task_id": task_id,
+                    "from_stage": from_stage,
+                    "to_stage": to_stage,
+                },
+            )
+            return False
+
+        # Verify task is still in expected stage (race condition check)
+        if task.stage != from_stage:
+            logger.warning(
+                "Auto-progress skipped: Stage changed",
+                extra={
+                    "task_id": task_id,
+                    "expected_stage": from_stage,
+                    "actual_stage": task.stage,
+                    "target_stage": to_stage,
+                    "task_title": task.title,
+                },
+            )
+            return False
+
+        # Update stage and position
+        old_stage = task.stage
+        task.stage = to_stage
+        task.order = order
+        task.updated_at = datetime.utcnow()
+        db.commit()
+
+        logger.info(
+            "Auto-progressed task successfully",
+            extra={
+                "task_id": task_id,
+                "task_title": task.title,
+                "from_stage": from_stage,
+                "to_stage": to_stage,
+                "order": order,
+                "workflow_complexity": task.complexity,
+            },
+        )
+
+        # Trigger command for new stage with protective error handling
+        # At this point, the stage update has been committed. If trigger_stage_command
+        # fails, the task is in the new stage but no command runs. This is logged
+        # for visibility but doesn't rollback the stage change (partial success).
+        try:
+            command_triggered = trigger_stage_command(task_id, old_stage, to_stage, db)
+
+            if command_triggered:
+                logger.info(
+                    "Stage command triggered after auto-progression",
+                    extra={"task_id": task_id, "stage": to_stage},
+                )
+            else:
+                logger.warning(
+                    "Auto-progression completed but command trigger returned False",
+                    extra={
+                        "task_id": task_id,
+                        "stage": to_stage,
+                        "reason": "trigger_stage_command returned False (no command for stage or idempotency check)",
+                    },
+                )
+        except Exception as trigger_error:
+            logger.error(
+                "Auto-progression completed but command trigger raised exception",
+                extra={
+                    "task_id": task_id,
+                    "stage": to_stage,
+                    "error": str(trigger_error),
+                },
+                exc_info=True,
+            )
+            # Don't re-raise - task is already in new stage, partial success is OK
+            # Manual intervention can fix a task stuck in Review without a running job
+
+        return True
+    except Exception as e:
+        logger.error(
+            "Auto-progress failed with exception",
+            extra={
+                "task_id": task_id,
+                "from_stage": from_stage,
+                "to_stage": to_stage,
+                "error": str(e),
+            },
+            exc_info=True,
+        )
+        # Only rollback if we own the session
+        if should_close_session:
+            db.rollback()
+        return False
+    finally:
+        # Only close if we created the session
+        if should_close_session:
+            db.close()
 
 
 async def run_claude_command(
@@ -475,7 +633,35 @@ async def run_claude_command(
                     job_output=full_output[-MAX_OUTPUT_LENGTH:],
                     set_completed=True,
                 )
+            elif stage == Stage.IMPLEMENTATION:
+                # Update status first
+                update_task_status(
+                    task_id,
+                    JobStatus.COMPLETED,
+                    job_output=full_output[-MAX_OUTPUT_LENGTH:],
+                    set_completed=True,
+                )
+
+                logger.info(
+                    "Implementation job completed, initiating auto-progression",
+                    extra={"task_id": task_id, "exit_code": process.returncode},
+                )
+
+                # Auto-progress to Review stage
+                success = auto_progress_task(
+                    task_id,
+                    from_stage=Stage.IMPLEMENTATION,
+                    to_stage=Stage.REVIEW,
+                    order=0,  # Place at top of Review column
+                )
+
+                if not success:
+                    logger.warning(
+                        "Auto-progression failed, task remains in Implementation",
+                        extra={"task_id": task_id},
+                    )
             else:
+                # Other stages (MERGE, DONE, BACKLOG)
                 update_task_status(
                     task_id,
                     JobStatus.COMPLETED,
@@ -536,7 +722,19 @@ def trigger_stage_command(task_id: str, old_stage: Stage, new_stage: Stage, db: 
 
     Returns True if a command was triggered, False otherwise.
     Only triggers on forward movement, not backward.
+
+    Includes idempotency protection to prevent duplicate job execution:
+    - Checks in-memory running_jobs dict
+    - Checks database job_status for RUNNING state
     """
+
+    # Idempotency check 1: In-memory running jobs dict
+    if task_id in running_jobs:
+        logger.warning(
+            "Job already running in memory, skipping trigger",
+            extra={"task_id": task_id, "new_stage": new_stage},
+        )
+        return False
 
     # Define stage order for forward movement detection
     stage_order = [
@@ -560,6 +758,14 @@ def trigger_stage_command(task_id: str, old_stage: Stage, new_stage: Stage, db: 
     # Get task from database
     task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
     if not task:
+        return False
+
+    # Idempotency check 2: Database job status (handles server restart case)
+    if task.job_status == JobStatus.RUNNING:
+        logger.warning(
+            "Task already has running job in database, skipping trigger",
+            extra={"task_id": task_id, "new_stage": new_stage, "job_status": task.job_status},
+        )
         return False
 
     # Get prompt for the new stage

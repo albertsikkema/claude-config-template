@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Stage(str, Enum):
@@ -193,3 +193,73 @@ STAGES: list[StageInfo] = [
         description="Completed and shipped",
     ),
 ]
+
+
+class StageAutoProgressionConfig(BaseModel):
+    """Configuration for automatic stage progression.
+
+    Defines which stage transitions should trigger automatic progression
+    to the next stage upon job completion.
+
+    All configured transitions are validated to ensure they move forward
+    in the workflow (e.g., IMPLEMENTATION -> REVIEW is valid, but
+    REVIEW -> IMPLEMENTATION would be rejected).
+    """
+
+    enabled: bool = Field(default=True, description="Global toggle for auto-progression feature")
+
+    stage_transitions: dict[Stage, Stage] = Field(
+        default={
+            Stage.IMPLEMENTATION: Stage.REVIEW,
+            # Potential future transitions (consider implications before enabling):
+            # Stage.REVIEW: Stage.CLEANUP,  # Would skip manual review approval step
+            # Stage.RESEARCH: Stage.PLANNING,  # Would eliminate research review checkpoint
+        },
+        description="Map of stage transitions that auto-progress (from_stage -> to_stage)",
+    )
+
+    default_order: int = Field(
+        default=0, description="Default order/position in target column (0 = top)"
+    )
+
+    @field_validator("stage_transitions")
+    @classmethod
+    def validate_forward_progression(cls, v: dict[Stage, Stage]) -> dict[Stage, Stage]:
+        """Ensure all configured transitions move forward in the workflow.
+
+        Raises:
+            ValueError: If any transition moves backward in the stage order
+        """
+        # Define canonical stage order (from kanban workflow)
+        stage_order = [
+            Stage.BACKLOG,
+            Stage.RESEARCH,
+            Stage.PLANNING,
+            Stage.IMPLEMENTATION,
+            Stage.REVIEW,
+            Stage.CLEANUP,
+            Stage.MERGE,
+            Stage.DONE,
+        ]
+        stage_index = {stage: idx for idx, stage in enumerate(stage_order)}
+
+        for from_stage, to_stage in v.items():
+            from_idx = stage_index.get(from_stage)
+            to_idx = stage_index.get(to_stage)
+
+            if from_idx is None or to_idx is None:
+                raise ValueError(f"Invalid stage in transition: {from_stage} -> {to_stage}")
+
+            if to_idx <= from_idx:
+                valid_order = " -> ".join(s.value for s in stage_order)
+                raise ValueError(
+                    f"Invalid stage transition: {from_stage.value} -> {to_stage.value}. "
+                    f"Auto-progression must move forward in workflow. "
+                    f"Valid progression order: {valid_order}"
+                )
+
+        return v
+
+
+# Global configuration instance
+AUTO_PROGRESSION_CONFIG = StageAutoProgressionConfig()

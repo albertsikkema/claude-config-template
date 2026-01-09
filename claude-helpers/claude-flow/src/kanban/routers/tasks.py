@@ -8,12 +8,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+import kanban.models as models
 from kanban.database import TaskDB, get_db
 from kanban.jobs import trigger_stage_command
 from kanban.models import (
     STAGES,
     JobStatus,
     Stage,
+    StageAutoProgressionConfig,
     StageInfo,
     Task,
     TaskCreate,
@@ -356,3 +358,31 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
     db.refresh(db_task)
 
     return task_db_to_model(db_task)
+
+
+@router.get("/config/auto-progression", response_model=StageAutoProgressionConfig)
+def get_auto_progression_config():
+    """Get current auto-progression configuration."""
+    return models.AUTO_PROGRESSION_CONFIG
+
+
+@router.put("/config/auto-progression", response_model=StageAutoProgressionConfig)
+def update_auto_progression_config(config: StageAutoProgressionConfig):
+    """Update auto-progression configuration.
+
+    **Thread Safety Warning**: This operation performs a module-level attribute
+    reassignment which is not atomic. In a multi-threaded environment (FastAPI with
+    multiple workers), concurrent requests may briefly see inconsistent configuration
+    state during the update. This is acceptable for infrequent configuration changes
+    but should not be used for high-frequency updates.
+
+    **Persistence**: Changes are not persisted to disk and will reset on server restart.
+    For permanent configuration, modify the StageAutoProgressionConfig default values
+    in models.py.
+
+    **Validation**: The configuration validates that all stage transitions move forward
+    in the workflow (e.g., IMPLEMENTATION -> REVIEW is valid, but REVIEW -> RESEARCH
+    would be rejected).
+    """
+    models.AUTO_PROGRESSION_CONFIG = config
+    return models.AUTO_PROGRESSION_CONFIG
