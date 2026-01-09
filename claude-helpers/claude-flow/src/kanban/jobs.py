@@ -61,6 +61,17 @@ def get_prompt_for_stage(stage: Stage, task: TaskDB) -> str | None:
 ## Research Topic
 
 {context}
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode. After completing the research document:
+1. Present a brief summary of findings
+2. List key file references
+3. **DO NOT ask follow-up questions or wait for user input**
+4. **DO NOT ask "Would you like me to implement this?"**
+5. Simply conclude with the document location and exit
+
+The research is complete once the document is saved.
 """
 
     elif stage == Stage.PLANNING:
@@ -79,6 +90,17 @@ Task: {context}
 Research document: {task.research_path}
 
 Use the research findings to inform the implementation plan.
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode. After creating the plan document:
+1. Present a brief summary of the plan
+2. State the plan file location
+3. **DO NOT ask for user review or feedback**
+4. **DO NOT wait for user input**
+5. Simply conclude with the plan location and exit
+
+The planning is complete once the document is saved.
 """
 
     elif stage == Stage.IMPLEMENTATION:
@@ -94,6 +116,18 @@ Use the research findings to inform the implementation plan.
 Plan file: {task.plan_path}
 
 Task: {context}
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode. After completing implementation:
+1. Implement all phases from the plan
+2. Run tests and verify success criteria
+3. Present a summary of what was implemented
+4. **DO NOT ask if the user wants to proceed with next steps**
+5. **DO NOT wait for user input**
+6. Simply conclude with the implementation summary and exit
+
+Implementation is complete once all plan phases are executed.
 """
         elif task.complexity == WorkflowComplexity.SIMPLE:
             # Simple workflow - implement directly from title/description
@@ -104,6 +138,16 @@ Task: {context}
 This is a simple/quick change. Implement it directly without creating a plan.
 Focus on minimal, targeted changes. Run tests if applicable.
 Do not create research documents or plans - just implement the change.
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode. After completing the change:
+1. Make the required changes
+2. Run tests if applicable
+3. Present a brief summary
+4. **DO NOT ask follow-up questions**
+5. **DO NOT wait for user input**
+6. Simply conclude and exit
 """
         return None  # Complete workflow needs plan first
 
@@ -136,6 +180,17 @@ Task: {context}
         return f"""{cmd_content}
 
 {review_context}
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode. After completing the review:
+1. Present the review findings
+2. State the review document location (if created)
+3. **DO NOT ask if the user wants you to address issues**
+4. **DO NOT wait for user input**
+5. Simply conclude with the summary and exit
+
+The review is complete once findings are presented.
 """
 
     elif stage == Stage.CLEANUP:
@@ -152,6 +207,18 @@ Research file: {task.research_path or "N/A"}
 Review file: {task.review_path or "N/A"}
 
 Task: {context}
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode. After completing cleanup:
+1. Document any best practices discovered
+2. Delete ephemeral artifacts as specified
+3. Present a summary of what was cleaned up
+4. **DO NOT ask for user confirmation**
+5. **DO NOT wait for user input**
+6. Simply conclude with the cleanup summary and exit
+
+Cleanup is complete once artifacts are processed.
 """
         elif task.research_path:
             # Research-only task - no implementation happened
@@ -160,6 +227,14 @@ Task: {context}
 Review the research document and determine if any best practices should be documented.
 If this research leads to implementation, create a plan using /create_plan.
 Otherwise, the research document remains as reference material.
+
+## IMPORTANT: Non-Interactive Mode
+
+You are running in automated non-interactive mode:
+1. Review the research and document any best practices
+2. Present a brief summary
+3. **DO NOT ask for user input**
+4. Simply conclude and exit
 """
         return None
 

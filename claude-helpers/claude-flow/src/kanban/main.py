@@ -15,7 +15,7 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from kanban.database import init_db, seed_db  # noqa: E402
-from kanban.routers import codebase, docs, tasks, terminal  # noqa: E402
+from kanban.routers import codebase, docs, security, tasks, terminal  # noqa: E402
 
 
 @asynccontextmanager
@@ -51,6 +51,7 @@ app.include_router(tasks.router)
 app.include_router(terminal.router)
 app.include_router(docs.router)
 app.include_router(codebase.router)
+app.include_router(security.router)
 
 
 @app.get("/")
