@@ -4,11 +4,18 @@ import contextlib
 import subprocess
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import TypedDict
 
 from dotenv import load_dotenv
 
-# Load .env file from project root before other imports
-env_path = Path(__file__).parent.parent.parent / ".env"
+# Project root path (main.py -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT)
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
+
+# Claude-flow directory (main.py -> kanban -> src -> claude-flow)
+CLAUDE_FLOW_DIR = Path(__file__).parent.parent.parent
+
+# Load .env file from claude-flow directory before other imports
+env_path = CLAUDE_FLOW_DIR / ".env"
 load_dotenv(env_path)
 
 from fastapi import FastAPI  # noqa: E402
@@ -66,15 +73,28 @@ def health():
     return {"status": "healthy"}
 
 
-@app.get("/api/repo")
-def get_repo_info():
-    """Get repository information."""
-    repo_name = None
-    cwd = None
+class RepoInfo(TypedDict):
+    """Repository information response structure."""
 
-    # Get current working directory
-    with contextlib.suppress(Exception):
-        cwd = str(Path.cwd())
+    name: str | None
+    repo_root: str
+
+
+@app.get("/api/repo")
+def get_repo_info() -> RepoInfo:
+    """Get repository information.
+
+    Returns:
+        RepoInfo with:
+            - name: Repository name from git remote or directory name
+            - repo_root: Repository root path (file-based, consistent)
+            - cwd: Project root working directory for Claude commands
+    """
+    repo_name = None
+
+    # Both paths use PROJECT_ROOT for consistency
+    repo_root = str(PROJECT_ROOT)  # File-based, always consistent
+
 
     # Try to get repo name from git remote origin URL
     try:
@@ -94,9 +114,9 @@ def get_repo_info():
     except (subprocess.TimeoutExpired, FileNotFoundError):
         pass
 
-    # Fall back to current directory name if no git remote
+    # Fall back to repo_root directory name if no git remote
     if not repo_name:
         with contextlib.suppress(Exception):
-            repo_name = Path.cwd().name
+            repo_name = Path(repo_root).name
 
-    return {"name": repo_name, "cwd": cwd}
+    return {"name": repo_name, "repo_root": repo_root}

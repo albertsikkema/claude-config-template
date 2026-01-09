@@ -61,7 +61,7 @@ class AIServiceError(Exception):
 
 
 # Project root for reading context files
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
+CLAUDE_FLOW_ROOT = Path(__file__).parent.parent.parent
 
 
 def sanitize_tags(tags: list[str]) -> list[str]:
@@ -138,14 +138,14 @@ def get_context() -> str:
     max_total_chars = 100_000  # Leave room for system prompt and response
 
     # Read CLAUDE.md (full content, typically ~20K chars)
-    claude_md = PROJECT_ROOT / "CLAUDE.md"
+    claude_md = CLAUDE_FLOW_ROOT / "CLAUDE.md"
     if claude_md.exists():
         content = claude_md.read_text()
         total_chars += len(content)
         context_parts.append(f"# Project Context (CLAUDE.md)\n\n{content}")
 
     # Read indexed codebase files (up to 30K chars each, stop if total exceeds limit)
-    codebase_dir = PROJECT_ROOT / "thoughts" / "codebase"
+    codebase_dir = CLAUDE_FLOW_ROOT / "thoughts" / "codebase"
     if codebase_dir.exists():
         for file in sorted(codebase_dir.glob("*.md")):
             if file.name.startswith("."):

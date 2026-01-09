@@ -9,7 +9,7 @@ import re
 import shutil
 import threading
 import traceback
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -378,7 +378,7 @@ def auto_progress_task(
         old_stage = task.stage
         task.stage = to_stage
         task.order = order
-        task.updated_at = datetime.utcnow()
+        task.updated_at = datetime.now(UTC)
         db.commit()
 
         logger.info(
