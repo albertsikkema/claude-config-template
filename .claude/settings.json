@@ -25,6 +25,15 @@
             "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type PostToolUse --summarize"
           }
         ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/post_tool_use.py"
+          }
+        ]
       }
     ],
     "Notification": [
@@ -45,6 +54,24 @@
           {
             "type": "command",
             "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type Stop --add-chat --summarize"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "curl -s -X POST http://localhost:9118/api/hooks/stop -H 'Content-Type: application/json' -d '{\"task_id\": \"'\"$CLAUDE_FLOW_TASK_ID\"'\", \"session_id\": \"'\"$CLAUDE_SESSION_ID\"'\"}' > /dev/null 2>&1 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -n \"$CLAUDE_SESSION_ID\" ] && curl -s -X POST http://localhost:9118/api/hooks/session-end -H 'Content-Type: application/json' -d '{\"session_id\": \"'\"$CLAUDE_SESSION_ID\"'\", \"exit_code\": '\"${CLAUDE_EXIT_CODE:-0}\"'}' > /dev/null 2>&1 || true"
           }
         ]
       }

@@ -1,4 +1,4 @@
-# Cleanup Implementation
+   # Cleanup Implementation
 
 You are tasked with cleaning up after a completed implementation by analyzing what actually happened, creating documentation for significant decisions, and removing ephemeral artifacts.
 
@@ -10,29 +10,32 @@ From Parnas and Clements (1986): Documentation should show the cleaned-up, ratio
 
 **What cleanup does:**
 - Captures what was tried (rejected alternatives in best practices)
-- Documents best practices discovered during implementation
+- Documents best practices discovered during implementation, so we can learn and improve in the future
 - Learns from the process (updates to CLAUDE.md)
 - Keeps project documentation in sync (project.md, todo.md, done.md)
-- Removes ephemeral artifacts (plans, research docs)
+- Updates documentation to reflect the final state of the codebase
 
 ## Initial Response
 
 When this command is invoked:
 
-1. **Check if a plan file was provided as parameter**:
-   - If provided: skip intro, read the plan file immediately, begin cleanup
+1. **Check if parameters were provided**:
+   - If files provided: skip intro, read the files immediately, begin cleanup
    - If not provided: show the helpful message below
 
-2. **If no parameter provided**, respond with:
+2. **If no parameters provided**, respond with:
 ```
 I'll help you clean up after your implementation and update documentation.
 
-Please provide the implementation plan you want to clean up:
-- Plan file path: e.g., `thoughts/shared/plans/2025-10-18-feature.md`
+Please provide the file paths:
+- Plan file (required): e.g., `thoughts/shared/plans/2025-10-18-feature.md`
+- Research file (optional): e.g., `thoughts/shared/research/2025-10-18-topic.md`
+- Review file (optional): e.g., `thoughts/shared/reviews/2025-10-18-review.md`
 
-I'll analyze what changed, document best practices, update documentation, and remove ephemeral artifacts.
+I'll analyze what changed, document best practices, and update documentation.
 
-Tip: Quick invoke with: `/cleanup thoughts/shared/plans/2025-10-18-feature.md`
+Tip: Quick invoke with all files:
+`/cleanup thoughts/shared/plans/2025-10-18-feature.md thoughts/shared/research/2025-10-18-topic.md thoughts/shared/reviews/2025-10-18-review.md`
 ```
 
 Then wait for the user's input.
@@ -41,13 +44,10 @@ Then wait for the user's input.
 
 ### Step 1: Gather Context
 
-1. **Read the implementation plan FULLY**:
-   - Use Read tool WITHOUT limit/offset parameters
-   - Read the entire plan in main context
-   - Extract frontmatter metadata, especially:
-     - `file-id`: Plan's unique ID
-     - `parentfile-id`: Research document that preceded this plan
-     - Plan creation date and commit
+1. **Read all provided files FULLY**:
+   - **Plan file** (required): Use Read tool WITHOUT limit/offset parameters
+   - **Research file** (if provided): Read the entire research document
+   - **Review file** (if provided): Read the entire review document
 
 2. **Check for uncommitted changes**:
    ```bash
@@ -60,7 +60,7 @@ Then wait for the user's input.
    # Check staged changes
    git diff --cached
    ```
-   **IMPORTANT**: Uncommitted changes are part of the implementation and must be included in the analysis
+   **IMPORTANT**: Uncommitted changes are part of the implementation and must be included in the analysis, documentation, and best practices.
 
 3. **Analyze git history since plan creation (including uncommitted)**:
    ```bash
@@ -79,8 +79,8 @@ Then wait for the user's input.
    ```
    **Scope**: The full implementation includes both committed AND uncommitted changes
 
-4. **Read all files mentioned in the plan PLUS uncommitted files**:
-   - Read FULLY without limit/offset
+4. **Read key changed files**:
+   - Read 8-10 most important changed files FULLY (from git diff)
    - Include files with uncommitted changes (from git status)
    - Compare current state to what plan described
    - Note differences
@@ -91,338 +91,119 @@ Then wait for the user's input.
 
 ### Step 2: Investigation - What Actually Happened?
 
-Spawn parallel research agents to discover implementation reality:
+You already have the context from reading plan, research, and review files and git history in Step 1.
 
-**CRITICAL**: All agents must analyze both committed AND uncommitted changes. The implementation scope includes all changes since the plan was created, regardless of commit status.
+1. **Ask yourself** (based on plan, research, review, and git diff):
+   - What are the key things we learned during implementation? (look for patterns, decisions, trade-offs, max. 5)
+   - Did we try something that didn't work? (check review file)
+   - Is there a code pattern worth capturing?
+   - Are there lessons learned about architecture, design, testing, or deployment?
+   - Did we follow best practices or create new ones?
+   - Did implementation match the plan or deviate?
 
-1. **Implementation Analysis** (codebase-analyzer):
-   - Analyze the implemented code (including uncommitted changes)
-   - How does it work now?
-   - What's different from what the plan described?
-   - Include analysis of files with uncommitted changes
-   - Provide specific file:line references for all findings
-   - Note which changes are committed vs uncommitted
+### Step 3: Document Best Practices (HIGH THRESHOLD)
 
-2. **Pattern Discovery** (codebase-pattern-finder):
-   - What patterns emerged from implementation?
-   - Include patterns in uncommitted code
-   - Are there similar features to compare?
-   - What conventions were established or followed?
+**CRITICAL**: Most things you learned are NOT best practices. Be very selective.
 
-3. **Historical Context** (thoughts-analyzer):
-   - Check for related research documents
-   - Look for related plans or earlier decisions
-   - Find any existing best practices that relate
+**1. Filter out non-novel patterns first:**
 
-4. **Project Documentation Review** (project-context-analyzer):
-   - Read current CLAUDE.md
-   - Review existing best practices in thoughts/best_practices/
-   - Check project documentation for relevant sections
-   - Review thoughts/shared/project/project.md for context
-   - Check thoughts/shared/project/todo.md for current/planned work
-   - Review thoughts/shared/project/done.md for completed work
+Before documenting anything, check if it's already known:
+
+```bash
+# Search existing best practices
+grep -r -i "[pattern-name]" thoughts/best_practices/ 2>/dev/null
+
+# Search technical docs
+grep -r -i "[pattern-name]" thoughts/technical_docs/ 2>/dev/null
+```
+
+**If you find anything** check if this pattern is already documented:   
+- If yes → Skip documenting, just reference existing docs
+- If no → Continue to qualification check
+
+**2. Qualify: Does this meet the threshold?**
+
+A practice is ONLY worth documenting if it meets **at least 2** of these criteria:
+
+✅ **Novel for this project** - First time we've done this pattern here
+✅ **Non-obvious** - Wouldn't be found in standard documentation
+✅ **Project-specific decision** - Tailored to our architecture/constraints
+✅ **Rejected alternatives** - We tried other approaches that failed
+✅ **Trade-offs made** - Significant benefits vs costs to document
+✅ **Counter-intuitive** - Goes against common wisdom for good reason
+
+**NOT best practices:**
+❌ Applying code review feedback (that's normal iteration)
+❌ Standard industry patterns (REST endpoints, error handling basics)
+❌ Minor test improvements (adding validation is expected)
+❌ Following existing conventions (that's just consistency)
+❌ Obvious improvements (better variable names, etc.)
+
+**3. Examples of what QUALIFIES:**
+
+✅ **"Fire-and-Forget API Pattern for Claude Integration"**
+- Novel: First time integrating background Claude execution
+- Non-obvious: Specific threading + event loop pattern
+- Rejected alternatives: Tried database tracking, too heavy
+- Trade-offs: Can't track progress, but much simpler
+
+✅ **"Defense-in-Depth Validation for Path Inputs"**
+- Project-specific: Multiple validation layers for our security model
+- Rejected alternatives: Single validation failed in production
+- Trade-offs: More code, but prevents entire class of vulnerabilities
+
+❌ **"Version Endpoint Pattern"**
+- Standard: Every API has version endpoints
+- Obvious: Read from pyproject.toml is common
+- No alternatives: This is the default approach
+
+❌ **"Improved Exception Handling"**
+- Standard: Using specific exceptions is basic Python
+- Normal iteration: Code review feedback isn't a pattern
+
+**4. For qualified patterns only:**
+
+Read existing best practices to avoid duplication:
+```bash
+ls -la thoughts/best_practices/*.md 2>/dev/null
+```
+- Avoid duplicating content that already exists
+- Consider updating existing files if related
+
+**5. Determine filename and category** (for qualified patterns only):
+   - Use descriptive, topic-based names: `[category]-[topic].md`
+   - Examples of GOOD best practice names:
+     - `api-fire-and-forget-claude-integration.md` (novel pattern)
+     - `security-defense-in-depth-validation.md` (project-specific)
+     - `error-handling-batch-operations.md` (rejected alternatives documented)
+   - NOT:
+     - `api-error-handling.md` (too generic, already documented)
+     - `testing-validation.md` (too standard)
+
+**6. Create best practice file** at `thoughts/best_practices/[category]-[topic].md`:
+
+Use the template from `thoughts/templates/best-practice.md`
 
 **IMPORTANT**:
-- Wait for ALL sub-agents to complete before proceeding
-- Ensure agents have access to uncommitted changes via git diff HEAD output
+- Document WHY this is special/different for this project
+- Document what alternatives were tried and failed
+- Keep it SHORT but substantive
 
-### Step 3: Create Working Rationalization Document
+**7. Final check before creating file:**
 
-This is a **temporary working document** that will be deleted when cleanup is complete.
+Ask yourself:
+- "Would a competent developer find this in standard docs?" → If yes, DON'T document
+- "Is this specific to our codebase's unique constraints?" → If no, DON'T document
+- "Did we make a non-obvious decision here?" → If no, DON'T document
 
-1. **Gather metadata**:
-- Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
-
-2. **Create rationalization working doc** at `thoughts/shared/rationalization/YYYY-MM-DD-[topic].md`:
-
-Use this template:
-
-```markdown
----
-date: [ISO format with timezone from metadata]
-file-id: [UUID from metadata]
-parentfile-id: [plan's file-id - find this in the plan's frontmatter]
-claude-sessionid: [session ID from metadata]
-researcher: [Username from metadata]
-git_commit: [Current commit hash]
-branch: [Branch name]
-repository: [Repository name]
-topic: "[What was cleaned up]"
-tags: [cleanup, relevant-components]
-status: in_progress
-last_updated: [YYYY-MM-DD HH:mm]
-last_updated_by: [Username]
-related_plan: thoughts/shared/plans/YYYY-MM-DD-[topic].md
----
-
-# Rationalization: [Feature/Topic]
-
-**Date**: [timestamp]
-**Related Plan**: `thoughts/shared/plans/YYYY-MM-DD-[topic].md`
-**Git Commit Range**: [plan-commit]...[current-commit]
-**Uncommitted Changes**: [Yes/No - if yes, note what's uncommitted]
-
-> **NOTE**: This is a working document for the rationalization process.
-> It will be DELETED when rationalization is complete.
-> Permanent outputs: Best practices docs, CLAUDE.md updates, project doc updates.
-
-## Summary
-[What was implemented and how it evolved from the plan. Include both committed and uncommitted changes.]
-
-## Implementation Evolution
-
-### Original Plan Approach
-[Summary of what the plan described - quote relevant sections]
-
-### What Actually Happened
-[Summary of final implementation with file:line references. Include both committed and uncommitted changes. Note which changes are committed vs uncommitted.]
-
-### Key Discoveries During Implementation
-
-1. **Discovery**: [What was learned]
-   - **Impact**: [How it changed the approach]
-   - **Evidence**: [file.ext:line or commit reference]
-   - **Why this matters**: [Explanation]
-
-2. **Discovery**: [Another finding]
-   - **Impact**: [Effect on implementation]
-   - **Evidence**: [file.ext:line]
-   - **Why this matters**: [Explanation]
-
-[Continue for all significant discoveries...]
-
-## Technical Decisions Made
-
-List all significant technical decisions that emerged during implementation:
-
-1. **Decision**: [What was chosen]
-   - **Context**: [What problem this solved]
-   - **Rationale**: [Why this approach]
-   - **Alternatives Considered**: [What else was possible]
-   - **Trade-offs**: [What we gave up, what we gained]
-   - **Code Reference**: [file.ext:line]
-   - **Document as best practice?**: Yes/No - [If yes, note topic/category]
-
-2. **Decision**: [Another decision]
-   [Same structure...]
-
-## Rejected Alternatives
-
-Document approaches that were tried and didn't work (prevents re-exploration):
-
-### Approach 1: [Name]
-**What we tried**: [Description with code examples if available]
-**Why it didn't work**: [Technical reason, issue encountered]
-**When we tried it**: [Commit or timeframe]
-**Don't try this again because**: [Key lesson]
-
-### Approach 2: [Name]
-[Same structure...]
-
-## Patterns & Conventions Discovered
-
-New patterns or conventions that emerged:
-
-1. **Pattern**: [Name of pattern]
-   - **Description**: [What it is]
-   - **Where used**: [file.ext:line]
-   - **When to use**: [Guidance for future]
-   - **Add to CLAUDE.md?**: Yes/No
-
-2. **Convention**: [Name]
-   [Same structure...]
-
-## Rationalized Narrative
-
-### The Approach (As Intended)
-
-[This is the clean story - write this as if the final implementation was always the plan.
-Present the solution elegantly, showing the key insights and decisions as if they were
-obvious from the start. This section should read like good technical documentation,
-not a discovery journal.]
-
-Example structure:
-- High-level approach and why it's right for this problem
-- Key architectural decisions and their rationale
-- Important implementation details
-- How it integrates with existing systems
-
-### Code References
-- `src/feature/main.py:123` - Core implementation
-- `src/models/entity.py:45` - Data model
-- `tests/test_feature.py:67` - Test patterns
-
-## Documentation Updates Needed
-
-### Best Practices to Document
-List best practices discovered during implementation:
-
-- [ ] [Category]: [Best practice name] - [Brief description]
-- [ ] [Category]: [Another best practice] - [Brief description]
-
-### CLAUDE.md Updates
-What should be added to project documentation:
-
-- [ ] Add pattern: [Pattern name] to [section of CLAUDE.md]
-- [ ] Update [section]: [what to change]
-- [ ] Add to "Common Pitfalls": [lesson learned]
-- [ ] Update [section]: [convention established]
-
-### Project Documentation Updates
-Track what needs to change in project documentation:
-
-**todo.md** (`thoughts/shared/project/todo.md`):
-- [ ] Move completed items from Must Haves/Should Haves to done.md
-- [ ] Remove `[BLOCKED]` prefix if any items were unblocked
-- [ ] Add new technical debt or work items discovered during implementation
-- [ ] Update priorities based on implementation experience
-- [ ] Reorder items if dependencies changed
-
-**done.md** (`thoughts/shared/project/done.md`):
-- [ ] Add completed work items with completion date
-- [ ] Link to best practices documented during cleanup
-- [ ] Link to PR/commits
-- [ ] Add key outcomes and learnings
-
-**project.md** (`thoughts/shared/project/project.md`):
-- [ ] Update architecture section if significant changes
-- [ ] Update technical stack if new dependencies added
-- [ ] Update constraints if any were discovered
-- [ ] Update "Out of Scope" if scope decisions were made
-
-## Code References Summary
-- `path/to/file.ext:123` - [What's there]
-- `another/file.ext:45` - [What's there]
+**If still yes to documenting**, ensure directory exists:
+```bash
+mkdir -p thoughts/best_practices
 ```
 
-### Step 4: Document Best Practices
+**Expected result**: Most cleanups should create 0-2 best practices, not 5-10.
 
-For each best practice discovered during implementation (including those in uncommitted code):
-
-1. **Read existing best practices**:
-   - Check `thoughts/best_practices/` directory for existing files
-   ```bash
-   # List all existing best practices
-   ls -la thoughts/best_practices/*.md 2>/dev/null
-   ```
-   - Read relevant existing files to understand what's already documented
-   - Avoid duplicating content that already exists
-   - Consider updating existing files if the new practice is related
-
-2. **Determine filename and category**:
-   - Use descriptive, topic-based names: `[category]-[topic].md`
-   - Examples:
-     - `authentication-oauth-patterns.md`
-     - `database-transaction-handling.md`
-     - `api-error-handling.md`
-     - `testing-integration-patterns.md`
-     - `caching-invalidation-strategies.md`
-
-3. **Create best practice file** at `thoughts/best_practices/[category]-[topic].md`:
-
-```markdown
-# [Category]: [Topic]
-
-**Date**: [YYYY-MM-DD]
-**Author**: [Username from metadata]
-**Related Implementation**: [Brief description or commit range]
-
-## Overview
-
-[Brief description of what this best practice is about and when to use it]
-
-## The Practice
-
-[Clear, concise description of the best practice itself]
-
-### When to Use
-
-- [Situation 1 where this applies]
-- [Situation 2 where this applies]
-- [Situation 3 where this applies]
-
-### When NOT to Use
-
-- [Situation where this practice doesn't apply]
-- [Anti-pattern or exception case]
-
-## Implementation
-
-### Recommended Approach
-
-[Step-by-step guide or code examples showing the best practice in action]
-
-```[language]
-// Code example demonstrating the best practice
-[actual code from implementation with file:line references]
-```
-
-**Code References**:
-- `path/to/file.ext:line` - [What's implemented there]
-- `path/to/another.ext:line` - [Related implementation]
-
-### Key Considerations
-
-1. **[Consideration 1]**: [Explanation]
-2. **[Consideration 2]**: [Explanation]
-3. **[Consideration 3]**: [Explanation]
-
-## Alternatives Tried
-
-### Approach 1: [Alternative name]
-**What we tried**: [Description]
-**Why it didn't work**: [Technical reason]
-**Key lesson**: [What we learned]
-
-### Approach 2: [Another alternative]
-**What we tried**: [Description]
-**Why it didn't work**: [Technical reason]
-**Key lesson**: [What we learned]
-
-## Trade-offs
-
-### Benefits
-
-- [Benefit 1]
-- [Benefit 2]
-- [Benefit 3]
-
-### Costs
-
-- [Cost/limitation 1]
-- [Cost/limitation 2]
-
-## Common Pitfalls
-
-1. **[Pitfall 1]**: [Description and how to avoid]
-2. **[Pitfall 2]**: [Description and how to avoid]
-
-## Related Practices
-
-- See also: `thoughts/best_practices/[related-file].md`
-- Builds on: `thoughts/best_practices/[foundational-file].md`
-
-## Examples in Codebase
-
-### Example 1: [Feature/Component]
-**Location**: `path/to/implementation.ext:line`
-**Context**: [When/why this example is relevant]
-
-### Example 2: [Feature/Component]
-**Location**: `path/to/another.ext:line`
-**Context**: [When/why this example is relevant]
-
-## Notes
-
-[Any additional context, future considerations, or lessons learned]
-```
-
-4. **Ensure directory exists**:
-   ```bash
-   mkdir -p thoughts/best_practices
-   ```
-
-### Step 5: Update CLAUDE.md
+### Step 4: Update CLAUDE.md
 
 For each pattern/convention to add:
 
@@ -445,7 +226,7 @@ For each pattern/convention to add:
    [List of things to avoid with explanations of why and how to do it correctly instead]
    ```
 
-### Step 6: Update Project Documentation
+### Step 5: Update Project Documentation
 
 For each project documentation file that needs updates:
 
@@ -494,56 +275,15 @@ For each project documentation file that needs updates:
      - Update Key Constraints if new constraints discovered
      - Update "Out of Scope" if scope decisions were made
 
-6. **Track updates in rationalization doc**:
-   - Mark each project doc update as completed in the rationalization working document
-   - Note what was changed and why
+6. **Update Readme.md if needed**:
+   - File: `README.md` at project root
+   - Update installation instructions, usage examples, or feature lists
+   - Only if there were significant changes affecting users or developers
 
-### Step 7: Delete Ephemeral Artifacts
 
-1. **Find the research document**:
-   - Extract `parentfile-id` from the plan's frontmatter
-   - Search for research documents in `thoughts/shared/research/` with matching `file-id`
-   ```bash
-   # Search for research doc with matching file-id
-   grep -l "file-id: [parentfile-id]" thoughts/shared/research/*.md
-   ```
+### Step 6: Summary
 
-2. **Find related review documents**:
-   - Extract the plan's `file-id` from the plan's frontmatter
-   - Search for review documents that reference this plan
-   - Reviews might reference the plan via `parentfile-id` or `related_plan` fields
-   ```bash
-   # Search for reviews with matching parentfile-id or related_plan
-   grep -l "parentfile-id: [plan-file-id]\|related_plan.*YYYY-MM-DD-[topic].md" thoughts/shared/reviews/*.md 2>/dev/null
-
-   # Also search for reviews with the same date (common pattern)
-   ls thoughts/shared/reviews/*YYYY-MM-DD*.md 2>/dev/null
-   ```
-
-3. **Delete the plan file**:
-   ```bash
-   rm thoughts/shared/plans/YYYY-MM-DD-[topic].md
-   ```
-
-4. **Delete the research document** (if found):
-   ```bash
-   rm thoughts/shared/research/YYYY-MM-DD-[topic].md
-   ```
-
-5. **Delete related review documents** (if found):
-   ```bash
-   rm thoughts/shared/reviews/[review-filename].md
-   ```
-   Note: Delete all reviews that reference the plan or share the same date/topic
-
-6. **Delete the rationalization working document**:
-   ```bash
-   rm thoughts/shared/rationalization/YYYY-MM-DD-[topic].md
-   ```
-
-### Step 8: Summary
-
-Present a concise summary of what was done:
+Present a short summary of what was done:
 
 ```
 ✓ Cleanup Complete
@@ -558,15 +298,11 @@ Present a concise summary of what was done:
 - todo.md: [N] completed items moved to done.md
 - done.md: [N] items added with full traceability
 - project.md: [Updated if architecture/stack changed]
-
-## Artifacts Removed:
-- Plan: thoughts/shared/plans/YYYY-MM-DD-[topic].md
-- Research: thoughts/shared/research/YYYY-MM-DD-[topic].md
-- Reviews: thoughts/shared/reviews/[N] related review(s)
-- Rationalization: thoughts/shared/rationalization/YYYY-MM-DD-[topic].md
+- README.md: [Updated if user-facing changes]
 
 Your implementation is now properly documented with clean, permanent knowledge.
-Ephemeral artifacts have been removed.
+
+**Note**: Ephemeral artifacts (plan, research, reviews) will be automatically deleted when you drag the task to "Done" in claude-flow.
 
 Recommended next step: /pr to create PR description
 ```
@@ -601,31 +337,9 @@ Recommended next step: /pr to create PR description
 
 ### Document Metadata
 - Always use spec_metadata.sh for metadata
-- Include parentfile-id linking to plan
 - Track git commit range for implementation
 - **Document uncommitted changes** - note what's committed vs uncommitted
 - Use consistent YAML frontmatter
-
-## Working Document is Ephemeral
-
-**CRITICAL**: The rationalization document in `thoughts/shared/rationalization/` is a **working document only**.
-
-- It helps organize thoughts during cleanup
-- It structures the investigation process
-- It is **deleted** when cleanup is complete
-- It is **never committed** to version control
-- It is **never referenced** in other documents
-
-The permanent outputs are:
-1. **Best Practices** - Permanent record of practices, decisions, and patterns with rationale
-2. **Updated CLAUDE.md** - Patterns and conventions for future work
-3. **Updated project documentation** - project.md, todo.md, done.md kept in sync
-
-The ephemeral artifacts that get deleted:
-1. **Plan file** - Implementation plan (no longer needed after completion)
-2. **Research document** - Research that preceded the plan (referenced by parentfile-id)
-3. **Review documents** - Related reviews (security, code review, etc. that reference the plan)
-4. **Rationalization document** - Working document for cleanup process
 
 ## Integration with Workflow
 
@@ -636,34 +350,25 @@ The complete workflow is:
 2. /create_plan → thoughts/shared/plans/YYYY-MM-DD-feature.md
 3. /implement_plan → Code changes + updated plan checkboxes + validation
 4. /code_reviewer → Review code quality and security
-5. /cleanup → Document best practices + update CLAUDE.md + update project docs + delete artifacts
+5. /cleanup <plan> <research> <review> → Document best practices + update CLAUDE.md + update project docs
 6. /commit → Create git commits
 7. /pr → Create PR description
+8. Move task to Done → Automatically deletes plan/research/review files
 ```
 
-Cleanup is **mandatory** - it ensures documentation stays current, ephemeral artifacts are removed, and future AI sessions have proper context.
+Cleanup is **mandatory** - it ensures documentation stays current and future AI sessions have proper context.
 
 ## Output Locations
-
-**Permanent outputs:**
 - **Best Practices**: `thoughts/best_practices/[category]-[topic].md`
 - **Updated CLAUDE.md**: `CLAUDE.md`
 - **Updated project docs**: `thoughts/shared/project/*.md` (project.md, todo.md, done.md)
 
-**Deleted artifacts:**
-- **Plan**: `thoughts/shared/plans/YYYY-MM-DD-feature.md`
-- **Research**: `thoughts/shared/research/YYYY-MM-DD-topic.md` (found via parentfile-id)
-- **Reviews**: `thoughts/shared/reviews/*.md` (related reviews found via plan reference or date)
-- **Working doc**: `thoughts/shared/rationalization/YYYY-MM-DD-topic.md`
 
 ## Success Criteria
 
 A cleanup is complete when:
 - [ ] All significant decisions and best practices are documented in thoughts/best_practices/
-- [ ] Rejected alternatives are documented (in best practices)
 - [ ] New patterns/conventions are in CLAUDE.md
 - [ ] Project documentation updated (todo.md items moved to done.md with full traceability, project.md updated if needed)
-- [ ] Plan file is deleted
-- [ ] Research document is deleted (if parentfile-id found)
-- [ ] Related review documents are deleted (if found)
-- [ ] Working rationalization document is deleted
+- [ ] README.md updated if needed (user-facing changes)
+
