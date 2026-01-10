@@ -228,16 +228,23 @@ Documented patterns in `thoughts/best_practices/`:
 | Slash Command Integration | `backend-slash-command-integration.md` | Calling /commands from backend APIs |
 | Shared Utilities | `code-organization-shared-utilities.md` | Extracting common code to utils.py |
 | Defense-in-Depth | `security-defense-in-depth-validation.md` | Multi-layer input validation |
+| Path Traversal Defense | `security-path-traversal-defense-in-depth.md` | Multiple independent validation layers for file paths |
+| Subprocess Timeout | `subprocess-timeout-long-running-operations.md` | Timeout protection for long-running subprocesses |
 | Batch Error Handling | `error-handling-batch-operations.md` | Per-item error handling with continue |
+| Version Endpoints | `api-version-endpoints.md` | Dynamic version endpoints with fallback |
 
 ## Common Pitfalls
 
 - **Don't** use database tracking for fire-and-forget ops (use file/log output)
 - **Don't** rely on single validation layer (use defense-in-depth)
+- **Don't** validate file paths after construction (validate input first, then build path)
 - **Don't** fail entire batch on first error (per-item error handling)
 - **Don't** duplicate code across files (extract to `utils.py`)
 - **Don't** skip `/cleanup` (best practices get lost, artifacts clutter repo)
 - **Don't** pass YAML frontmatter to Claude prompts (strip it first)
+- **Don't** hardcode versions in multiple places (read from pyproject.toml dynamically)
+- **Don't** use broad exception handlers (catch specific exceptions only)
+- **Don't** spawn subprocesses without timeouts (use asyncio.wait_for with cleanup)
 
 ## Codebase Overview Files
 
