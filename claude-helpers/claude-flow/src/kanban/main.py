@@ -1,12 +1,17 @@
 """FastAPI application for Kanban workflow board."""
 
 import contextlib
+import logging
 import subprocess
+import tomllib
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import TypedDict
 
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 # Project root path (main.py -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent
@@ -22,7 +27,14 @@ from fastapi import FastAPI  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 
 from kanban.database import init_db, seed_db  # noqa: E402
-from kanban.routers import codebase, docs, security, tasks, terminal  # noqa: E402
+from kanban.routers import codebase, docs, hooks, iterm, security, tasks  # noqa: E402
+
+
+class VersionResponse(BaseModel):
+    """Application version information."""
+
+    version: str = Field(..., description="Application version (e.g., 0.1.0)")
+    service: str = Field(..., description="Service name")
 
 
 @asynccontextmanager
@@ -55,10 +67,11 @@ app.add_middleware(
 )
 
 app.include_router(tasks.router)
-app.include_router(terminal.router)
 app.include_router(docs.router)
 app.include_router(codebase.router)
 app.include_router(security.router)
+app.include_router(iterm.router)
+app.include_router(hooks.router)
 
 
 @app.get("/")
@@ -71,6 +84,27 @@ def root():
 def health():
     """Health check endpoint."""
     return {"status": "healthy"}
+
+
+@app.get("/api/version")
+def get_version() -> VersionResponse:
+    """Get application version information.
+
+    Returns:
+        VersionResponse with version and service name
+    """
+    try:
+        pyproject_path = CLAUDE_FLOW_DIR / "pyproject.toml"
+        with open(pyproject_path, "rb") as f:
+            data = tomllib.load(f)
+        version = data["project"]["version"]
+    except (FileNotFoundError, KeyError, OSError, ValueError) as e:
+        # Fallback to app.version if pyproject.toml cannot be read
+        # (file not found, missing version key, read errors, or TOML parsing errors)
+        logger.warning("Failed to read version from pyproject.toml: %s", e)
+        version = app.version or "unknown"
+
+    return VersionResponse(version=version, service="claude-workflow-kanban")
 
 
 class RepoInfo(TypedDict):
@@ -94,7 +128,6 @@ def get_repo_info() -> RepoInfo:
 
     # Both paths use PROJECT_ROOT for consistency
     repo_root = str(PROJECT_ROOT)  # File-based, always consistent
-
 
     # Try to get repo name from git remote origin URL
     try:
