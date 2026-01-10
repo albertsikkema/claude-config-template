@@ -8,7 +8,7 @@ from uuid import uuid4
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from kanban.models import ClaudeModel, JobStatus, Priority, Stage, WorkflowComplexity
+from kanban.models import ClaudeModel, ClaudeStatus, Priority, Stage, WorkflowComplexity
 
 # Database file location
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "kanban.db"
@@ -46,16 +46,16 @@ class TaskDB(Base):
     )
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    # Claude Code integration fields
+    # Artifact paths
     research_path = Column(String(500), nullable=True)
     plan_path = Column(String(500), nullable=True)
     review_path = Column(String(500), nullable=True)
-    job_status = Column(Enum(JobStatus), nullable=True)
-    job_output = Column(Text, nullable=True)
-    job_error = Column(Text, nullable=True)
-    job_started_at = Column(DateTime, nullable=True)
-    job_completed_at = Column(DateTime, nullable=True)
-    session_id = Column(String(100), nullable=True)  # Claude session ID for resumption
+    # Claude session tracking (NEW)
+    claude_status = Column(Enum(ClaudeStatus), nullable=True)
+    started_at = Column(DateTime, nullable=True)
+    claude_completed_at = Column(DateTime, nullable=True)
+    approved_at = Column(DateTime, nullable=True)
+    session_id = Column(String(100), nullable=True)
 
     @property
     def tags(self) -> list[str]:

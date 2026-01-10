@@ -1,0 +1,242 @@
+"""iTerm2 tab management via AppleScript + shell script."""
+
+import logging
+import re
+import subprocess
+from uuid import uuid4
+
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+
+from kanban.utils import PROJECT_ROOT
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/api/iterm", tags=["iterm"])
+
+# Path to the launch script (in claude-helpers/ directory)
+LAUNCH_SCRIPT = PROJECT_ROOT / "claude-helpers" / "launch-claude-tab.sh"
+
+
+class OpenTabRequest(BaseModel):
+    """Request to open an iTerm tab for a task."""
+
+    task_id: str = Field(..., min_length=1, max_length=100)
+    task_title: str = Field(..., min_length=1, max_length=200)
+    prompt: str = Field(default="", description="Prompt to pass to Claude")
+    stage: str = Field(default="default", description="Stage for color coding")
+    model: str = Field(default="sonnet", description="Claude model to use")
+    resume_session_id: str | None = Field(default=None, description="Session ID to resume")
+
+
+class OpenTabResponse(BaseModel):
+    """Response from opening an iTerm tab."""
+
+    status: str
+    tab_name: str
+    session_id: str
+
+
+class CloseTabRequest(BaseModel):
+    """Request to close an iTerm tab."""
+
+    tab_name: str = Field(..., min_length=1, max_length=300)
+
+
+def sanitize_tab_name(name: str) -> str:
+    """Sanitize tab name to only contain safe characters."""
+    sanitized = re.sub(r"[^\w\s\-\.]", " ", name)
+    sanitized = re.sub(r"\s+", " ", sanitized).strip()
+    return sanitized or "Task"
+
+
+def _escape_applescript(s: str) -> str:
+    """Escape string for AppleScript."""
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _is_iterm_running() -> bool:
+    """Check if iTerm is running using pgrep (fast, ~10ms)."""
+    try:
+        result = subprocess.run(["pgrep", "-x", "iTerm2"], capture_output=True, timeout=1)
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, subprocess.SubprocessError):
+        return False
+
+
+@router.post("/open-tab", response_model=OpenTabResponse)
+async def open_claude_tab(request: OpenTabRequest) -> OpenTabResponse:
+    """Open a new iTerm tab with Claude for a task.
+
+    Creates a named tab, sets the color based on stage, and runs the specified command.
+    Returns a session_id that can be used to correlate Claude hooks.
+    """
+    tab_name = sanitize_tab_name(f"{request.task_id[:8]} {request.task_title[:50]}")
+    session_id = str(uuid4())
+
+    # Build the shell command that calls our launch script
+    # The script handles title, color, cd, clear, and exec
+    script_path = str(LAUNCH_SCRIPT)
+    project_dir = str(PROJECT_ROOT)
+
+    # Full command to run in the terminal (script handles quoting internally)
+    resume_id = request.resume_session_id or ""
+    full_command = (
+        f'"{script_path}" '
+        f'"{request.task_id}" '
+        f'"{request.task_title}" '
+        f'"{request.stage}" '
+        f'"{project_dir}" '
+        f'"{request.model}" '
+        f'"{request.prompt}" '
+        f'"{resume_id}"'
+    )
+
+    # Check if iTerm is running
+    iterm_was_running = _is_iterm_running()
+
+    # AppleScript to open tab and run the launch script
+    if not iterm_was_running:
+        script = f'''
+tell application "iTerm"
+    activate
+    delay 0.5
+    tell current window
+        tell current session
+            write text "{_escape_applescript(full_command)}"
+        end tell
+    end tell
+end tell
+'''
+    else:
+        script = f'''
+tell application "iTerm"
+    activate
+    delay 0.3
+    if (count of windows) = 0 then
+        create window with default profile
+        tell current window
+            tell current session
+                write text "{_escape_applescript(full_command)}"
+            end tell
+        end tell
+    else
+        tell current window
+            create tab with default profile
+            tell current session
+                write text "{_escape_applescript(full_command)}"
+            end tell
+        end tell
+    end if
+end tell
+'''
+
+    try:
+        subprocess.run(["osascript", "-e", script], check=True, capture_output=True, timeout=10)
+        logger.info(f"Opened iTerm tab: {tab_name}")
+        return OpenTabResponse(status="opened", tab_name=tab_name, session_id=session_id)
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout opening iTerm tab") from e
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to open tab: {e.stderr.decode()}")
+        raise HTTPException(500, f"Failed to open tab: {e.stderr.decode()}") from e
+
+
+@router.post("/close-tab")
+async def close_claude_tab(request: CloseTabRequest):
+    """Close an iTerm tab by name."""
+    sanitized_name = sanitize_tab_name(request.tab_name)
+    escaped_name = _escape_applescript(sanitized_name)
+
+    script = f"""
+    tell application "iTerm"
+        repeat with w in windows
+            repeat with t in tabs of w
+                repeat with s in sessions of t
+                    if name of s is "{escaped_name}" then
+                        close t
+                        return "closed"
+                    end if
+                end repeat
+            end repeat
+        end repeat
+        return "not_found"
+    end tell
+    """
+
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+        )
+        status = result.stdout.strip()
+        return {"status": status, "tab_name": request.tab_name}
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout closing iTerm tab") from e
+
+
+class FocusTabRequest(BaseModel):
+    """Request to focus an iTerm tab."""
+
+    task_id: str = Field(..., min_length=1, max_length=100)
+
+
+@router.post("/focus-tab")
+async def focus_claude_tab(request: FocusTabRequest):
+    """Focus an iTerm tab by task ID prefix.
+
+    Searches for a tab whose name starts with the task ID and brings it to focus.
+    """
+    task_prefix = request.task_id[:8]
+
+    script = f'''
+tell application "iTerm"
+    activate
+    repeat with w in windows
+        repeat with t in tabs of w
+            repeat with s in sessions of t
+                if name of s starts with "{task_prefix}" then
+                    select t
+                    return "focused"
+                end if
+            end repeat
+        end repeat
+    end repeat
+    return "not_found"
+end tell
+'''
+
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+        )
+        status = result.stdout.strip()
+        return {"status": status, "task_id": request.task_id}
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout focusing iTerm tab") from e
+
+
+@router.get("/list-tabs")
+async def list_claude_tabs():
+    """List all iTerm tabs with their names."""
+    script = """
+    tell application "iTerm"
+        set tabNames to {}
+        repeat with w in windows
+            repeat with t in tabs of w
+                repeat with s in sessions of t
+                    set end of tabNames to name of s
+                end repeat
+            end repeat
+        end repeat
+        return tabNames
+    end tell
+    """
+
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+        )
+        raw = result.stdout.strip()
+        tabs = [t.strip() for t in raw.split(",")] if raw else []
+        return {"tabs": tabs}
+    except subprocess.TimeoutExpired:
+        return {"tabs": [], "error": "timeout"}

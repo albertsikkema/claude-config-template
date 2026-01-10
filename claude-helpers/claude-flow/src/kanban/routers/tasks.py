@@ -8,14 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-import kanban.models as models
 from kanban.database import TaskDB, get_db
-from kanban.jobs import trigger_stage_command
 from kanban.models import (
     STAGES,
-    JobStatus,
+    ClaudeStatus,
     Stage,
-    StageAutoProgressionConfig,
     StageInfo,
     Task,
     TaskCreate,
@@ -48,11 +45,10 @@ def task_db_to_model(db_task: TaskDB) -> Task:
         research_path=db_task.research_path,
         plan_path=db_task.plan_path,
         review_path=db_task.review_path,
-        job_status=db_task.job_status,
-        job_output=db_task.job_output,
-        job_error=db_task.job_error,
-        job_started_at=db_task.job_started_at,
-        job_completed_at=db_task.job_completed_at,
+        claude_status=db_task.claude_status,
+        started_at=db_task.started_at,
+        claude_completed_at=db_task.claude_completed_at,
+        approved_at=db_task.approved_at,
         session_id=db_task.session_id,
     )
 
@@ -129,31 +125,79 @@ def delete_task(task_id: UUID, db: Session = Depends(get_db)):
     db.commit()
 
 
-@router.patch("/tasks/{task_id}/move", response_model=Task)
+class MoveTaskResponse(BaseModel):
+    """Response for move task with session start indicator."""
+
+    task: Task
+    can_start_session: bool
+    completed: bool = False
+    cleaned_files: list[str] = []
+
+
+@router.patch("/tasks/{task_id}/move", response_model=MoveTaskResponse)
 def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)):
     """Move a task to a different stage.
 
-    If moving to a stage with an associated Claude Code command,
-    the command will be triggered automatically in the background.
+    Returns the task and whether this stage supports starting a Claude session.
+    When moving to DONE, cleans up ephemeral files (plan, research).
     """
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    old_stage = db_task.stage
-    new_stage = move.stage
-
-    db_task.stage = new_stage
+    db_task.stage = move.stage
     db_task.order = move.order
     db_task.updated_at = datetime.utcnow()
+
+    # If moving to next stage from ready_for_review, auto-approve
+    if db_task.claude_status == ClaudeStatus.READY_FOR_REVIEW:
+        db_task.claude_status = ClaudeStatus.APPROVED
+        db_task.approved_at = datetime.utcnow()
+
+    # Track cleanup for done stage
+    cleaned_files: list[str] = []
+    completed = False
+
+    # If moving to DONE, clean up ephemeral files
+    if move.stage == Stage.DONE:
+        completed = True
+        ephemeral_paths = [db_task.plan_path, db_task.research_path, db_task.review_path]
+        for rel_path in ephemeral_paths:
+            if rel_path:
+                full_path = PROJECT_ROOT / rel_path
+                if full_path.exists():
+                    try:
+                        full_path.unlink()
+                        cleaned_files.append(rel_path)
+                    except OSError:
+                        pass  # Ignore deletion errors
+        # Clear all artifact paths and session from the task
+        db_task.plan_path = None
+        db_task.research_path = None
+        db_task.review_path = None
+        db_task.session_id = None
+        db_task.claude_status = None
+
     db.commit()
-
-    # Trigger background command if moving forward to a stage with a command
-    if old_stage != new_stage:
-        trigger_stage_command(str(task_id), old_stage, new_stage, db)
-
     db.refresh(db_task)
-    return task_db_to_model(db_task)
+
+    # Return indicator if this stage supports session start
+    action_stages = {
+        Stage.RESEARCH,
+        Stage.PLANNING,
+        Stage.IMPLEMENTATION,
+        Stage.REVIEW,
+        Stage.CLEANUP,
+        Stage.COMMIT,
+    }
+    can_start_session = move.stage in action_stages
+
+    return MoveTaskResponse(
+        task=task_db_to_model(db_task),
+        can_start_session=can_start_session,
+        completed=completed,
+        cleaned_files=cleaned_files,
+    )
 
 
 class DocumentResponse(BaseModel):
@@ -183,97 +227,160 @@ def get_task_document(task_id: UUID, db: Session = Depends(get_db)):
     return DocumentResponse(content=content, path=doc_path)
 
 
-class OutputResponse(BaseModel):
-    """Response for job output."""
+@router.post("/tasks/{task_id}/approve", response_model=Task)
+def approve_task(task_id: UUID, db: Session = Depends(get_db)):
+    """Approve a task that is ready for review.
 
-    job_status: str | None
-    job_output: str | None
-    job_error: str | None
-
-
-@router.get("/tasks/{task_id}/output", response_model=OutputResponse)
-def get_task_output(task_id: UUID, db: Session = Depends(get_db)):
-    """Get the current job output for a task (for real-time streaming)."""
+    Transitions task from ready_for_review to approved.
+    """
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    return OutputResponse(
-        job_status=db_task.job_status.value if db_task.job_status else None,
-        job_output=db_task.job_output,
-        job_error=db_task.job_error,
+    if db_task.claude_status != ClaudeStatus.READY_FOR_REVIEW:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Cannot approve task with status: {db_task.claude_status}",
+        )
+
+    db_task.claude_status = ClaudeStatus.APPROVED
+    db_task.approved_at = datetime.utcnow()
+    db.commit()
+    db.refresh(db_task)
+
+    return task_db_to_model(db_task)
+
+
+def get_prompt_for_stage(stage: Stage, task: TaskDB) -> str:
+    """Get the prompt for a stage.
+
+    Returns a prompt with the appropriate slash command and artifact path.
+    Task context is only included for stages that need it (research, review).
+    """
+    # Build task context
+    context = f"Task: {task.title}"
+    if task.description:
+        context += f"\n\nDescription: {task.description}"
+
+    if stage == Stage.RESEARCH:
+        return f"/research_codebase {context}"
+    elif stage == Stage.PLANNING:
+        # Planning should use research document, not task context
+        if task.research_path:
+            return f"/create_plan {task.research_path}"
+        # Fallback if no research doc
+        return f"/create_plan {context}"
+    elif stage == Stage.IMPLEMENTATION:
+        if not task.plan_path:
+            raise ValueError("Cannot start implementation without a plan")
+        return f"/implement_plan {task.plan_path}"
+    elif stage == Stage.REVIEW:
+        if not task.plan_path:
+            raise ValueError("Cannot start review without a plan")
+        return f"/code_reviewer {task.plan_path}"
+    elif stage == Stage.CLEANUP:
+        if task.plan_path:
+            # Include research and review paths if available
+            paths = [task.plan_path]
+            if task.research_path:
+                paths.append(task.research_path)
+            if task.review_path:
+                paths.append(task.review_path)
+            return f"/cleanup {' '.join(paths)}"
+        return f"/cleanup\n\n{context}"
+    elif stage == Stage.COMMIT:
+        # Include plan path for commit context
+        if task.plan_path:
+            return f"/commit {task.plan_path}"
+        return "/commit"
+    else:
+        return context
+
+
+class StartSessionResponse(BaseModel):
+    """Response from starting a Claude session."""
+
+    status: str
+    session_id: str
+
+
+@router.post("/tasks/{task_id}/start-session", response_model=StartSessionResponse)
+async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
+    """Start a new Claude session for a task.
+
+    Opens an iTerm tab and updates task status to running.
+    """
+    db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    # Get appropriate prompt based on stage
+    try:
+        prompt = get_prompt_for_stage(db_task.stage, db_task)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Determine model - some stages require sonnet regardless of task preference
+    from kanban.models import ClaudeModel
+    if db_task.stage in (Stage.REVIEW, Stage.CLEANUP, Stage.COMMIT):
+        model = ClaudeModel.SONNET
+    else:
+        model = db_task.model
+
+    # Open iTerm tab
+    from kanban.routers.iterm import OpenTabRequest, open_claude_tab
+
+    response = await open_claude_tab(
+        OpenTabRequest(
+            task_id=str(task_id),
+            task_title=db_task.title,
+            prompt=prompt,
+            stage=db_task.stage.value,
+            model=model.value,
+        )
     )
 
-
-@router.post("/tasks/{task_id}/restart", response_model=Task)
-def restart_task(task_id: UUID, db: Session = Depends(get_db)):
-    """Restart a failed or cancelled task's job.
-
-    Resets job fields and re-triggers the stage command.
-    """
-    db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
-    if not db_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-
-    # Only allow restart if job failed or was cancelled
-    if db_task.job_status not in (JobStatus.FAILED, JobStatus.CANCELLED):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Can only restart failed or cancelled jobs. Current status: {db_task.job_status}",
-        )
-
-    # Reset job fields
-    db_task.job_status = JobStatus.PENDING
-    db_task.job_output = None
-    db_task.job_error = None
-    db_task.job_started_at = None
-    db_task.job_completed_at = None
-    db_task.updated_at = datetime.utcnow()
-
-    # Capture stage before commit (to avoid SQLAlchemy expiry issues)
-    current_stage = db_task.stage
-
+    # Update task
+    db_task.claude_status = ClaudeStatus.RUNNING
+    db_task.started_at = datetime.utcnow()
+    db_task.session_id = response.session_id
     db.commit()
 
-    # Re-trigger the stage command (from BACKLOG to current stage)
-    trigger_stage_command(str(task_id), Stage.BACKLOG, current_stage, db)
-
-    db.refresh(db_task)
-    return task_db_to_model(db_task)
+    return StartSessionResponse(status="started", session_id=response.session_id)
 
 
-@router.post("/tasks/{task_id}/cancel", response_model=Task)
-def cancel_task(task_id: UUID, db: Session = Depends(get_db)):
-    """Cancel a running or pending task's job.
+@router.post("/tasks/{task_id}/resume", response_model=StartSessionResponse)
+async def resume_task_session(task_id: UUID, db: Session = Depends(get_db)):
+    """Resume an existing Claude session.
 
-    Terminates the Claude Code process if running.
+    Opens iTerm tab with `claude --resume <session_id>`.
     """
-    from kanban.jobs import cancel_running_job
-
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # Only allow cancel if job is running or pending
-    if db_task.job_status not in (JobStatus.RUNNING, JobStatus.PENDING):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Can only cancel running or pending jobs. Current status: {db_task.job_status}",
+    if not db_task.session_id:
+        raise HTTPException(status_code=400, detail="No session to resume")
+
+    # Open iTerm tab with resume command
+    from kanban.routers.iterm import OpenTabRequest, open_claude_tab
+
+    await open_claude_tab(
+        OpenTabRequest(
+            task_id=str(task_id),
+            task_title=db_task.title,
+            stage=db_task.stage.value,
+            model=db_task.model.value,
+            resume_session_id=db_task.session_id,
         )
+    )
 
-    # Try to cancel the running job
-    cancelled = cancel_running_job(str(task_id))
+    # Update status
+    db_task.claude_status = ClaudeStatus.RUNNING
+    db_task.started_at = datetime.utcnow()
+    db.commit()
 
-    if not cancelled:
-        # Job may be pending (not yet started) - just update status
-        db_task.job_status = JobStatus.CANCELLED
-        db_task.job_error = "Job cancelled by user"
-        db_task.job_completed_at = datetime.utcnow()
-        db_task.updated_at = datetime.utcnow()
-        db.commit()
-
-    db.refresh(db_task)
-    return task_db_to_model(db_task)
+    return StartSessionResponse(status="resumed", session_id=db_task.session_id)
 
 
 class ImproveRequest(BaseModel):
@@ -358,31 +465,3 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
     db.refresh(db_task)
 
     return task_db_to_model(db_task)
-
-
-@router.get("/config/auto-progression", response_model=StageAutoProgressionConfig)
-def get_auto_progression_config():
-    """Get current auto-progression configuration."""
-    return models.AUTO_PROGRESSION_CONFIG
-
-
-@router.put("/config/auto-progression", response_model=StageAutoProgressionConfig)
-def update_auto_progression_config(config: StageAutoProgressionConfig):
-    """Update auto-progression configuration.
-
-    **Thread Safety Warning**: This operation performs a module-level attribute
-    reassignment which is not atomic. In a multi-threaded environment (FastAPI with
-    multiple workers), concurrent requests may briefly see inconsistent configuration
-    state during the update. This is acceptable for infrequent configuration changes
-    but should not be used for high-frequency updates.
-
-    **Persistence**: Changes are not persisted to disk and will reset on server restart.
-    For permanent configuration, modify the StageAutoProgressionConfig default values
-    in models.py.
-
-    **Validation**: The configuration validates that all stage transitions move forward
-    in the workflow (e.g., IMPLEMENTATION -> REVIEW is valid, but REVIEW -> RESEARCH
-    would be rejected).
-    """
-    models.AUTO_PROGRESSION_CONFIG = config
-    return models.AUTO_PROGRESSION_CONFIG

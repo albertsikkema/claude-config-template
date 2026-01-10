@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class Stage(str, Enum):
@@ -16,7 +16,7 @@ class Stage(str, Enum):
     IMPLEMENTATION = "implementation"
     REVIEW = "review"
     CLEANUP = "cleanup"
-    MERGE = "merge"
+    COMMIT = "commit"
     DONE = "done"
 
 
@@ -28,12 +28,12 @@ class Priority(str, Enum):
     HIGH = "high"
 
 
-class JobStatus(str, Enum):
-    """Background job status."""
+class ClaudeStatus(str, Enum):
+    """Claude session status for interactive terminals."""
 
-    PENDING = "pending"
     RUNNING = "running"
-    COMPLETED = "completed"
+    READY_FOR_REVIEW = "ready_for_review"
+    APPROVED = "approved"
     FAILED = "failed"
     CANCELLED = "cancelled"
 
@@ -75,16 +75,16 @@ class TaskBase(BaseModel):
     order: int = 0
     model: ClaudeModel = ClaudeModel.SONNET  # Default to sonnet
     complexity: WorkflowComplexity = WorkflowComplexity.COMPLETE  # Default to complete
-    # Claude Code integration fields
+    # Artifact paths
     research_path: str | None = Field(default=None, max_length=500)
     plan_path: str | None = Field(default=None, max_length=500)
     review_path: str | None = Field(default=None, max_length=500)
-    job_status: JobStatus | None = None
-    job_output: str | None = None  # Real-time output buffer
-    job_error: str | None = None  # Error message if failed
-    job_started_at: datetime | None = None  # When job started
-    job_completed_at: datetime | None = None  # When job finished
-    session_id: str | None = None  # Claude session ID for resumption
+    # Claude session tracking (replaces job_* fields)
+    claude_status: ClaudeStatus | None = None
+    started_at: datetime | None = None
+    claude_completed_at: datetime | None = None
+    approved_at: datetime | None = None
+    session_id: str | None = None
 
 
 class TaskCreate(TaskBase):
@@ -105,15 +105,15 @@ class TaskUpdate(BaseModel):
     order: int | None = None
     model: ClaudeModel | None = None
     complexity: WorkflowComplexity | None = None
-    # Claude Code integration fields
+    # Artifact paths
     research_path: str | None = Field(default=None, max_length=500)
     plan_path: str | None = Field(default=None, max_length=500)
     review_path: str | None = Field(default=None, max_length=500)
-    job_status: JobStatus | None = None
-    job_output: str | None = None
-    job_error: str | None = None
-    job_started_at: datetime | None = None
-    job_completed_at: datetime | None = None
+    # Claude session tracking
+    claude_status: ClaudeStatus | None = None
+    started_at: datetime | None = None
+    claude_completed_at: datetime | None = None
+    approved_at: datetime | None = None
     session_id: str | None = None
 
 
@@ -179,11 +179,11 @@ STAGES: list[StageInfo] = [
         description="Documenting best practices and removing artifacts",
     ),
     StageInfo(
-        id=Stage.MERGE,
-        name="Merge",
+        id=Stage.COMMIT,
+        name="Commit",
         color="#EC4899",  # pink
-        command=None,
-        description="Creating PR and merging changes",
+        command="/commit",
+        description="Committing changes and creating PR",
     ),
     StageInfo(
         id=Stage.DONE,
@@ -193,73 +193,3 @@ STAGES: list[StageInfo] = [
         description="Completed and shipped",
     ),
 ]
-
-
-class StageAutoProgressionConfig(BaseModel):
-    """Configuration for automatic stage progression.
-
-    Defines which stage transitions should trigger automatic progression
-    to the next stage upon job completion.
-
-    All configured transitions are validated to ensure they move forward
-    in the workflow (e.g., IMPLEMENTATION -> REVIEW is valid, but
-    REVIEW -> IMPLEMENTATION would be rejected).
-    """
-
-    enabled: bool = Field(default=True, description="Global toggle for auto-progression feature")
-
-    stage_transitions: dict[Stage, Stage] = Field(
-        default={
-            Stage.IMPLEMENTATION: Stage.REVIEW,
-            # Potential future transitions (consider implications before enabling):
-            # Stage.REVIEW: Stage.CLEANUP,  # Would skip manual review approval step
-            # Stage.RESEARCH: Stage.PLANNING,  # Would eliminate research review checkpoint
-        },
-        description="Map of stage transitions that auto-progress (from_stage -> to_stage)",
-    )
-
-    default_order: int = Field(
-        default=0, description="Default order/position in target column (0 = top)"
-    )
-
-    @field_validator("stage_transitions")
-    @classmethod
-    def validate_forward_progression(cls, v: dict[Stage, Stage]) -> dict[Stage, Stage]:
-        """Ensure all configured transitions move forward in the workflow.
-
-        Raises:
-            ValueError: If any transition moves backward in the stage order
-        """
-        # Define canonical stage order (from kanban workflow)
-        stage_order = [
-            Stage.BACKLOG,
-            Stage.RESEARCH,
-            Stage.PLANNING,
-            Stage.IMPLEMENTATION,
-            Stage.REVIEW,
-            Stage.CLEANUP,
-            Stage.MERGE,
-            Stage.DONE,
-        ]
-        stage_index = {stage: idx for idx, stage in enumerate(stage_order)}
-
-        for from_stage, to_stage in v.items():
-            from_idx = stage_index.get(from_stage)
-            to_idx = stage_index.get(to_stage)
-
-            if from_idx is None or to_idx is None:
-                raise ValueError(f"Invalid stage in transition: {from_stage} -> {to_stage}")
-
-            if to_idx <= from_idx:
-                valid_order = " -> ".join(s.value for s in stage_order)
-                raise ValueError(
-                    f"Invalid stage transition: {from_stage.value} -> {to_stage.value}. "
-                    f"Auto-progression must move forward in workflow. "
-                    f"Valid progression order: {valid_order}"
-                )
-
-        return v
-
-
-# Global configuration instance
-AUTO_PROGRESSION_CONFIG = StageAutoProgressionConfig()
