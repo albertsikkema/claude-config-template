@@ -285,13 +285,20 @@ def get_prompt_for_stage(stage: Stage, task: TaskDB) -> str:
         # Fallback if no research doc
         return f"/create_plan {context}"
     elif stage == Stage.IMPLEMENTATION:
-        if not task.plan_path:
-            raise ValueError("Cannot start implementation without a plan")
-        return f"/implement_plan {task.plan_path}"
+        if task.plan_path:
+            # If we have a plan, use it
+            return f"/implement_plan {task.plan_path}"
+        else:
+            # No plan - provide task context for direct implementation
+            logger.warning(f"Task {task.id} moved to implementation without a plan")
+            return f"{context}\n\nPlease implement the above task."
     elif stage == Stage.REVIEW:
-        if not task.plan_path:
-            raise ValueError("Cannot start review without a plan")
-        return f"/code_reviewer {task.plan_path}"
+        if task.plan_path:
+            return f"/code_reviewer {task.plan_path}"
+        else:
+            # No plan - do general code review
+            logger.warning(f"Task {task.id} moved to review without a plan")
+            return f"/code_reviewer\n\n{context}"
     elif stage == Stage.CLEANUP:
         if task.plan_path:
             # Include research and review paths if available
@@ -324,14 +331,20 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
 
     Opens an iTerm tab and updates task status to running.
     """
+    logger.info(f"Starting Claude session for task: {task_id}")
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
+        logger.error(f"Task not found: {task_id}")
         raise HTTPException(status_code=404, detail="Task not found")
+
+    logger.info(f"Task details: stage={db_task.stage}, repo_id={db_task.repo_id}")
 
     # Get appropriate prompt based on stage
     try:
         prompt = get_prompt_for_stage(db_task.stage, db_task)
+        logger.debug(f"Generated prompt for stage {db_task.stage}")
     except ValueError as e:
+        logger.error(f"Failed to generate prompt: {e}")
         raise HTTPException(status_code=400, detail=str(e)) from e
 
     # Determine model - some stages require sonnet regardless of task preference
@@ -342,19 +355,27 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
     else:
         model = db_task.model
 
+    logger.info(f"Using model: {model.value}")
+
     # Open iTerm tab
     from kanban.routers.iterm import OpenTabRequest, open_claude_tab
 
-    response = await open_claude_tab(
-        OpenTabRequest(
-            task_id=str(task_id),
-            task_title=db_task.title,
-            prompt=prompt,
-            stage=db_task.stage.value,
-            model=model.value,
-            repo_id=db_task.repo_id,
+    logger.info(f"Opening iTerm tab for task {task_id}")
+    try:
+        response = await open_claude_tab(
+            OpenTabRequest(
+                task_id=str(task_id),
+                task_title=db_task.title,
+                prompt=prompt,
+                stage=db_task.stage.value,
+                model=model.value,
+                repo_id=db_task.repo_id,
+            )
         )
-    )
+        logger.info(f"iTerm tab opened successfully: session_id={response.session_id}")
+    except Exception as e:
+        logger.error(f"Failed to open iTerm tab: {e}", exc_info=True)
+        raise
 
     # Update task
     db_task.claude_status = ClaudeStatus.RUNNING
@@ -362,6 +383,7 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
     db_task.session_id = response.session_id
     db.commit()
 
+    logger.info(f"Task {task_id} updated with session_id: {response.session_id}")
     return StartSessionResponse(status="started", session_id=response.session_id)
 
 

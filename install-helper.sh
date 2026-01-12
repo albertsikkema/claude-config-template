@@ -298,10 +298,32 @@ main() {
             done
         fi
 
+        # Install settings.json (with hooks) if not exists
+        if [ -f "$SCRIPT_DIR/.claude/settings.json" ]; then
+            if [ ! -f "$TARGET_DIR/.claude/settings.json" ]; then
+                print_message "$BLUE" "Installing settings.json (with hooks)..."
+                install_item "$SCRIPT_DIR/.claude/settings.json" "$TARGET_DIR/.claude/settings.json" "settings.json"
+            else
+                print_message "$YELLOW" "  ⊘ settings.json already exists, skipping"
+            fi
+        fi
+
         # Install settings.local.json (always overwrite)
         if [ -f "$SCRIPT_DIR/.claude/settings.local.json" ]; then
-            print_message "$BLUE" "Installing settings..."
+            print_message "$BLUE" "Installing settings.local.json..."
             install_item "$SCRIPT_DIR/.claude/settings.local.json" "$TARGET_DIR/.claude/settings.local.json" "settings.local.json"
+        fi
+
+        # Install hooks directory
+        if [ -d "$SCRIPT_DIR/.claude/hooks" ]; then
+            print_message "$BLUE" "Installing hooks..."
+            if [ "$DRY_RUN" != true ]; then
+                mkdir -p "$TARGET_DIR/.claude/hooks"
+                cp -r "$SCRIPT_DIR/.claude/hooks"/* "$TARGET_DIR/.claude/hooks/"
+                # Make hook scripts executable
+                chmod +x "$TARGET_DIR/.claude/hooks"/*.py 2>/dev/null || true
+            fi
+            print_message "$GREEN" "  ✓ Installed hooks directory"
         fi
 
         # Install .gitkeep files
