@@ -51,13 +51,9 @@ MAX_TAG_LENGTH = 50
 class OpenAIKeyNotConfiguredError(Exception):
     """Raised when OPENAI_API_KEY is not set."""
 
-    pass
-
 
 class AIServiceError(Exception):
     """Raised when the AI service fails (rate limits, API errors, etc.)."""
-
-    pass
 
 
 # Project root for reading context files
@@ -175,12 +171,17 @@ async def improve_task_content(title: str, description: str | None) -> ImprovedT
     Raises:
         OpenAIKeyNotConfiguredError: If OPENAI_API_KEY is not set
     """
-    # Check for API key
-    if not os.environ.get("OPENAI_API_KEY"):
+    # Check for API key - first try database, then environment variable
+    from kanban.routers.settings import SETTING_OPENAI_API_KEY, retrieve_setting
+
+    api_key = retrieve_setting(SETTING_OPENAI_API_KEY) or os.environ.get("OPENAI_API_KEY")
+    if not api_key:
         raise OpenAIKeyNotConfiguredError(
-            "OPENAI_API_KEY environment variable is not set. "
-            "Add it to your .env file to use AI features."
+            "OpenAI API key is not configured. "
+            "Add it in Settings > API Keys or set OPENAI_API_KEY environment variable."
         )
+    # Set the key in environment for PydanticAI to use
+    os.environ["OPENAI_API_KEY"] = api_key
 
     # Get project context
     context = get_context()

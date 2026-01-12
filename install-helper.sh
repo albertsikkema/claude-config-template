@@ -17,6 +17,7 @@ INSTALL_THOUGHTS=true
 FORCE_INSTALL=false
 DRY_RUN=false
 TARGET_DIR="."
+GLOBAL_APP_MODE=false
 
 # Version
 VERSION="1.0.0"
@@ -33,6 +34,7 @@ OPTIONS:
     --thoughts-only     Install only thoughts/ structure
     --force, -f         Force overwrite existing files without prompting
     --dry-run           Show what would be installed without making changes
+    --global-app        Skip claude-flow/ and .env.claude (for global app installs)
     --help, -h          Show this help message
     --version, -v       Show version information
 
@@ -75,6 +77,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=true
+            shift
+            ;;
+        --global-app)
+            GLOBAL_APP_MODE=true
             shift
             ;;
         --help|-h)
@@ -345,14 +351,46 @@ main() {
     if [ "$INSTALL_CLAUDE" = true ]; then
         if [ -d "$SCRIPT_DIR/claude-helpers" ]; then
             print_header "Installing claude-helpers/"
-            print_message "$BLUE" "Copying claude-helpers/ directory..."
-            if [ "$DRY_RUN" != true ]; then
-                cp -r "$SCRIPT_DIR/claude-helpers" "$TARGET_DIR/"
-            fi
-            print_message "$GREEN" "  ✓ Copied claude-helpers/ directory"
 
-            # Create .env.claude from example if it doesn't exist
-            if [ -f "$SCRIPT_DIR/claude-helpers/.env.claude.example" ]; then
+            # Copy claude-helpers directory
+            print_message "$BLUE" "Copying claude-helpers/ scripts..."
+            if [ "$DRY_RUN" != true ]; then
+                mkdir -p "$TARGET_DIR/claude-helpers"
+                for item in "$SCRIPT_DIR/claude-helpers"/*; do
+                    local item_name=$(basename "$item")
+                    # Skip claude-flow entirely in global app mode
+                    if [ "$GLOBAL_APP_MODE" = true ] && [ "$item_name" = "claude-flow" ]; then
+                        print_message "$YELLOW" "  ⊘ Skipping claude-flow/ (global app mode)"
+                        continue
+                    fi
+                    # In normal mode, skip claude-flow source (only install the app)
+                    if [ "$item_name" = "claude-flow" ]; then
+                        continue
+                    fi
+                    cp -r "$item" "$TARGET_DIR/claude-helpers/"
+                done
+            fi
+            print_message "$GREEN" "  ✓ Copied helper scripts"
+
+            # Install Claude Flow desktop app only in non-global mode
+            if [ "$GLOBAL_APP_MODE" != true ]; then
+                if [ -d "$SCRIPT_DIR/claude-helpers/claude-flow/dist/Claude Flow.app" ]; then
+                    print_message "$BLUE" "Installing Claude Flow desktop app..."
+                    if [ "$DRY_RUN" != true ]; then
+                        mkdir -p "$TARGET_DIR/claude-helpers/claude-flow/dist"
+                        cp -r "$SCRIPT_DIR/claude-helpers/claude-flow/dist/Claude Flow.app" "$TARGET_DIR/claude-helpers/claude-flow/dist/"
+                    fi
+                    print_message "$GREEN" "  ✓ Installed Claude Flow.app"
+                else
+                    print_message "$YELLOW" "  ⚠ Claude Flow desktop app not found in dist/"
+                    print_message "$YELLOW" "    Build it first: cd claude-helpers/claude-flow && make build-app"
+                fi
+            fi
+
+            # Handle .env.claude
+            if [ "$GLOBAL_APP_MODE" = true ]; then
+                print_message "$YELLOW" "  ⊘ Skipping .env.claude (global app mode - use Settings UI)"
+            elif [ -f "$SCRIPT_DIR/claude-helpers/.env.claude.example" ]; then
                 if [ ! -f "$TARGET_DIR/.env.claude" ]; then
                     if [ "$DRY_RUN" = true ]; then
                         print_message "$GREEN" "  [DRY RUN] Would create .env.claude from example"
@@ -364,31 +402,17 @@ main() {
                     print_message "$YELLOW" "  ⊘ .env.claude already exists, skipping"
                 fi
             fi
+        fi
+    fi
 
-            # Clone claude-flow-board frontend if claude-flow exists and frontend doesn't
-            if [ -d "$TARGET_DIR/claude-helpers/claude-flow" ]; then
-                local frontend_dir="$TARGET_DIR/claude-helpers/claude-flow/claude-flow-board"
-                if [ ! -d "$frontend_dir" ]; then
-                    print_message "$BLUE" "Cloning claude-flow-board frontend..."
-                    if [ "$DRY_RUN" = true ]; then
-                        print_message "$GREEN" "  [DRY RUN] Would clone claude-flow-board from GitHub"
-                    else
-                        if command -v git &> /dev/null; then
-                            if git clone --quiet https://github.com/albertsikkema/claude-flow-board.git "$frontend_dir" 2>/dev/null; then
-                                print_message "$GREEN" "  ✓ Cloned claude-flow-board frontend"
-                            else
-                                print_message "$YELLOW" "  ⚠ Could not clone frontend (repo may be private or network issue)"
-                                print_message "$YELLOW" "    Clone manually: git clone https://github.com/albertsikkema/claude-flow-board.git $frontend_dir"
-                            fi
-                        else
-                            print_message "$YELLOW" "  ⚠ git not found, skipping frontend clone"
-                            print_message "$YELLOW" "    Clone manually: git clone https://github.com/albertsikkema/claude-flow-board.git $frontend_dir"
-                        fi
-                    fi
-                else
-                    print_message "$YELLOW" "  ⊘ claude-flow-board already exists, skipping"
-                fi
+    # Install VERSION file
+    if [ "$INSTALL_CLAUDE" = true ]; then
+        if [ -f "$SCRIPT_DIR/.claude/VERSION" ]; then
+            print_message "$BLUE" "Installing VERSION file..."
+            if [ "$DRY_RUN" != true ]; then
+                cp "$SCRIPT_DIR/.claude/VERSION" "$TARGET_DIR/.claude/VERSION"
             fi
+            print_message "$GREEN" "  ✓ Installed VERSION file"
         fi
     fi
 
@@ -426,10 +450,15 @@ main() {
         if [ -d "$TARGET_DIR/claude-helpers/claude-flow" ]; then
             echo ""
             print_message "$BLUE" "Claude Flow (Kanban Board):"
-            echo "  Run: ./claude-helpers/claude-flow/start-claude-flow.sh"
-            echo "  Or manually:"
-            echo "    Backend:  cd claude-helpers/claude-flow && make run"
-            echo "    Frontend: cd claude-helpers/claude-flow/claude-flow-board && npm run dev"
+            if [ -d "$TARGET_DIR/claude-helpers/claude-flow/dist/Claude Flow.app" ]; then
+                echo "  Desktop App: Double-click claude-helpers/claude-flow/dist/Claude Flow.app"
+                echo "  Or run: open 'claude-helpers/claude-flow/dist/Claude Flow.app'"
+            else
+                echo "  Run: cd claude-helpers/claude-flow && make desktop"
+                echo "  Or manually:"
+                echo "    Backend:  cd claude-helpers/claude-flow && make run"
+                echo "    Frontend: cd claude-helpers/claude-flow/claude-flow-board && npm run dev"
+            fi
         fi
 
         echo ""

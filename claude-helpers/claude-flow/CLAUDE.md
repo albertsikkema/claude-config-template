@@ -1,50 +1,56 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with this codebase.
+Guidance for Claude Code when working with this codebase.
 
 ## Project Overview
 
-Claude Workflow Kanban - A FastAPI backend with React frontend for managing Claude Code workflow tasks through a Kanban board interface.
+Claude Flow - FastAPI backend with React frontend for Kanban-style workflow management. Runs as a per-repo PyWebView desktop application.
 
-## Development Commands
+## Commands
 
 ```bash
-# Install dependencies
-uv sync
-
-# Run the server
-uv run uvicorn kanban.main:app --reload --port 9118
-
-# API docs at http://localhost:9118/docs
+make desktop      # Launch desktop app with full HMR
+make build-app    # Create standalone executable
+make dev          # Backend + frontend in separate processes
+make test         # Run tests
+make lint         # Lint and format
 ```
 
-## Codebase Overview Files
+## Key Files
 
-This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
+| File | Purpose |
+|------|---------|
+| `desktop_app.py` | PyWebView launcher, port allocation, repo detection |
+| `finder-env-wrapper.sh` | macOS Finder environment setup (baked into .app) |
+| `claude-flow.spec` | PyInstaller build configuration |
+| `src/kanban/main.py` | FastAPI app, routes, static file serving |
+| `src/kanban/database.py` | SQLAlchemy models and DB path handling |
 
-### Available Index Files
-- `codebase_overview_claude-flow_py.md` - Python backend overview (FastAPI, routers, models, jobs)
-- `codebase_overview_claude-flow-board_js_ts.md` - TypeScript/React frontend overview
-- `openapi.json` - FastAPI OpenAPI schema
+## Desktop App Patterns
 
-### What These Files Contain
-Each overview file provides a comprehensive map of the codebase including:
-- **Complete file tree** of the scanned directory
-- **All classes and functions** with descriptions
-- **Full function signatures**: input parameters, return types, and expected outputs
-- **Call relationships**: where each function/class is called from (caller information)
-
-### Why These Files Matter
-These files are essential for:
-- **Fast navigation**: Instantly find where code lives without extensive searching
-- **Understanding structure**: See the complete architecture and organization
-- **Analyzing relationships**: Understand how components interact and depend on each other
-- **Code analysis**: Get function signatures and contracts without reading implementation
-
-### Regenerating Indexes
-To regenerate the codebase overview files, run:
-```bash
-/index_codebase
+**Frozen mode detection** - PyInstaller extracts to temp dir:
+```python
+if getattr(sys, "frozen", False):
+    bundle_dir = Path(sys._MEIPASS)  # Extracted bundle
+    project_root = Path.cwd()         # Set by wrapper script
 ```
 
-The indexer will automatically detect your project type and generate appropriate overview files.
+**Pydantic plugins** - Must disable before imports in frozen mode:
+```python
+if getattr(sys, "frozen", False):
+    os.environ["PYDANTIC_DISABLE_PLUGINS"] = "1"
+```
+
+**Database path** - Store in repo, not bundle:
+```python
+if getattr(sys, "frozen", False):
+    db_path = Path.cwd() / "claude-helpers/claude-flow/data/kanban.db"
+```
+
+## Codebase Indexes
+
+Generated overviews in parent `thoughts/codebase/`:
+- `codebase_overview_claude-flow_py.md` - Python backend
+- `codebase_overview_claude-flow-board_js_ts.md` - React frontend
+
+Regenerate with `/index_codebase`.

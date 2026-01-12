@@ -1,18 +1,49 @@
 """Database configuration using SQLAlchemy with SQLite."""
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
-from sqlalchemy import Column, DateTime, Enum, Integer, String, Text, create_engine
+from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from kanban.models import ClaudeModel, ClaudeStatus, Priority, Stage, WorkflowComplexity
 
-# Database file location
-DB_PATH = Path(__file__).parent.parent.parent / "data" / "kanban.db"
-DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+def get_global_app_dir() -> Path:
+    """Get the global application data directory.
+
+    Returns:
+        Path: Global app support directory for claude-flow
+    """
+    if sys.platform == "darwin":
+        app_support = Path.home() / "Library" / "Application Support" / "claude-flow"
+    elif sys.platform == "win32":
+        app_support = Path.home() / "AppData" / "Local" / "claude-flow"
+    else:
+        # Linux and others - use XDG standard
+        xdg_data = Path.home() / ".local" / "share"
+        app_support = xdg_data / "claude-flow"
+
+    app_support.mkdir(parents=True, exist_ok=True)
+    return app_support
+
+
+def get_db_path() -> Path:
+    """Get database path - always in global app directory.
+
+    Returns:
+        Path: Database file path in global location
+    """
+    app_dir = get_global_app_dir()
+    db_path = app_dir / "kanban.db"
+    return db_path
+
+
+# Database file location (global for all repos)
+DB_PATH = get_db_path()
 
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
@@ -27,12 +58,46 @@ class Base(DeclarativeBase):
     pass
 
 
+class SettingDB(Base):
+    """SQLAlchemy model for application settings (key-value store)."""
+
+    __tablename__ = "settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class RepoDB(Base):
+    """SQLAlchemy model for registered repositories."""
+
+    __tablename__ = "repos"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    # repo_id is the absolute path to the repository root
+    repo_id = Column(String(500), nullable=False, unique=True, index=True)
+    # Display name (extracted from git remote or directory name)
+    name = Column(String(200), nullable=True)
+    # Whether this repo is active (can be hidden but tasks preserved)
+    active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Template tracking fields
+    template_status = Column(
+        String(50), default="not_installed"
+    )  # not_installed, installing, installed, failed
+    template_version = Column(String(50), nullable=True)  # e.g., "1.0.0"
+    template_installed_at = Column(DateTime, nullable=True)
+
+
 class TaskDB(Base):
     """SQLAlchemy model for tasks."""
 
     __tablename__ = "tasks"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    # Repository this task belongs to (absolute path)
+    repo_id = Column(String(500), nullable=False, index=True)
     title = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
     stage = Column(Enum(Stage), default=Stage.BACKLOG, nullable=False)
@@ -50,7 +115,7 @@ class TaskDB(Base):
     research_path = Column(String(500), nullable=True)
     plan_path = Column(String(500), nullable=True)
     review_path = Column(String(500), nullable=True)
-    # Claude session tracking (NEW)
+    # Claude session tracking
     claude_status = Column(Enum(ClaudeStatus), nullable=True)
     started_at = Column(DateTime, nullable=True)
     claude_completed_at = Column(DateTime, nullable=True)
@@ -78,41 +143,46 @@ def get_db():
 def init_db():
     """Initialize database tables."""
     Base.metadata.create_all(bind=engine)
+    # Run migrations for existing databases
+    migrate_db()
+
+
+def migrate_db():
+    """Run database migrations for schema changes.
+
+    Adds missing columns to existing tables. SQLite requires
+    ALTER TABLE ADD COLUMN for each new column.
+    """
+    import sqlite3
+
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    # Check existing columns in repos table
+    cursor.execute("PRAGMA table_info(repos)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+
+    # Add template tracking columns if missing
+    migrations = [
+        ("template_status", "VARCHAR(50) DEFAULT 'not_installed'"),
+        ("template_version", "VARCHAR(50)"),
+        ("template_installed_at", "DATETIME"),
+    ]
+
+    for column_name, column_def in migrations:
+        if column_name not in existing_columns:
+            try:
+                cursor.execute(f"ALTER TABLE repos ADD COLUMN {column_name} {column_def}")
+                print(f"Added column {column_name} to repos table")
+            except sqlite3.OperationalError as e:
+                # Column might already exist
+                print(f"Migration note: {e}")
+
+    conn.commit()
+    conn.close()
 
 
 def seed_db():
-    """Add initial sample tasks if database is empty."""
-    db = SessionLocal()
-    try:
-        if db.query(TaskDB).count() == 0:
-            sample_tasks = [
-                TaskDB(
-                    title="Add user authentication",
-                    description="Implement OAuth2 login flow with JWT tokens",
-                    stage=Stage.BACKLOG,
-                    priority=Priority.HIGH,
-                    tags_json=json.dumps(["feature", "auth"]),
-                    order=0,
-                ),
-                TaskDB(
-                    title="Refactor database layer",
-                    description="Migrate from raw SQL to SQLAlchemy ORM",
-                    stage=Stage.RESEARCH,
-                    priority=Priority.MEDIUM,
-                    tags_json=json.dumps(["refactor"]),
-                    order=0,
-                ),
-                TaskDB(
-                    title="Fix login timeout bug",
-                    description="Users are logged out after 5 minutes instead of 30",
-                    stage=Stage.PLANNING,
-                    priority=Priority.HIGH,
-                    tags_json=json.dumps(["bugfix"]),
-                    ticket_id="BUG-456",
-                    order=0,
-                ),
-            ]
-            db.add_all(sample_tasks)
-            db.commit()
-    finally:
-        db.close()
+    """No longer seeds sample data - users create their own tasks."""
+    # Removed sample task seeding as global app needs repo context
+    pass

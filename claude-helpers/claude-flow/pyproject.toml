@@ -12,6 +12,7 @@ dependencies = [
     "python-multipart>=0.0.18",
     "pydantic-ai>=0.0.30",
     "python-dotenv>=1.0.0",
+    "pywebview>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +20,9 @@ dev = [
     "ruff>=0.8.0",
     "pytest>=8.0.0",
     "httpx>=0.28.0",
+]
+build = [
+    "pyinstaller>=6.0.0",
 ]
 
 [tool.ruff]

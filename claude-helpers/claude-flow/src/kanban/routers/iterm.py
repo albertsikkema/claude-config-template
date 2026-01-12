@@ -3,18 +3,26 @@
 import logging
 import re
 import subprocess
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from kanban.utils import PROJECT_ROOT
-
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/iterm", tags=["iterm"])
 
-# Path to the launch script (in claude-helpers/ directory)
-LAUNCH_SCRIPT = PROJECT_ROOT / "claude-helpers" / "launch-claude-tab.sh"
+
+def get_launch_script_path(repo_path: str) -> Path:
+    """Get path to launch script in the given repository.
+
+    Args:
+        repo_path: Absolute path to the repository root
+
+    Returns:
+        Path to the launch-claude-tab.sh script
+    """
+    return Path(repo_path) / "claude-helpers" / "launch-claude-tab.sh"
 
 
 class OpenTabRequest(BaseModel):
@@ -26,6 +34,7 @@ class OpenTabRequest(BaseModel):
     stage: str = Field(default="default", description="Stage for color coding")
     model: str = Field(default="sonnet", description="Claude model to use")
     resume_session_id: str | None = Field(default=None, description="Session ID to resume")
+    repo_id: str = Field(..., min_length=1, max_length=500, description="Repository path")
 
 
 class OpenTabResponse(BaseModel):
@@ -75,8 +84,17 @@ async def open_claude_tab(request: OpenTabRequest) -> OpenTabResponse:
 
     # Build the shell command that calls our launch script
     # The script handles title, color, cd, clear, and exec
-    script_path = str(LAUNCH_SCRIPT)
-    project_dir = str(PROJECT_ROOT)
+    # Use the task's repo_id to find the launch script
+    launch_script = get_launch_script_path(request.repo_id)
+    if not launch_script.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Launch script not found at {launch_script}. "
+            "Ensure claude-helpers is installed in this repository.",
+        )
+
+    script_path = str(launch_script)
+    project_dir = request.repo_id
 
     # Full command to run in the terminal (script handles quoting internally)
     resume_id = request.resume_session_id or ""

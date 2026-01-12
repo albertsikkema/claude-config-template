@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+env/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+
+# Database
+*.db
+data/
+
+# Logs
+logs/
+*.log
+
+# Port file
+.claude-flow.port
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ruff
+.ruff_cache/
+
+# Frontend
+claude-flow-board/node_modules/
+claude-flow-board/dist/
+claude-flow-board/.vite/
+
+# Environment
+.env
+.env.local

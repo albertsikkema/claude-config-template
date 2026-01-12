@@ -90,7 +90,8 @@ class TaskBase(BaseModel):
 class TaskCreate(TaskBase):
     """Properties for creating a new task."""
 
-    pass
+    # repo_id is required when creating a task
+    repo_id: str = Field(..., min_length=1, max_length=500)
 
 
 class TaskUpdate(BaseModel):
@@ -128,6 +129,32 @@ class Task(TaskBase):
     """Full task model with system fields."""
 
     id: UUID = Field(default_factory=uuid4)
+    repo_id: str = Field(..., min_length=1, max_length=500)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    model_config = {"from_attributes": True}
+
+
+class RepoBase(BaseModel):
+    """Base repo properties."""
+
+    repo_id: str = Field(..., min_length=1, max_length=500)
+    name: str | None = Field(default=None, max_length=200)
+
+
+class RepoCreate(RepoBase):
+    """Properties for registering a new repo."""
+
+    pass
+
+
+class Repo(RepoBase):
+    """Full repo model with system fields."""
+
+    id: UUID = Field(default_factory=uuid4)
+    active: bool = True
+    task_count: int = 0  # Populated by query
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 

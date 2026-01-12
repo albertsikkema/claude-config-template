@@ -1,10 +1,11 @@
 """Task management endpoints."""
 
+import logging
 from datetime import datetime
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -20,9 +21,10 @@ from kanban.models import (
     TaskUpdate,
 )
 
-# Project root for reading document files
-# tasks.py -> routers -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT
-PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent.parent
+logger = logging.getLogger(__name__)
+
+# Project root is now dynamic - passed via repo_id
+# This is used for reading document files relative to repo
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 
@@ -31,6 +33,7 @@ def task_db_to_model(db_task: TaskDB) -> Task:
     """Convert database model to Pydantic model."""
     return Task(
         id=UUID(db_task.id),
+        repo_id=db_task.repo_id,
         title=db_task.title,
         description=db_task.description,
         stage=db_task.stage,
@@ -60,9 +63,15 @@ def get_stages():
 
 
 @router.get("/tasks", response_model=list[Task])
-def get_tasks(db: Session = Depends(get_db)):
-    """Get all tasks."""
-    tasks = db.query(TaskDB).order_by(TaskDB.stage, TaskDB.order, TaskDB.created_at).all()
+def get_tasks(
+    repo_id: str | None = Query(None, description="Filter tasks by repository path"),
+    db: Session = Depends(get_db),
+):
+    """Get tasks, optionally filtered by repo_id."""
+    query = db.query(TaskDB)
+    if repo_id:
+        query = query.filter(TaskDB.repo_id == repo_id)
+    tasks = query.order_by(TaskDB.stage, TaskDB.order, TaskDB.created_at).all()
     return [task_db_to_model(t) for t in tasks]
 
 
@@ -70,6 +79,7 @@ def get_tasks(db: Session = Depends(get_db)):
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     """Create a new task."""
     db_task = TaskDB(
+        repo_id=task.repo_id,
         title=task.title,
         description=task.description,
         stage=task.stage,
@@ -161,10 +171,12 @@ def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)):
     # If moving to DONE, clean up ephemeral files
     if move.stage == Stage.DONE:
         completed = True
+        # Use the task's repo_id as the project root
+        project_root = Path(db_task.repo_id)
         ephemeral_paths = [db_task.plan_path, db_task.research_path, db_task.review_path]
         for rel_path in ephemeral_paths:
             if rel_path:
-                full_path = PROJECT_ROOT / rel_path
+                full_path = project_root / rel_path
                 if full_path.exists():
                     try:
                         full_path.unlink()
@@ -219,7 +231,9 @@ def get_task_document(task_id: UUID, db: Session = Depends(get_db)):
     if not doc_path:
         raise HTTPException(status_code=404, detail="No document available for this task")
 
-    full_path = PROJECT_ROOT / doc_path
+    # Use the task's repo_id as the project root
+    project_root = Path(db_task.repo_id)
+    full_path = project_root / doc_path
     if not full_path.exists():
         raise HTTPException(status_code=404, detail=f"Document not found: {doc_path}")
 
@@ -318,10 +332,11 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
     try:
         prompt = get_prompt_for_stage(db_task.stage, db_task)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     # Determine model - some stages require sonnet regardless of task preference
     from kanban.models import ClaudeModel
+
     if db_task.stage in (Stage.REVIEW, Stage.CLEANUP, Stage.COMMIT):
         model = ClaudeModel.SONNET
     else:
@@ -337,6 +352,7 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
             prompt=prompt,
             stage=db_task.stage.value,
             model=model.value,
+            repo_id=db_task.repo_id,
         )
     )
 
@@ -372,6 +388,7 @@ async def resume_task_session(task_id: UUID, db: Session = Depends(get_db)):
             stage=db_task.stage.value,
             model=db_task.model.value,
             resume_session_id=db_task.session_id,
+            repo_id=db_task.repo_id,
         )
     )
 
@@ -454,6 +471,12 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503,
             detail={"error": "ai_service_unavailable", "message": str(e)},
+        ) from e
+    except Exception as e:
+        logger.exception("Unexpected error in improve_task_endpoint")
+        raise HTTPException(
+            status_code=500,
+            detail={"error": "unexpected_error", "message": str(e)},
         ) from e
 
     # Update task with improved values

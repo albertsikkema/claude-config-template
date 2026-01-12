@@ -6,11 +6,31 @@ from datetime import datetime
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from kanban.database import SessionLocal, TaskDB
+from kanban.database import RepoDB, SessionLocal, TaskDB
 from kanban.models import ClaudeStatus
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/hooks", tags=["hooks"])
+
+
+def ensure_repo_registered(db, repo_id: str) -> None:
+    """Ensure a repo is registered when hooks are called.
+
+    This auto-registers repos when they first interact with the API via hooks.
+    """
+    if not repo_id:
+        return
+
+    existing = db.query(RepoDB).filter(RepoDB.repo_id == repo_id).first()
+    if not existing:
+        # Auto-register the repo
+        from kanban.routers.repos import get_repo_name_from_path
+
+        name = get_repo_name_from_path(repo_id)
+        db_repo = RepoDB(repo_id=repo_id, name=name, active=True)
+        db.add(db_repo)
+        db.commit()
+        logger.info(f"Auto-registered repository from hook: {repo_id}")
 
 
 class SessionEndRequest(BaseModel):
@@ -18,6 +38,7 @@ class SessionEndRequest(BaseModel):
 
     session_id: str = Field(..., min_length=1, max_length=100)
     exit_code: int = Field(default=0)
+    repo_id: str | None = Field(default=None, max_length=500)
 
 
 class ArtifactCreatedRequest(BaseModel):
@@ -26,6 +47,7 @@ class ArtifactCreatedRequest(BaseModel):
     file_path: str = Field(..., min_length=1, max_length=500)
     task_id: str | None = Field(default=None, max_length=100)
     session_id: str | None = Field(default=None, max_length=100)
+    repo_id: str | None = Field(default=None, max_length=500)
 
 
 class StopRequest(BaseModel):
@@ -33,6 +55,7 @@ class StopRequest(BaseModel):
 
     task_id: str | None = Field(default=None, max_length=100)
     session_id: str | None = Field(default=None, max_length=100)
+    repo_id: str | None = Field(default=None, max_length=500)
 
 
 @router.post("/session-end")
@@ -44,8 +67,15 @@ async def handle_session_end(request: SessionEndRequest):
     """
     db = SessionLocal()
     try:
-        # Find task by session_id
-        task = db.query(TaskDB).filter(TaskDB.session_id == request.session_id).first()
+        # Auto-register repo if provided
+        if request.repo_id:
+            ensure_repo_registered(db, request.repo_id)
+
+        # Find task by session_id (optionally filtered by repo_id for extra safety)
+        query = db.query(TaskDB).filter(TaskDB.session_id == request.session_id)
+        if request.repo_id:
+            query = query.filter(TaskDB.repo_id == request.repo_id)
+        task = query.first()
 
         if not task:
             logger.warning(f"No task found for session_id: {request.session_id}")
@@ -85,6 +115,11 @@ async def handle_artifact_created(request: ArtifactCreatedRequest):
     """
     db = SessionLocal()
     try:
+        # Auto-register repo if provided
+        repo_id = request.repo_id if request.repo_id else None
+        if repo_id:
+            ensure_repo_registered(db, repo_id)
+
         # Normalize empty strings to None
         task_id = request.task_id if request.task_id else None
         session_id = request.session_id if request.session_id else None
@@ -92,9 +127,15 @@ async def handle_artifact_created(request: ArtifactCreatedRequest):
         # Find task by task_id (preferred) or session_id
         task = None
         if task_id:
-            task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+            query = db.query(TaskDB).filter(TaskDB.id == task_id)
+            if repo_id:
+                query = query.filter(TaskDB.repo_id == repo_id)
+            task = query.first()
         if not task and session_id:
-            task = db.query(TaskDB).filter(TaskDB.session_id == session_id).first()
+            query = db.query(TaskDB).filter(TaskDB.session_id == session_id)
+            if repo_id:
+                query = query.filter(TaskDB.repo_id == repo_id)
+            task = query.first()
 
         if not task:
             logger.warning(
@@ -143,6 +184,11 @@ async def handle_stop(request: StopRequest):
     """
     db = SessionLocal()
     try:
+        # Auto-register repo if provided
+        repo_id = request.repo_id if request.repo_id else None
+        if repo_id:
+            ensure_repo_registered(db, repo_id)
+
         # Normalize empty strings to None
         task_id = request.task_id if request.task_id else None
         session_id = request.session_id if request.session_id else None
@@ -150,9 +196,15 @@ async def handle_stop(request: StopRequest):
         # Find task by task_id (preferred) or session_id
         task = None
         if task_id:
-            task = db.query(TaskDB).filter(TaskDB.id == task_id).first()
+            query = db.query(TaskDB).filter(TaskDB.id == task_id)
+            if repo_id:
+                query = query.filter(TaskDB.repo_id == repo_id)
+            task = query.first()
         if not task and session_id:
-            task = db.query(TaskDB).filter(TaskDB.session_id == session_id).first()
+            query = db.query(TaskDB).filter(TaskDB.session_id == session_id)
+            if repo_id:
+                query = query.filter(TaskDB.repo_id == repo_id)
+            task = query.first()
 
         if not task:
             return {"status": "not_found"}

@@ -36,14 +36,22 @@ uv run claude-helpers/orchestrator.py "Add user authentication"
 uv run claude-helpers/orchestrator.py --no-implement "Refactor database"  # Stop after planning
 ```
 
-### Claude-Flow Backend (subproject)
+### Claude-Flow (subproject)
 
 ```bash
 cd claude-helpers/claude-flow
-make dev       # Start development server
+
+# Desktop app (recommended - single window, no ports to manage)
+make desktop   # Build frontend + launch desktop app
+make build-app # Create standalone executable for distribution
+
+# Development mode (split terminal setup)
+make dev       # Start development server (backend only)
 make test      # Run tests
 make lint      # Run linting
 ```
+
+See [claude-helpers/claude-flow/README.md](claude-helpers/claude-flow/README.md) for details.
 
 ## Directory Structure
 
@@ -146,9 +154,25 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 - Commands: plain markdown with instructions
 - Both read by Claude Code at runtime
 
-## Claude-Flow Backend Patterns
+## Claude-Flow Architecture
 
 The `claude-helpers/claude-flow/` subproject implements these patterns:
+
+### Desktop App (Per-Repo PyWebView)
+Claude-Flow runs as a **per-repo desktop application** using PyWebView:
+- **Lightweight**: Uses system WebView (~10MB vs Electron's ~100MB)
+- **Per-Repo Isolation**: Each repo gets its own app instance with dedicated port
+- **Dynamic Port Allocation**: Automatically finds available port, saves to `.claude-flow.port`
+- **Integrated Stack**: FastAPI serves both API routes and built React frontend
+- **No Node Runtime**: Frontend pre-built to `claude-flow-board/dist/`, served as static files
+
+**Launch**: `cd claude-helpers/claude-flow && make desktop`
+
+Architecture benefits:
+- Clean hook integration (each instance scoped to one repo)
+- No port conflicts across multiple repos
+- Simpler state management (no global state)
+- Single window UX instead of split terminal setup
 
 ### Fire-and-Forget API Pattern
 For background operations without progress tracking:

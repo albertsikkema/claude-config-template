@@ -34,6 +34,9 @@ is_port_available() {
 }
 
 # Find available port pair (frontend, backend)
+# NOTE: This sequential port searching is largely redundant now.
+# Prefer `make desktop` which runs the desktop app with full HMR in a single window.
+# This script is kept for cases where you need separate terminal processes.
 find_available_ports() {
     local frontend_base=8119
     local backend_base=9118
