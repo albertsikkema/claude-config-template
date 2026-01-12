@@ -7,10 +7,10 @@ import threading
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from kanban.utils import PROJECT_ROOT, read_slash_command
+from kanban.utils import read_slash_command
 
 # Find claude executable (same pattern as docs.py)
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
@@ -24,6 +24,12 @@ SECURITY_REPORT_PATTERN = f"{SECURITY_REPORT_PREFIX}*{SECURITY_REPORT_SUFFIX}"
 SECURITY_CHECK_TIMEOUT_SECONDS = 1800
 
 router = APIRouter(prefix="/api/security", tags=["security"])
+
+
+class SecurityCheckRequest(BaseModel):
+    """Request to start a security check."""
+
+    repo_id: str
 
 
 class SecurityCheckResponse(BaseModel):
@@ -42,19 +48,30 @@ class SecurityReport(BaseModel):
     size_bytes: int
 
 
-async def _run_claude_security() -> None:
+async def _run_claude_security(repo_path: Path) -> None:
     """Run the /security slash command using Claude Code.
 
     This is fire-and-forget - we just spawn the command and let it run.
     The report will be saved to thoughts/shared/reviews/security-analysis-*.md.
+
+    Args:
+        repo_path: Path to the repository to analyze
     """
     thread_id = threading.get_ident()
 
-    # Read /security command
-    cmd_content = read_slash_command("security")
-    if not cmd_content:
+    # Read /security command from the target repo
+    cmd_path = repo_path / ".claude" / "commands" / "security.md"
+    if cmd_path.exists():
+        content = cmd_path.read_text()
+        # Strip YAML frontmatter if present
+        if content.startswith("---"):
+            end_idx = content.find("---", 3)
+            if end_idx != -1:
+                content = content[end_idx + 3:].lstrip()
+        cmd_content = content
+    else:
         raise RuntimeError(
-            "Security command not found. Expected file: .claude/commands/security.md"
+            f"Security command not found. Expected file: {cmd_path}"
         )
 
     prompt = cmd_content  # Use command as-is
@@ -79,7 +96,7 @@ async def _run_claude_security() -> None:
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=str(PROJECT_ROOT),
+            cwd=str(repo_path),
             env=env,
         )
 
@@ -111,17 +128,21 @@ async def _run_claude_security() -> None:
         print(f"[Thread {thread_id}] Error running security analysis: {e}")
 
 
-def _run_security_in_thread() -> None:
-    """Run the async security check in a new event loop within the thread."""
+def _run_security_in_thread(repo_path: Path) -> None:
+    """Run the async security check in a new event loop within the thread.
+
+    Args:
+        repo_path: Path to the repository to analyze
+    """
     thread_id = threading.get_ident()
-    print(f"[Thread {thread_id}] Starting background security analysis thread")
+    print(f"[Thread {thread_id}] Starting background security analysis thread for {repo_path}")
 
     try:
         # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            loop.run_until_complete(_run_claude_security())
+            loop.run_until_complete(_run_claude_security(repo_path))
         finally:
             loop.close()
     except Exception as e:
@@ -129,7 +150,7 @@ def _run_security_in_thread() -> None:
 
 
 @router.post("/check", response_model=SecurityCheckResponse)
-def trigger_security_check():
+def trigger_security_check(request: SecurityCheckRequest):
     """Start a new security analysis (fire-and-forget).
 
     This endpoint spawns Claude Code in a background thread to run the /security
@@ -138,16 +159,23 @@ def trigger_security_check():
 
     Users should check the /api/security/checks endpoint to see completed reports.
 
+    Args:
+        request: SecurityCheckRequest with repo_id path
+
     Returns:
         SecurityCheckResponse with status 'started' and message
     """
+    repo_path = Path(request.repo_id)
+    if not repo_path.exists():
+        raise HTTPException(status_code=400, detail=f"Repository path not found: {request.repo_id}")
+
     # Check that target directory exists
-    reviews_dir = PROJECT_ROOT / "thoughts" / "shared" / "reviews"
+    reviews_dir = repo_path / "thoughts" / "shared" / "reviews"
     if not reviews_dir.exists():
         reviews_dir.mkdir(parents=True, exist_ok=True)
 
     # Spawn daemon thread to run Claude Code
-    thread = threading.Thread(target=_run_security_in_thread, daemon=True)
+    thread = threading.Thread(target=_run_security_in_thread, args=(repo_path,), daemon=True)
     thread.start()
 
     return SecurityCheckResponse(
@@ -157,16 +185,20 @@ def trigger_security_check():
 
 
 @router.get("/checks", response_model=list[SecurityReport])
-def list_security_reports():
+def list_security_reports(repo_id: str = Query(..., description="Repository path")):
     """List all security analysis reports from the filesystem.
 
     Scans thoughts/shared/reviews/ for security-analysis-*.md files
     and returns metadata for each report (most recent first).
 
+    Args:
+        repo_id: Repository path to list reports for
+
     Returns:
         List of SecurityReport objects with file metadata
     """
-    reviews_dir = PROJECT_ROOT / "thoughts" / "shared" / "reviews"
+    repo_path = Path(repo_id)
+    reviews_dir = repo_path / "thoughts" / "shared" / "reviews"
 
     if not reviews_dir.exists():
         return []
@@ -184,7 +216,7 @@ def list_security_reports():
         reports.append(
             SecurityReport(
                 filename=file_path.name,
-                path=str(file_path.relative_to(PROJECT_ROOT)),
+                path=str(file_path.relative_to(repo_path)),
                 created_at=datetime.fromtimestamp(stat.st_mtime).isoformat(),
                 size_bytes=stat.st_size,
             )
@@ -194,11 +226,12 @@ def list_security_reports():
 
 
 @router.get("/report/{filename}")
-def get_security_report(filename: str):
+def get_security_report(filename: str, repo_id: str = Query(..., description="Repository path")):
     """Get the content of a specific security report.
 
     Args:
         filename: Name of the report file (e.g., security-analysis-2026-01-09.md)
+        repo_id: Repository path
 
     Returns:
         dict with 'content' and 'path' keys
@@ -220,7 +253,8 @@ def get_security_report(filename: str):
             detail=f"Invalid filename format. Expected {SECURITY_REPORT_PATTERN}",
         )
 
-    reviews_dir = PROJECT_ROOT / "thoughts" / "shared" / "reviews"
+    repo_path = Path(repo_id)
+    reviews_dir = repo_path / "thoughts" / "shared" / "reviews"
     report_path = reviews_dir / filename
 
     if not report_path.exists():
@@ -229,5 +263,5 @@ def get_security_report(filename: str):
     content = report_path.read_text()
     return {
         "content": content,
-        "path": str(report_path.relative_to(PROJECT_ROOT)),
+        "path": str(report_path.relative_to(repo_path)),
     }

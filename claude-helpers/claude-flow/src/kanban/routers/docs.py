@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator
 
-from kanban.utils import PROJECT_ROOT, read_slash_command
+from kanban.utils import read_slash_command
 
 # Find claude executable (same pattern as jobs.py)
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
@@ -28,6 +28,7 @@ class FetchDocsRequest(BaseModel):
         max_length=50,
         description="List of package names to fetch documentation for",
     )
+    repo_id: str = Field(..., description="Repository path")
 
     @field_validator("packages")
     @classmethod
@@ -68,14 +69,27 @@ class FetchDocsResponse(BaseModel):
     message: str = Field(..., description="Human-readable message describing the result")
 
 
-async def _run_claude_fetch(packages: list[str]) -> None:
-    """Run Claude Code with /fetch_technical_docs command asynchronously."""
+async def _run_claude_fetch(packages: list[str], repo_path: Path) -> None:
+    """Run Claude Code with /fetch_technical_docs command asynchronously.
+
+    Args:
+        packages: List of package names to fetch
+        repo_path: Path to the repository
+    """
     thread_id = threading.get_ident()
 
-    # Read the slash command
-    cmd_content = read_slash_command("fetch_technical_docs")
-    if not cmd_content:
-        logger.error(f"[Thread {thread_id}] Could not read fetch_technical_docs command")
+    # Read the slash command from the repo
+    cmd_path = repo_path / ".claude" / "commands" / "fetch_technical_docs.md"
+    if cmd_path.exists():
+        content = cmd_path.read_text()
+        # Strip YAML frontmatter if present
+        if content.startswith("---"):
+            end_idx = content.find("---", 3)
+            if end_idx != -1:
+                content = content[end_idx + 3:].lstrip()
+        cmd_content = content
+    else:
+        logger.error(f"[Thread {thread_id}] Could not read fetch_technical_docs command from {cmd_path}")
         return
 
     # Build prompt with specific packages to fetch
@@ -122,7 +136,7 @@ Begin fetching documentation now.
             *args,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
-            cwd=str(PROJECT_ROOT),
+            cwd=str(repo_path),
             env=env,
         )
 
@@ -142,17 +156,22 @@ Begin fetching documentation now.
         logger.error(f"[Thread {thread_id}] Error running Claude Code: {e}", exc_info=True)
 
 
-def _run_fetch_in_thread(packages: list[str]) -> None:
-    """Run the async fetch in a new event loop within the thread."""
+def _run_fetch_in_thread(packages: list[str], repo_path: Path) -> None:
+    """Run the async fetch in a new event loop within the thread.
+
+    Args:
+        packages: List of package names to fetch
+        repo_path: Path to the repository
+    """
     thread_id = threading.get_ident()
-    logger.info(f"[Thread {thread_id}] Starting background fetch thread")
+    logger.info(f"[Thread {thread_id}] Starting background fetch thread for {repo_path}")
 
     try:
         # Create new event loop for this thread
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            loop.run_until_complete(_run_claude_fetch(packages))
+            loop.run_until_complete(_run_claude_fetch(packages, repo_path))
         finally:
             loop.close()
     except Exception as e:
@@ -173,7 +192,7 @@ def fetch_technical_docs(request: FetchDocsRequest):
     - Fetches and saves documentation to thoughts/technical_docs/
 
     Args:
-        request: FetchDocsRequest with list of package names
+        request: FetchDocsRequest with list of package names and repo_id
 
     Returns:
         FetchDocsResponse with status 'started' and message
@@ -181,8 +200,10 @@ def fetch_technical_docs(request: FetchDocsRequest):
     Raises:
         HTTPException 422: Invalid request (caught by Pydantic validation)
     """
+    repo_path = Path(request.repo_id)
+
     # Check that target directory exists
-    docs_dir = PROJECT_ROOT / "thoughts" / "technical_docs"
+    docs_dir = repo_path / "thoughts" / "technical_docs"
     if not docs_dir.exists():
         logger.info(f"Creating documentation directory: {docs_dir}")
         docs_dir.mkdir(parents=True, exist_ok=True)
@@ -191,7 +212,7 @@ def fetch_technical_docs(request: FetchDocsRequest):
     logger.info(f"Received fetch request for {package_count} package(s): {request.packages}")
 
     # Spawn daemon thread to run Claude Code
-    thread = threading.Thread(target=_run_fetch_in_thread, args=(request.packages,), daemon=True)
+    thread = threading.Thread(target=_run_fetch_in_thread, args=(request.packages, repo_path), daemon=True)
     thread.start()
 
     return FetchDocsResponse(
