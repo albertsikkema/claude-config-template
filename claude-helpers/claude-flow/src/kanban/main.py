@@ -1,13 +1,10 @@
 """FastAPI application for Kanban workflow board."""
 
-import contextlib
 import logging
-import subprocess
 import sys
 import tomllib
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import TypedDict
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field

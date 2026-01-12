@@ -10,8 +10,6 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from kanban.utils import read_slash_command
-
 # Find claude executable (same pattern as docs.py)
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
 
@@ -67,12 +65,10 @@ async def _run_claude_security(repo_path: Path) -> None:
         if content.startswith("---"):
             end_idx = content.find("---", 3)
             if end_idx != -1:
-                content = content[end_idx + 3:].lstrip()
+                content = content[end_idx + 3 :].lstrip()
         cmd_content = content
     else:
-        raise RuntimeError(
-            f"Security command not found. Expected file: {cmd_path}"
-        )
+        raise RuntimeError(f"Security command not found. Expected file: {cmd_path}")
 
     prompt = cmd_content  # Use command as-is
 

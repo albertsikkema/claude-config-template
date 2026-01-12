@@ -82,12 +82,14 @@ async def handle_session_end(request: SessionEndRequest):
             return {"status": "not_found", "session_id": request.session_id}
 
         # Update status based on exit code
+        now = datetime.utcnow()
         if request.exit_code == 0:
             task.claude_status = ClaudeStatus.READY_FOR_REVIEW
         else:
             task.claude_status = ClaudeStatus.FAILED
 
-        task.claude_completed_at = datetime.utcnow()
+        task.claude_completed_at = now
+        task.last_notification = now  # NEW: Trigger notification
         db.commit()
 
         logger.info(
@@ -158,9 +160,13 @@ async def handle_artifact_created(request: ArtifactCreatedRequest):
 
         # Set status to ready_for_review when artifact is written
         if artifact_type:
+            now = datetime.utcnow()
             task.claude_status = ClaudeStatus.READY_FOR_REVIEW
-            task.claude_completed_at = datetime.utcnow()
-            logger.info(f"Task {task.id} artifact created: {artifact_type} -> ready_for_review")
+            task.claude_completed_at = now
+            task.last_notification = now  # NEW: Trigger notification
+            logger.info(
+                f"Task {task.id} artifact created: {artifact_type} -> ready_for_review (notification queued)"
+            )
 
         db.commit()
 
@@ -211,8 +217,10 @@ async def handle_stop(request: StopRequest):
 
         # Only update if still running (don't overwrite artifact-created status)
         if task.claude_status == ClaudeStatus.RUNNING:
+            now = datetime.utcnow()
             task.claude_status = ClaudeStatus.READY_FOR_REVIEW
-            task.claude_completed_at = datetime.utcnow()
+            task.claude_completed_at = now
+            task.last_notification = now  # NEW: Trigger notification
             db.commit()
             logger.info(f"Task {task.id} stop hook -> ready_for_review")
             return {"status": "updated", "task_id": task.id}

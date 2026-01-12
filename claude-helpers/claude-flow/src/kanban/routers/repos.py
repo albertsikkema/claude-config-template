@@ -381,3 +381,57 @@ def set_current_repo(
         "repo_id": repo_id,
         "name": get_repo_name_from_path(repo_id),
     }
+
+
+class ValidateRepoResponse(BaseModel):
+    """Response for repo validation."""
+
+    is_valid: bool
+    has_launch_script: bool
+    launch_script_path: str | None
+    error: str | None
+
+
+@router.get("/{repo_id:path}/validate", response_model=ValidateRepoResponse)
+def validate_repo(repo_id: str):
+    """Validate if a repo has the required claude-helpers installed.
+
+    Checks for the existence of the launch-claude-tab.sh script.
+
+    Args:
+        repo_id: Repository path to validate
+
+    Returns:
+        Validation status with details
+    """
+    from kanban.routers.iterm import get_launch_script_path
+
+    repo_path = Path(repo_id)
+
+    # Check if repo path exists
+    if not repo_path.exists():
+        return ValidateRepoResponse(
+            is_valid=False,
+            has_launch_script=False,
+            launch_script_path=None,
+            error=f"Repository path does not exist: {repo_id}",
+        )
+
+    # Check for launch script
+    launch_script = get_launch_script_path(repo_id)
+    has_script = launch_script.exists()
+
+    if not has_script:
+        return ValidateRepoResponse(
+            is_valid=False,
+            has_launch_script=False,
+            launch_script_path=str(launch_script),
+            error=f"Launch script not found at {launch_script}. Run installation to set up claude-helpers in this repository.",
+        )
+
+    return ValidateRepoResponse(
+        is_valid=True,
+        has_launch_script=True,
+        launch_script_path=str(launch_script),
+        error=None,
+    )

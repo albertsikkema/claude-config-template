@@ -85,6 +85,8 @@ class TaskBase(BaseModel):
     claude_completed_at: datetime | None = None
     approved_at: datetime | None = None
     session_id: str | None = None
+    # Notification tracking
+    last_notification: datetime | None = None  # When task last triggered a notification
 
 
 class TaskCreate(TaskBase):
@@ -116,6 +118,7 @@ class TaskUpdate(BaseModel):
     claude_completed_at: datetime | None = None
     approved_at: datetime | None = None
     session_id: str | None = None
+    last_notification: datetime | None = None
 
 
 class TaskMove(BaseModel):

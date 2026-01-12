@@ -121,6 +121,8 @@ class TaskDB(Base):
     claude_completed_at = Column(DateTime, nullable=True)
     approved_at = Column(DateTime, nullable=True)
     session_id = Column(String(100), nullable=True)
+    # Notification tracking
+    last_notification = Column(DateTime, nullable=True)
 
     @property
     def tags(self) -> list[str]:
@@ -177,6 +179,27 @@ def migrate_db():
             except sqlite3.OperationalError as e:
                 # Column might already exist
                 print(f"Migration note: {e}")
+
+    # Check existing columns in tasks table
+    cursor.execute("PRAGMA table_info(tasks)")
+    existing_task_columns = {row[1] for row in cursor.fetchall()}
+
+    # Add notification tracking column if missing
+    if "last_notification" not in existing_task_columns:
+        try:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN last_notification DATETIME")
+            print("Added column last_notification to tasks table")
+
+            # Backfill: Set last_notification = claude_completed_at for existing completed tasks
+            cursor.execute("""
+                UPDATE tasks
+                SET last_notification = claude_completed_at
+                WHERE claude_status IN ('ready_for_review', 'approved', 'failed')
+                  AND claude_completed_at IS NOT NULL
+            """)
+            print("Backfilled last_notification for existing completed tasks")
+        except sqlite3.OperationalError as e:
+            print(f"Migration note: {e}")
 
     conn.commit()
     conn.close()

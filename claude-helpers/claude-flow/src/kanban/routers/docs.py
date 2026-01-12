@@ -10,8 +10,6 @@ from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, field_validator
 
-from kanban.utils import read_slash_command
-
 # Find claude executable (same pattern as jobs.py)
 CLAUDE_PATH = shutil.which("claude") or str(Path.home() / ".local" / "bin" / "claude")
 
@@ -86,10 +84,12 @@ async def _run_claude_fetch(packages: list[str], repo_path: Path) -> None:
         if content.startswith("---"):
             end_idx = content.find("---", 3)
             if end_idx != -1:
-                content = content[end_idx + 3:].lstrip()
+                content = content[end_idx + 3 :].lstrip()
         cmd_content = content
     else:
-        logger.error(f"[Thread {thread_id}] Could not read fetch_technical_docs command from {cmd_path}")
+        logger.error(
+            f"[Thread {thread_id}] Could not read fetch_technical_docs command from {cmd_path}"
+        )
         return
 
     # Build prompt with specific packages to fetch
@@ -212,7 +212,9 @@ def fetch_technical_docs(request: FetchDocsRequest):
     logger.info(f"Received fetch request for {package_count} package(s): {request.packages}")
 
     # Spawn daemon thread to run Claude Code
-    thread = threading.Thread(target=_run_fetch_in_thread, args=(request.packages, repo_path), daemon=True)
+    thread = threading.Thread(
+        target=_run_fetch_in_thread, args=(request.packages, repo_path), daemon=True
+    )
     thread.start()
 
     return FetchDocsResponse(
