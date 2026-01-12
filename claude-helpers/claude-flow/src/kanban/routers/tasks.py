@@ -424,14 +424,7 @@ async def improve_content_endpoint(request: ImproveRequest):
 
     Returns max 4 tags, sanitized to lowercase hyphenated format.
     """
-    try:
-        from kanban.ai import AIServiceError, OpenAIKeyNotConfiguredError, improve_task_content
-    except ImportError as e:
-        logger.exception("Failed to import AI module")
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "import_error", "message": f"AI module not available: {e}"},
-        ) from e
+    from kanban.ai import AIServiceError, OpenAIKeyNotConfiguredError, improve_task_content
 
     try:
         improved = await improve_task_content(request.title, request.description)
@@ -448,12 +441,6 @@ async def improve_content_endpoint(request: ImproveRequest):
             status_code=503,
             detail={"error": "ai_service_unavailable", "message": str(e)},
         ) from e
-    except Exception as e:
-        logger.exception("Unexpected error in improve_content_endpoint")
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "unexpected_error", "message": str(e)},
-        ) from e
 
 
 @router.post("/tasks/{task_id}/improve", response_model=Task)
@@ -466,21 +453,13 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
     Note: This endpoint modifies and persists the task immediately. Use POST /tasks/improve
     for preview without saving. Returns max 4 tags, sanitized to lowercase hyphenated format.
     """
-    try:
-        from kanban.ai import AIServiceError, OpenAIKeyNotConfiguredError, improve_task_content
-    except ImportError as e:
-        logger.exception("Failed to import AI module")
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "import_error", "message": f"AI module not available: {e}"},
-        ) from e
+    from kanban.ai import AIServiceError, OpenAIKeyNotConfiguredError, improve_task_content
 
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
 
     try:
-        # Call AI to improve
         improved = await improve_task_content(db_task.title, db_task.description)
     except OpenAIKeyNotConfiguredError as e:
         raise HTTPException(
@@ -491,12 +470,6 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=503,
             detail={"error": "ai_service_unavailable", "message": str(e)},
-        ) from e
-    except Exception as e:
-        logger.exception("Unexpected error in improve_task_endpoint")
-        raise HTTPException(
-            status_code=500,
-            detail={"error": "unexpected_error", "message": str(e)},
         ) from e
 
     # Update task with improved values
