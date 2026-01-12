@@ -152,6 +152,42 @@ def health():
     return {"status": "healthy"}
 
 
+@app.get("/api/diagnostics")
+def diagnostics():
+    """Diagnostic endpoint to check module availability."""
+    results = {"status": "ok", "modules": {}}
+
+    # Check pydantic_ai
+    try:
+        import pydantic_ai
+        results["modules"]["pydantic_ai"] = {"available": True, "version": getattr(pydantic_ai, "__version__", "unknown")}
+    except ImportError as e:
+        results["modules"]["pydantic_ai"] = {"available": False, "error": str(e)}
+
+    # Check httpx
+    try:
+        import httpx
+        results["modules"]["httpx"] = {"available": True, "version": getattr(httpx, "__version__", "unknown")}
+    except ImportError as e:
+        results["modules"]["httpx"] = {"available": False, "error": str(e)}
+
+    # Check openai
+    try:
+        import openai
+        results["modules"]["openai"] = {"available": True, "version": getattr(openai, "__version__", "unknown")}
+    except ImportError as e:
+        results["modules"]["openai"] = {"available": False, "error": str(e)}
+
+    # Check kanban.ai
+    try:
+        from kanban import ai
+        results["modules"]["kanban.ai"] = {"available": True}
+    except ImportError as e:
+        results["modules"]["kanban.ai"] = {"available": False, "error": str(e)}
+
+    return results
+
+
 @app.get("/api/version")
 def get_version() -> VersionResponse:
     """Get application version information.

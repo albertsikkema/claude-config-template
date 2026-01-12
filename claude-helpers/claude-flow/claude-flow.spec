@@ -3,7 +3,7 @@
 
 import tomllib
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules, copy_metadata
 
 block_cipher = None
 
@@ -40,17 +40,38 @@ hiddenimports = [
     'Foundation',
     'WebKit',
     'objc',
+    # PydanticAI for AI-powered task improvement
+    'pydantic_ai',
+    'pydantic_ai.agent',
+    'pydantic_ai.models',
+    'pydantic_ai.models.openai',
+    'httpx',
+    'openai',
+    'openai._client',
+    'openai.resources',
 ]
 
 # Collect SQLAlchemy submodules
 hiddenimports += collect_submodules('sqlalchemy')
 
-# Collect PyWebView submodules
-hiddenimports += collect_submodules('webview')
+# Collect PyWebView submodules (exclude Android)
+hiddenimports += [m for m in collect_submodules('webview') if 'android' not in m]
+
+# Collect AI-related submodules (exclude optional/problematic ones)
+hiddenimports += [m for m in collect_submodules('pydantic_ai') if 'prefect' not in m and 'durable' not in m]
+hiddenimports += collect_submodules('httpx')
+hiddenimports += [m for m in collect_submodules('openai') if 'helpers' not in m]  # Exclude voice_helpers (needs numpy)
 
 # Collect data files from packages
 datas = []
 datas += collect_data_files('uvicorn', include_py_files=True)
+
+# Package metadata required by pydantic_ai (it checks versions at import time)
+datas += copy_metadata('pydantic_ai')
+datas += copy_metadata('pydantic_ai_slim')  # Core pydantic_ai package
+datas += copy_metadata('genai_prices')       # Pricing info for AI models
+datas += copy_metadata('httpx')
+datas += copy_metadata('openai')
 
 # Include frontend build files
 if frontend_dist.exists():
