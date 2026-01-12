@@ -173,54 +173,6 @@ def get_version() -> VersionResponse:
     return VersionResponse(version=version, service="claude-workflow-kanban")
 
 
-class RepoInfo(TypedDict):
-    """Repository information response structure."""
-
-    name: str | None
-    repo_root: str
-
-
-@app.get("/api/repo")
-def get_repo_info() -> RepoInfo:
-    """Get repository information.
-
-    Returns:
-        RepoInfo with:
-            - name: Repository name from git remote or directory name
-            - repo_root: Repository root path (file-based, consistent)
-            - cwd: Project root working directory for Claude commands
-    """
-    repo_name = None
-
-    # Both paths use PROJECT_ROOT for consistency
-    repo_root = str(PROJECT_ROOT)  # File-based, always consistent
-
-    # Try to get repo name from git remote origin URL
-    try:
-        result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if result.returncode == 0:
-            url = result.stdout.strip()
-            # Extract repo name from URL (handles both HTTPS and SSH)
-            # e.g., https://github.com/user/repo.git -> repo
-            # e.g., git@github.com:user/repo.git -> repo
-            if url:
-                repo_name = url.rstrip("/").rstrip(".git").split("/")[-1].split(":")[-1]
-    except (subprocess.TimeoutExpired, FileNotFoundError):
-        pass
-
-    # Fall back to repo_root directory name if no git remote
-    if not repo_name:
-        with contextlib.suppress(Exception):
-            repo_name = Path(repo_root).name
-
-    return {"name": repo_name, "repo_root": repo_root}
-
-
 # Serve built frontend if available (for desktop app)
 # This must be LAST so API routes take precedence
 FRONTEND_DIST = CLAUDE_FLOW_DIR / "claude-flow-board" / "dist"
