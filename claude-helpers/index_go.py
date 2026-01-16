@@ -3,6 +3,8 @@ import re
 import argparse
 import sys
 from pathlib import Path
+from collections import defaultdict
+from datetime import datetime
 
 # Directories to skip during indexing (only directories that might contain .go files)
 SKIP_DIRS = {
@@ -19,12 +21,28 @@ SKIP_DIRS = {
     # Claude configuration
     '.claude', 'claude-helpers',
     # Logs and temporary directories
-    'logs', 'tmp', 'temp'
+    'logs', 'tmp', 'temp',
+    # Thoughts/documentation (not source code)
+    'thoughts',
+    # Database migrations
+    'migrations'
 }
+
+# HTTP handler patterns for API endpoint detection
+HTTP_HANDLER_PATTERNS = [
+    r'\.HandleFunc\s*\(\s*"([^"]+)"',  # http.HandleFunc("/path", ...)
+    r'\.Handle\s*\(\s*"([^"]+)"',       # mux.Handle("/path", ...)
+    r'\.GET\s*\(\s*"([^"]+)"',          # router.GET("/path", ...)
+    r'\.POST\s*\(\s*"([^"]+)"',
+    r'\.PUT\s*\(\s*"([^"]+)"',
+    r'\.DELETE\s*\(\s*"([^"]+)"',
+    r'\.PATCH\s*\(\s*"([^"]+)"',
+]
 
 def extract_go_info(directory):
     """Traverse the directory and extract Go packages, structs, interfaces, functions."""
     codebase_info = {}
+    all_sources = {}  # Store source for usage tracking
 
     for root, dirs, files in os.walk(directory):
         # Skip excluded directories
@@ -37,11 +55,129 @@ def extract_go_info(directory):
                     with open(file_path, 'r', encoding='utf-8') as f:
                         source = f.read()
 
+                    all_sources[file_path] = source
                     codebase_info[file_path] = parse_go(source, file_path)
                 except Exception as e:
                     print(f"Error parsing file {file_path}: {e}")
 
+    # Build usage graph
+    usage_graph = build_usage_graph(codebase_info, all_sources, directory)
+
+    # Attach usage info to symbols
+    for file_path, content in codebase_info.items():
+        for struct in content.get("structs", []):
+            struct["used_by"] = usage_graph.get(struct["name"], [])
+        for iface in content.get("interfaces", []):
+            iface["used_by"] = usage_graph.get(iface["name"], [])
+        for func in content.get("functions", []):
+            func["used_by"] = usage_graph.get(func["name"], [])
+
     return codebase_info
+
+
+def build_usage_graph(codebase_info, all_sources, base_directory):
+    """Build a reverse lookup: for each exported symbol, find where it's used."""
+    usage_graph = defaultdict(list)
+    base_path = os.path.abspath(base_directory)
+
+    # Collect all exported symbols (capitalized names in Go)
+    exported_symbols = {}
+    for file_path, content in codebase_info.items():
+        rel_path = os.path.relpath(file_path, base_path)
+        pkg = content.get("package", "")
+
+        for struct in content.get("structs", []):
+            if struct["name"][0].isupper():
+                exported_symbols[struct["name"]] = rel_path
+        for iface in content.get("interfaces", []):
+            if iface["name"][0].isupper():
+                exported_symbols[iface["name"]] = rel_path
+        for func in content.get("functions", []):
+            if func["name"][0].isupper():
+                exported_symbols[func["name"]] = rel_path
+
+    # Find usages in all files
+    for file_path, source in all_sources.items():
+        rel_path = os.path.relpath(file_path, base_path)
+
+        for symbol_name, defining_file in exported_symbols.items():
+            if defining_file == rel_path:
+                continue  # Skip self-references
+
+            # Check for usage: TypeName, pkg.TypeName, &TypeName, *TypeName
+            patterns = [
+                rf'\b{symbol_name}\b',  # Direct usage
+                rf'\b{symbol_name}\{{',  # Struct literal
+                rf'\*{symbol_name}\b',  # Pointer type
+                rf'&{symbol_name}\{{',  # Address of struct literal
+            ]
+
+            for pattern in patterns:
+                if re.search(pattern, source):
+                    if rel_path not in usage_graph[symbol_name]:
+                        usage_graph[symbol_name].append(rel_path)
+                    break
+
+    return dict(usage_graph)
+
+
+def extract_go_doc(lines, line_num):
+    """Extract Go doc comment immediately before a declaration."""
+    if line_num <= 1:
+        return None
+
+    doc_lines = []
+    # Go back from the line before the declaration
+    for i in range(line_num - 2, -1, -1):
+        line = lines[i].strip()
+        if line.startswith('//'):
+            # Strip // and leading space
+            comment = line[2:].strip()
+            doc_lines.insert(0, comment)
+        elif not line:
+            # Empty line - continue looking
+            continue
+        else:
+            # Non-comment, non-empty line - stop
+            break
+
+    if not doc_lines:
+        return None
+
+    # Return first meaningful line
+    for line in doc_lines:
+        if line and not line.startswith('@'):
+            if len(line) > 80:
+                line = line[:80] + "..."
+            return line
+    return None
+
+
+def extract_api_endpoints(source, file_path):
+    """Extract HTTP API endpoints from Go source."""
+    endpoints = []
+
+    for pattern in HTTP_HANDLER_PATTERNS:
+        for match in re.finditer(pattern, source):
+            path = match.group(1)
+            # Determine HTTP method from pattern
+            method = 'GET'
+            if '.POST' in pattern:
+                method = 'POST'
+            elif '.PUT' in pattern:
+                method = 'PUT'
+            elif '.DELETE' in pattern:
+                method = 'DELETE'
+            elif '.PATCH' in pattern:
+                method = 'PATCH'
+
+            endpoints.append({
+                'method': method,
+                'path': path,
+                'file': file_path
+            })
+
+    return endpoints
 
 
 def parse_go(source, file_path):
@@ -55,6 +191,7 @@ def parse_go(source, file_path):
         "methods": [],
         "constants": [],
         "variables": [],
+        "api_endpoints": extract_api_endpoints(source, file_path),
     }
 
     lines = source.split('\n')
@@ -183,10 +320,12 @@ def parse_go(source, file_path):
         if match:
             struct_name = match.group(1)
             fields = extract_struct_fields(source, lines, i)
+            doc = extract_go_doc(lines, i)
             details["structs"].append({
                 "name": struct_name,
                 "line": i,
-                "fields": fields
+                "fields": fields,
+                "doc": doc
             })
             continue
 
@@ -195,10 +334,12 @@ def parse_go(source, file_path):
         if match:
             interface_name = match.group(1)
             methods = extract_interface_methods(source, lines, i)
+            doc = extract_go_doc(lines, i)
             details["interfaces"].append({
                 "name": interface_name,
                 "line": i,
-                "methods": methods
+                "methods": methods,
+                "doc": doc
             })
             continue
 
@@ -228,10 +369,12 @@ def parse_go(source, file_path):
         if match:
             func_name = match.group(1)
             signature = extract_function_signature(stripped)
+            doc = extract_go_doc(lines, i)
             details["functions"].append({
                 "name": func_name,
                 "signature": signature,
-                "line": i
+                "line": i,
+                "doc": doc
             })
             continue
 
@@ -382,141 +525,278 @@ def generate_file_tree(directory, codebase_info):
     return "\n".join(tree_lines)
 
 
+def format_go_signature(signature):
+    """Format Go function signature - extract just parameter names."""
+    if not signature:
+        return "()"
+
+    # Extract params from signature like "(ctx context.Context, id string) error"
+    match = re.match(r'\(([^)]*)\)', signature)
+    if not match:
+        return "()"
+
+    params_str = match.group(1).strip()
+    if not params_str:
+        return "()"
+
+    # Extract just parameter names
+    param_names = []
+    for param in params_str.split(','):
+        param = param.strip()
+        if not param:
+            continue
+        # Get just the name (first word before space or type)
+        parts = param.split()
+        if parts:
+            name = parts[0]
+            # Skip if it looks like a type (starts with capital or *)
+            if not name[0].isupper() and not name.startswith('*'):
+                param_names.append(name)
+
+    result = ', '.join(param_names)
+    if len(result) > 40:
+        result = result[:40] + "..."
+    return f"({result})"
+
+
 def generate_markdown(codebase_info, output_file, directory):
-    """Generate a Markdown file with Go codebase overview."""
+    """Generate a Markdown file - compact format matching JS/TS and Python indexers."""
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write("# Go Codebase Overview\n\n")
+        f.write("# Codebase Index\n\n")
+        f.write(f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Regenerate with `/index_codebase`*\n\n")
 
-        # Generate file tree
-        f.write("## File Tree\n\n")
-        f.write("```\n")
-        tree = generate_file_tree(directory, codebase_info)
-        f.write(tree)
-        f.write("\n```\n\n")
-        f.write("---\n\n")
+        base_path = os.path.abspath(directory)
 
-        # Generate table of contents
-        f.write("## Table of Contents\n\n")
-        for file_path in sorted(codebase_info.keys()):
-            rel_path = file_path.replace(os.getcwd() + '/', '')
-            anchor = rel_path.replace('/', '-').replace('.', '')
-            f.write(f"- [{rel_path}](#{anchor})\n")
-        f.write("\n---\n\n")
+        # === SECTION 1: Most Used Symbols ===
+        f.write("## Most Used Symbols\n\n")
 
-        # Generate per-file documentation
+        all_symbols = []
+        for file_path, content in codebase_info.items():
+            rel_path = os.path.relpath(file_path, base_path)
+
+            # Exported structs (capitalized)
+            for struct in content.get("structs", []):
+                if struct["name"][0].isupper() and struct.get("used_by"):
+                    all_symbols.append({
+                        "name": struct["name"],
+                        "file": rel_path,
+                        "line": struct["line"],
+                        "signature": "",
+                        "description": struct.get("doc"),
+                        "type": "struct",
+                        "refs": len(struct["used_by"])
+                    })
+
+            # Exported interfaces
+            for iface in content.get("interfaces", []):
+                if iface["name"][0].isupper() and iface.get("used_by"):
+                    all_symbols.append({
+                        "name": iface["name"],
+                        "file": rel_path,
+                        "line": iface["line"],
+                        "signature": "",
+                        "description": iface.get("doc"),
+                        "type": "interface",
+                        "refs": len(iface["used_by"])
+                    })
+
+            # Exported functions
+            for func in content.get("functions", []):
+                if func["name"][0].isupper() and func.get("used_by"):
+                    sig = format_go_signature(func.get("signature", ""))
+                    all_symbols.append({
+                        "name": func["name"],
+                        "file": rel_path,
+                        "line": func["line"],
+                        "signature": sig,
+                        "description": func.get("doc"),
+                        "type": "func",
+                        "refs": len(func["used_by"])
+                    })
+
+        all_symbols.sort(key=lambda x: x["refs"], reverse=True)
+
+        for sym in all_symbols[:25]:
+            desc = f" - {sym['description']}" if sym.get("description") else ""
+            f.write(f"- **{sym['name']}**{sym['signature']} `{sym['file']}:{sym['line']}`{desc} → {sym['refs']} refs\n")
+        f.write("\n")
+
+        # === SECTION 2: Library Files ===
+        f.write("## Library Files\n\n")
+
         for file_path in sorted(codebase_info.keys()):
             content = codebase_info[file_path]
-            rel_path = file_path.replace(os.getcwd() + '/', '')
+            rel_path = os.path.relpath(file_path, base_path)
+            pkg = content.get("package", "")
 
-            f.write(f"# File: `{rel_path}`\n\n")
+            exports_lines = []
 
-            # Package
-            if content["package"]:
-                f.write(f"**Package:** `{content['package']}`\n\n")
+            # Exported Structs
+            for struct in content.get("structs", []):
+                if struct["name"][0].isupper():
+                    fields = [f['name'] for f in struct.get('fields', [])][:4]
+                    fields_str = f" fields: {', '.join(fields)}" if fields else ""
+                    desc = f" - {struct['doc']}" if struct.get("doc") else ""
+                    exports_lines.append(f"  - `{struct['name']}`:{struct['line']} - struct{fields_str}{desc}")
+                    if struct.get("used_by"):
+                        used_by = ', '.join(f'`{u}`' for u in struct['used_by'][:5])
+                        more = f" +{len(struct['used_by'])-5} more" if len(struct['used_by']) > 5 else ""
+                        exports_lines.append(f"    ↳ used by: {used_by}{more}")
 
-            # Overview section
-            f.write("## Overview\n\n")
-            overview_items = []
-            if content["structs"]:
-                overview_items.append(f"**Structs:** {len(content['structs'])}")
-            if content["interfaces"]:
-                overview_items.append(f"**Interfaces:** {len(content['interfaces'])}")
-            if content["functions"]:
-                overview_items.append(f"**Functions:** {len(content['functions'])}")
-            if content["methods"]:
-                overview_items.append(f"**Methods:** {len(content['methods'])}")
-            if content["constants"]:
-                overview_items.append(f"**Constants:** {len(content['constants'])}")
-            if content["variables"]:
-                overview_items.append(f"**Variables:** {len(content['variables'])}")
+            # Exported Interfaces
+            for iface in content.get("interfaces", []):
+                if iface["name"][0].isupper():
+                    methods = [m['name'] for m in iface.get('methods', [])][:4]
+                    methods_str = f" methods: {', '.join(methods)}" if methods else ""
+                    desc = f" - {iface['doc']}" if iface.get("doc") else ""
+                    exports_lines.append(f"  - `{iface['name']}`:{iface['line']} - interface{methods_str}{desc}")
+                    if iface.get("used_by"):
+                        used_by = ', '.join(f'`{u}`' for u in iface['used_by'][:5])
+                        more = f" +{len(iface['used_by'])-5} more" if len(iface['used_by']) > 5 else ""
+                        exports_lines.append(f"    ↳ used by: {used_by}{more}")
 
-            if overview_items:
-                f.write(" | ".join(overview_items) + "\n\n")
-            else:
-                f.write("*No exported items found*\n\n")
+            # Exported Functions
+            for func in content.get("functions", []):
+                if func["name"][0].isupper():
+                    sig = format_go_signature(func.get("signature", ""))
+                    desc = f" - {func['doc']}" if func.get("doc") else ""
+                    exports_lines.append(f"  - `{func['name']}`{sig}:{func['line']}{desc}")
+                    if func.get("used_by"):
+                        used_by = ', '.join(f'`{u}`' for u in func['used_by'][:5])
+                        more = f" +{len(func['used_by'])-5} more" if len(func['used_by']) > 5 else ""
+                        exports_lines.append(f"    ↳ used by: {used_by}{more}")
 
-            # Imports
-            if content["imports"]:
-                f.write("## Imports\n\n")
-                for imp in content["imports"]:
-                    f.write(f"- `{imp}`\n")
-                f.write("\n")
-
-            # Structs
-            if content["structs"]:
-                f.write("## Structs\n\n")
-                for struct in content["structs"]:
-                    f.write(f"### `{struct['name']}`\n\n")
-                    f.write(f"- **Line:** {struct['line']}\n")
-                    if struct.get('fields'):
-                        f.write("- **Fields:**\n")
-                        for field in struct['fields']:
-                            tag_str = f" `{field['tag']}`" if field['tag'] else ""
-                            f.write(f"  - `{field['name']}` `{field['type']}`{tag_str}\n")
-                    f.write("\n")
-
-            # Interfaces
-            if content["interfaces"]:
-                f.write("## Interfaces\n\n")
-                for interface in content["interfaces"]:
-                    f.write(f"### `{interface['name']}`\n\n")
-                    f.write(f"- **Line:** {interface['line']}\n")
-                    if interface.get('methods'):
-                        f.write("- **Methods:**\n")
-                        for method in interface['methods']:
-                            f.write(f"  - `{method['name']}({method['params']}) {method['returns']}`\n")
-                    f.write("\n")
-
-            # Functions
-            if content["functions"]:
-                f.write("## Functions\n\n")
-                for func in content["functions"]:
-                    f.write(f"### `{func['name']}`\n\n")
-                    f.write(f"- **Line:** {func['line']}\n")
-                    if func.get('signature'):
-                        f.write(f"- **Signature:** `func {func['name']}{func['signature']}`\n")
-                    f.write("\n")
-
-            # Methods
-            if content["methods"]:
-                f.write("## Methods\n\n")
-                # Group methods by receiver
-                methods_by_receiver = {}
-                for method in content["methods"]:
+            # Methods grouped by receiver
+            methods_by_receiver = {}
+            for method in content.get("methods", []):
+                if method["name"][0].isupper():
                     receiver = method["receiver"]
                     if receiver not in methods_by_receiver:
                         methods_by_receiver[receiver] = []
                     methods_by_receiver[receiver].append(method)
 
-                for receiver in sorted(methods_by_receiver.keys()):
-                    f.write(f"### `{receiver}` Methods\n\n")
-                    for method in methods_by_receiver[receiver]:
-                        pointer_indicator = "*" if method["is_pointer_receiver"] else ""
-                        f.write(f"#### `{method['name']}`\n\n")
-                        f.write(f"- **Line:** {method['line']}\n")
-                        f.write(f"- **Receiver:** `({pointer_indicator}{receiver})`\n")
-                        if method.get('signature'):
-                            f.write(f"- **Signature:** `func ({pointer_indicator}{receiver}) {method['name']}{method['signature']}`\n")
-                        f.write("\n")
+            for receiver, methods in methods_by_receiver.items():
+                method_names = ', '.join(m['name'] for m in methods[:5])
+                more = f" +{len(methods)-5} more" if len(methods) > 5 else ""
+                exports_lines.append(f"  - `{receiver}` methods: {method_names}{more}")
 
-            # Constants
-            if content["constants"]:
-                f.write("## Constants\n\n")
-                for const in content["constants"]:
-                    f.write(f"- `{const['name']}` (line {const['line']})\n")
-                f.write("\n")
+            if exports_lines:
+                pkg_str = f" (pkg: {pkg})" if pkg else ""
+                f.write(f"### `{rel_path}`{pkg_str}\n")
+                f.write("\n".join(exports_lines))
+                f.write("\n\n")
 
-            # Variables
-            if content["variables"]:
-                f.write("## Variables\n\n")
-                for var in content["variables"]:
-                    var_type = f": `{var['type']}`" if var.get('type') else ""
-                    f.write(f"- `{var['name']}`{var_type} (line {var['line']})\n")
-                f.write("\n")
+        # === SECTION 3: API Endpoints ===
+        f.write("## API Endpoints\n\n")
 
-            f.write("---\n\n")
+        api_endpoints = []
+        for file_path, content in codebase_info.items():
+            rel_path = os.path.relpath(file_path, base_path)
+            for ep in content.get("api_endpoints", []):
+                api_endpoints.append({
+                    'method': ep['method'],
+                    'path': ep['path'],
+                    'file': rel_path
+                })
+
+        if api_endpoints:
+            for ep in sorted(api_endpoints, key=lambda x: (x['path'], x['method'])):
+                f.write(f"- **{ep['method']}** `{ep['path']}` → `{ep['file']}`\n")
+        else:
+            f.write("*No API endpoints detected*\n")
+        f.write("\n")
+
+        # === SECTION 4: Dependency Graph ===
+        f.write("## Dependency Graph\n\n")
+        f.write("*Files by number of dependents:*\n\n")
+
+        file_dependencies = {}
+        for file_path, content in codebase_info.items():
+            rel_path = os.path.relpath(file_path, base_path)
+            users = set()
+            for struct in content.get("structs", []):
+                users.update(struct.get("used_by", []))
+            for iface in content.get("interfaces", []):
+                users.update(iface.get("used_by", []))
+            for func in content.get("functions", []):
+                users.update(func.get("used_by", []))
+            if users:
+                file_dependencies[rel_path] = len(users)
+
+        sorted_deps = sorted(file_dependencies.items(), key=lambda x: x[1], reverse=True)
+        for file, count in sorted_deps[:20]:
+            f.write(f"- `{file}` ← {count} files\n")
+
+        f.write("\n")
 
     print(f"Markdown documentation generated: {output_file}")
+
+
+def update_claude_md(output_file, directory):
+    """Update CLAUDE.md to reference the codebase index file."""
+    # Find project root - look for CLAUDE.md or .git directory
+    project_root = os.getcwd()
+
+    # Walk up to find project root (where .git or CLAUDE.md exists)
+    check_dir = os.path.dirname(os.path.abspath(output_file))
+    for _ in range(5):  # Max 5 levels up
+        if os.path.exists(os.path.join(check_dir, '.git')) or os.path.exists(os.path.join(check_dir, 'CLAUDE.md')):
+            project_root = check_dir
+            break
+        parent = os.path.dirname(check_dir)
+        if parent == check_dir:
+            break
+        check_dir = parent
+
+    claude_md_path = os.path.join(project_root, 'CLAUDE.md')
+
+    # The section we want to add/update
+    index_section = f"""## Codebase Index
+
+**IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the codebase index:
+
+**`{os.path.relpath(output_file, project_root)}`**
+
+This index contains:
+- **Most Used Symbols**: Top structs/interfaces/functions by usage count
+- **Library Files**: All exports with descriptions and "used by" references
+- **API Endpoints**: All HTTP routes
+- **Dependency Graph**: Which files are most imported
+
+Reading the index first saves tokens and improves accuracy.
+"""
+
+    try:
+        if os.path.exists(claude_md_path):
+            with open(claude_md_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Check if section already exists
+            if '## Codebase Index' in content:
+                # Update existing section
+                pattern = r'## Codebase Index.*?(?=\n## |\n# |\Z)'
+                content = re.sub(pattern, index_section.strip() + '\n\n', content, flags=re.DOTALL)
+            else:
+                # Add after first heading or at the end
+                if '\n## ' in content:
+                    # Insert before second section
+                    first_section_end = content.find('\n## ')
+                    content = content[:first_section_end] + '\n\n' + index_section + content[first_section_end:]
+                else:
+                    # Append
+                    content = content.rstrip() + '\n\n' + index_section
+
+            with open(claude_md_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            print(f"Updated CLAUDE.md with codebase index reference")
+        else:
+            # Create new CLAUDE.md
+            with open(claude_md_path, 'w', encoding='utf-8') as f:
+                f.write(f"# Project Configuration\n\n{index_section}")
+            print(f"Created CLAUDE.md with codebase index reference")
+
+    except Exception as e:
+        print(f"Warning: Could not update CLAUDE.md: {e}")
 
 
 def main():
@@ -550,6 +830,12 @@ Note: Both relative paths (./dir, ../dir) and absolute paths (/path/to/dir) are 
         help='Output Markdown file (default: codebase_overview_go.md)'
     )
 
+    parser.add_argument(
+        '--no-claude-md',
+        action='store_true',
+        help='Skip updating CLAUDE.md'
+    )
+
     args = parser.parse_args()
 
     # Validate directory exists
@@ -564,6 +850,10 @@ Note: Both relative paths (./dir, ../dir) and absolute paths (/path/to/dir) are 
     # Create Markdown file
     generate_markdown(extracted_info, args.output, args.directory)
     print(f"Found {len(extracted_info)} Go files")
+
+    # Update CLAUDE.md
+    if not args.no_claude_md:
+        update_claude_md(args.output, args.directory)
 
 
 if __name__ == "__main__":

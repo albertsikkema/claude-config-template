@@ -2,6 +2,23 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+
+## Codebase Index
+
+**IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the relevant codebase index:
+
+- **`thoughts/codebase/codebase_overview_claude_helpers_py.md`** - Helper utilities and CLI scripts (24 Python files)
+- **`thoughts/codebase/codebase_overview_claude_flow_py.md`** - Claude-Flow FastAPI backend (18 Python files)
+- **`thoughts/codebase/codebase_overview_claude_flow_board_js_ts.md`** - Claude-Flow React frontend (86 TypeScript files)
+
+Each index contains:
+- **Most Used Symbols**: Top functions/components by usage count
+- **Library Files**: All exports with descriptions and "used by" references
+- **Dependency Graph**: Which files are most imported
+
+Reading the index first saves tokens and improves accuracy.
+
+
 ## Repository Purpose
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
@@ -275,9 +292,9 @@ Documented patterns in `thoughts/best_practices/`:
 This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
 
 ### Available Index Files
-- `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts (30 Python files)
-- `codebase_overview_claude_flow_py.md` - Claude-Flow FastAPI backend (24 Python files)
-- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (92 TypeScript files)
+- `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts (24 Python files)
+- `codebase_overview_claude_flow_py.md` - Claude-Flow FastAPI backend (18 Python files)
+- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (86 TypeScript files)
 
 These files are automatically generated and kept up-to-date by the `/index_codebase` command.
 

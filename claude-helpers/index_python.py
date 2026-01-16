@@ -1,7 +1,10 @@
 import os
 import ast
+import re
 import argparse
 import sys
+from collections import defaultdict
+from datetime import datetime
 
 # Cache ast.unparse availability check at module level
 HAS_UNPARSE = hasattr(ast, 'unparse')
@@ -27,8 +30,20 @@ SKIP_DIRS = {
     # Claude configuration
     '.claude', 'claude-helpers',
     # Logs and temporary directories
-    'logs', 'tmp', 'temp'
+    'logs', 'tmp', 'temp',
+    # Thoughts/documentation (not source code)
+    'thoughts',
+    # Test directories
+    'tests', 'test',
+    # Database migrations (auto-generated)
+    'alembic', 'migrations'
 }
+
+# HTTP methods for API endpoint detection
+HTTP_METHODS = {'get', 'post', 'put', 'delete', 'patch', 'head', 'options'}
+
+# Framework-specific route decorators
+ROUTE_DECORATORS = {'route', 'get', 'post', 'put', 'delete', 'patch', 'api_view'}
 
 def safe_unparse(node):
     """Safely unparse an AST node with fallback to str()."""
@@ -47,6 +62,10 @@ def extract_codebase_info(directory):
         dirs[:] = [d for d in dirs if d not in SKIP_DIRS and not d.endswith('.egg-info')]
 
         for file in files:
+            # Skip test files - they add noise and aren't useful for navigation
+            if file.startswith('test_') or file.endswith('_test.py') or 'conftest' in file:
+                continue
+
             if file.endswith('.py'):  # Process Python files only
                 file_path = os.path.join(root, file)
                 try:
@@ -102,6 +121,46 @@ def build_name_index(codebase_info):
     return name_index
 
 
+def extract_short_docstring(docstring):
+    """Extract just the first line/sentence of a docstring."""
+    if not docstring:
+        return None
+    # Get first line
+    first_line = docstring.split('\n')[0].strip()
+    # Truncate if too long
+    if len(first_line) > 80:
+        first_line = first_line[:80] + "..."
+    return first_line
+
+
+def extract_route_info(decorators):
+    """Extract route information from function decorators."""
+    routes = []
+    for decorator in decorators:
+        # Handle @app.route('/path') or @router.get('/path')
+        if isinstance(decorator, ast.Call):
+            if isinstance(decorator.func, ast.Attribute):
+                method = decorator.func.attr.lower()
+                if method in HTTP_METHODS or method in ROUTE_DECORATORS:
+                    # Extract route path from first argument
+                    if decorator.args:
+                        if isinstance(decorator.args[0], ast.Constant):
+                            route_path = decorator.args[0].value
+                            http_method = method.upper() if method in HTTP_METHODS else 'GET'
+                            routes.append({'method': http_method, 'path': route_path})
+            elif isinstance(decorator.func, ast.Name):
+                method = decorator.func.id.lower()
+                if method in ROUTE_DECORATORS:
+                    if decorator.args and isinstance(decorator.args[0], ast.Constant):
+                        routes.append({'method': 'GET', 'path': decorator.args[0].value})
+        # Handle @get, @post etc (without call)
+        elif isinstance(decorator, ast.Attribute):
+            method = decorator.attr.lower()
+            if method in HTTP_METHODS:
+                routes.append({'method': method.upper(), 'path': None})
+    return routes
+
+
 def parse_ast(tree, file_path):
     """Parse AST to extract classes, functions, and global variables."""
     details = {
@@ -109,6 +168,7 @@ def parse_ast(tree, file_path):
         "functions": [],
         "variables": [],
         "models": [],
+        "api_routes": [],
     }
 
     # Use iter_child_nodes to avoid nested functions/classes
@@ -124,8 +184,9 @@ def parse_ast(tree, file_path):
 
             class_info = {
                 "name": node.name,
+                "line": node.lineno,
                 "methods": [],
-                "docstring": ast.get_docstring(node),
+                "docstring": extract_short_docstring(ast.get_docstring(node)),
                 "is_model": is_model,
                 "fields": [] if is_model else None,
                 "called_from": [],
@@ -135,7 +196,7 @@ def parse_ast(tree, file_path):
                 if isinstance(class_child, (ast.FunctionDef, ast.AsyncFunctionDef)):
                     method_info = {
                         "name": class_child.name,
-                        "docstring": ast.get_docstring(class_child),
+                        "docstring": extract_short_docstring(ast.get_docstring(class_child)),
                         "parameters": extract_function_signature(class_child),
                         "return_type": extract_return_type(class_child),
                     }
@@ -157,12 +218,20 @@ def parse_ast(tree, file_path):
 
         # Extract function definitions (only top-level)
         elif isinstance(node, ast.FunctionDef) or isinstance(node, ast.AsyncFunctionDef):
+            # Check for route decorators
+            routes = extract_route_info(node.decorator_list)
+            for route in routes:
+                route['function'] = node.name
+                details["api_routes"].append(route)
+
             details["functions"].append({
                 "name": node.name,
-                "docstring": ast.get_docstring(node),
+                "line": node.lineno,
+                "docstring": extract_short_docstring(ast.get_docstring(node)),
                 "parameters": extract_function_signature(node),
                 "return_type": extract_return_type(node),
                 "called_from": [],
+                "is_route": len(routes) > 0,
             })
 
         # Extract global variables
@@ -330,156 +399,276 @@ def generate_file_tree(directory, codebase_info):
     return "\n".join(tree_lines)
 
 
+def simplify_caller(caller_path, base_path):
+    """Simplify a caller path for display (extract just the file path)."""
+    # Format is: /path/to/file.py::function or /path/to/file.py::Class.method
+    if '::' in caller_path:
+        file_part = caller_path.split('::')[0]
+    else:
+        file_part = caller_path
+
+    # Make relative if possible
+    try:
+        return os.path.relpath(file_part, base_path)
+    except ValueError:
+        return file_part
+
+
 def generate_markdown(codebase_info, output_file, directory):
-    """Generate a Markdown file with per-page overview format."""
+    """Generate a Markdown file - compact format matching JS/TS indexer."""
     with open(output_file, 'w', encoding='utf-8') as f:
-        f.write("# Python Codebase Overview\n\n")
+        f.write("# Codebase Index\n\n")
+        f.write(f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} | Regenerate with `/index_codebase`*\n\n")
 
-        # Generate file tree
-        f.write("## File Tree\n\n")
-        f.write("```\n")
-        tree = generate_file_tree(directory, codebase_info)
-        f.write(tree)
-        f.write("\n```\n\n")
-        f.write("---\n\n")
+        base_path = os.path.abspath(directory)
 
-        # Generate table of contents
-        f.write("## Table of Contents\n\n")
-        for file_path in sorted(codebase_info.keys()):
-            rel_path = file_path.replace(os.getcwd() + '/', '')
-            anchor = rel_path.replace('/', '-').replace('.', '')
-            f.write(f"- [{rel_path}](#{anchor})\n")
-        f.write("\n---\n\n")
+        # === SECTION 1: Most Used Symbols ===
+        f.write("## Most Used Symbols\n\n")
 
-        # Generate per-file documentation
-        for file_path in sorted(codebase_info.keys()):
-            content = codebase_info[file_path]
-            rel_path = file_path.replace(os.getcwd() + '/', '')
-
-            f.write(f"# File: `{rel_path}`\n\n")
-
-            # Overview section
-            f.write("## Overview\n\n")
-            overview_items = []
-            if content["models"]:
-                overview_items.append(f"**Models:** {len(content['models'])}")
-            if content["classes"]:
-                overview_items.append(f"**Classes:** {len(content['classes'])}")
-            if content["functions"]:
-                overview_items.append(f"**Functions:** {len(content['functions'])}")
-            if content["variables"]:
-                overview_items.append(f"**Variables:** {len(content['variables'])}")
-            f.write(" | ".join(overview_items) + "\n\n")
-
-            # Models (Pydantic BaseModel classes)
-            if content["models"]:
-                f.write("## Models\n\n")
-                for model in content["models"]:
-                    f.write(f"### `{model['name']}`\n")
-                    if model['docstring']:
-                        f.write(f"> {model['docstring']}\n\n")
-
-                    if model['fields']:
-                        f.write("**Fields:**\n")
-                        for field in model['fields']:
-                            f.write(f"- `{field['name']}`: `{field['type']}`\n")
-                        f.write("\n")
-
-                    if model['methods']:
-                        f.write("**Methods:**\n")
-                        for method in model['methods']:
-                            params_str = format_parameters(method['parameters'])
-                            return_str = f" -> `{method['return_type']}`" if method['return_type'] else ""
-                            f.write(f"- `{method['name']}({params_str}){return_str}`\n")
-                            if method['docstring']:
-                                f.write(f"  - {method['docstring']}\n")
-                        f.write("\n")
-
-                    if model['called_from']:
-                        f.write("**Called from:**\n")
-                        for caller in model['called_from']:
-                            f.write(f"- `{caller}`\n")
-                        f.write("\n")
-
-            # Classes
-            if content["classes"]:
-                f.write("## Classes\n\n")
-                for cls in content["classes"]:
-                    f.write(f"### `{cls['name']}`\n")
-                    if cls['docstring']:
-                        f.write(f"> {cls['docstring']}\n\n")
-
-                    if cls['methods']:
-                        f.write("**Methods:**\n")
-                        for method in cls["methods"]:
-                            params_str = format_parameters(method['parameters'])
-                            return_str = f" -> `{method['return_type']}`" if method['return_type'] else ""
-                            f.write(f"- `{method['name']}({params_str}){return_str}`\n")
-                            if method['docstring']:
-                                f.write(f"  - {method['docstring']}\n")
-                        f.write("\n")
-
-                    if cls['called_from']:
-                        f.write("**Called from:**\n")
-                        for caller in cls['called_from']:
-                            f.write(f"- `{caller}`\n")
-                        f.write("\n")
+        all_symbols = []
+        for file_path, content in codebase_info.items():
+            rel_path = os.path.relpath(file_path, base_path)
 
             # Functions
-            if content["functions"]:
-                f.write("## Functions\n\n")
-                for func in content["functions"]:
+            for func in content.get("functions", []):
+                if func.get("called_from"):
                     params_str = format_parameters(func['parameters'])
-                    return_str = f" -> `{func['return_type']}`" if func['return_type'] else ""
-                    f.write(f"### `{func['name']}({params_str}){return_str}`\n")
-                    if func['docstring']:
-                        f.write(f"> {func['docstring']}\n\n")
-                    else:
-                        f.write("\n")
+                    all_symbols.append({
+                        "name": func["name"],
+                        "file": rel_path,
+                        "line": func.get("line", 0),
+                        "signature": f"({params_str})" if params_str else "()",
+                        "description": func.get("docstring"),
+                        "refs": len(func["called_from"])
+                    })
 
-                    if func['parameters']:
-                        f.write("**Input:**\n")
-                        for param in func['parameters']:
-                            param_type = f": `{param['type']}`" if 'type' in param else ""
-                            f.write(f"- `{param['name']}`{param_type}\n")
-                        f.write("\n")
+            # Classes
+            for cls in content.get("classes", []):
+                if cls.get("called_from"):
+                    all_symbols.append({
+                        "name": cls["name"],
+                        "file": rel_path,
+                        "line": cls.get("line", 0),
+                        "signature": "",
+                        "description": cls.get("docstring"),
+                        "refs": len(cls["called_from"])
+                    })
 
-                    if func['return_type']:
-                        f.write(f"**Output:** `{func['return_type']}`\n\n")
+            # Models
+            for model in content.get("models", []):
+                if model.get("called_from"):
+                    all_symbols.append({
+                        "name": model["name"],
+                        "file": rel_path,
+                        "line": model.get("line", 0),
+                        "signature": "",
+                        "description": model.get("docstring"),
+                        "refs": len(model["called_from"])
+                    })
 
-                    if func['called_from']:
-                        f.write("**Called from:**\n")
-                        for caller in func['called_from']:
-                            f.write(f"- `{caller}`\n")
-                        f.write("\n")
+        all_symbols.sort(key=lambda x: x["refs"], reverse=True)
 
-            # Variables
-            if content["variables"]:
-                f.write("## Variables\n\n")
-                for var in content["variables"]:
-                    var_type = f": `{var['type']}`" if 'type' in var else ""
-                    var_value = f" = `{var['value']}`" if var.get('value') else ""
-                    f.write(f"- `{var['name']}`{var_type}{var_value}\n")
-                f.write("\n")
+        for sym in all_symbols[:25]:
+            desc = f" - {sym['description']}" if sym.get("description") else ""
+            line_ref = f":{sym['line']}" if sym.get('line') else ""
+            f.write(f"- **{sym['name']}**{sym['signature']} `{sym['file']}{line_ref}`{desc} → {sym['refs']} refs\n")
+        f.write("\n")
 
-            f.write("---\n\n")
+        # === SECTION 2: Library Files ===
+        f.write("## Library Files\n\n")
+
+        for file_path in sorted(codebase_info.keys()):
+            content = codebase_info[file_path]
+            rel_path = os.path.relpath(file_path, base_path)
+
+            # Collect exports
+            has_exports = False
+            exports_lines = []
+
+            # Functions (skip routes - they're listed in API Endpoints)
+            for func in content.get("functions", []):
+                if func.get("is_route"):
+                    continue
+                has_exports = True
+                params_str = format_parameters(func['parameters'])
+                sig = f"({params_str})" if params_str else "()"
+                desc = f" - {func['docstring']}" if func.get("docstring") else ""
+                line_ref = f":{func.get('line', '')}" if func.get('line') else ""
+                exports_lines.append(f"  - `{func['name']}`{sig}{line_ref}{desc}")
+                if func.get("called_from"):
+                    callers = [simplify_caller(c, base_path) for c in func['called_from'][:5]]
+                    more = f" +{len(func['called_from'])-5} more" if len(func['called_from']) > 5 else ""
+                    exports_lines.append(f"    ↳ used by: {', '.join(f'`{c}`' for c in callers)}{more}")
+
+            # Classes
+            for cls in content.get("classes", []):
+                has_exports = True
+                methods = [m['name'] for m in cls.get('methods', []) if not m['name'].startswith('_')][:5]
+                methods_str = f" methods: {', '.join(methods)}" if methods else ""
+                desc = f" - {cls['docstring']}" if cls.get("docstring") else ""
+                line_ref = f":{cls.get('line', '')}" if cls.get('line') else ""
+                exports_lines.append(f"  - `{cls['name']}`{line_ref} - class{methods_str}{desc}")
+                if cls.get("called_from"):
+                    callers = [simplify_caller(c, base_path) for c in cls['called_from'][:5]]
+                    more = f" +{len(cls['called_from'])-5} more" if len(cls['called_from']) > 5 else ""
+                    exports_lines.append(f"    ↳ used by: {', '.join(f'`{c}`' for c in callers)}{more}")
+
+            # Models (Pydantic)
+            for model in content.get("models", []):
+                has_exports = True
+                fields = [f['name'] for f in model.get('fields', [])][:5]
+                fields_str = f" fields: {', '.join(fields)}" if fields else ""
+                desc = f" - {model['docstring']}" if model.get("docstring") else ""
+                line_ref = f":{model.get('line', '')}" if model.get('line') else ""
+                exports_lines.append(f"  - `{model['name']}`{line_ref} - model{fields_str}{desc}")
+                if model.get("called_from"):
+                    callers = [simplify_caller(c, base_path) for c in model['called_from'][:5]]
+                    more = f" +{len(model['called_from'])-5} more" if len(model['called_from']) > 5 else ""
+                    exports_lines.append(f"    ↳ used by: {', '.join(f'`{c}`' for c in callers)}{more}")
+
+            if has_exports:
+                f.write(f"### `{rel_path}`\n")
+                f.write("\n".join(exports_lines))
+                f.write("\n\n")
+
+        # === SECTION 3: API Endpoints ===
+        f.write("## API Endpoints\n\n")
+
+        api_endpoints = []
+        for file_path, content in codebase_info.items():
+            rel_path = os.path.relpath(file_path, base_path)
+            for route in content.get("api_routes", []):
+                api_endpoints.append({
+                    'method': route['method'],
+                    'path': route.get('path', '/'),
+                    'function': route.get('function'),
+                    'file': rel_path
+                })
+
+        if api_endpoints:
+            for ep in sorted(api_endpoints, key=lambda x: (x['path'] or '', x['method'])):
+                f.write(f"- **{ep['method']}** `{ep['path']}` → `{ep['file']}:{ep['function']}`\n")
+        else:
+            f.write("*No API endpoints detected*\n")
+        f.write("\n")
+
+        # === SECTION 4: Dependency Graph ===
+        f.write("## Dependency Graph\n\n")
+        f.write("*Files by number of dependents:*\n\n")
+
+        file_dependencies = {}
+        for file_path, content in codebase_info.items():
+            rel_path = os.path.relpath(file_path, base_path)
+            users = set()
+            for func in content.get("functions", []):
+                for caller in func.get("called_from", []):
+                    users.add(simplify_caller(caller, base_path))
+            for cls in content.get("classes", []):
+                for caller in cls.get("called_from", []):
+                    users.add(simplify_caller(caller, base_path))
+            for model in content.get("models", []):
+                for caller in model.get("called_from", []):
+                    users.add(simplify_caller(caller, base_path))
+            if users:
+                file_dependencies[rel_path] = len(users)
+
+        sorted_deps = sorted(file_dependencies.items(), key=lambda x: x[1], reverse=True)
+        for file, count in sorted_deps[:20]:
+            f.write(f"- `{file}` ← {count} files\n")
+
+        f.write("\n")
 
     print(f"Markdown documentation generated: {output_file}")
 
 
-def format_parameters(params):
-    """Format function parameters for display."""
+def format_parameters(params, include_types=False):
+    """Format function parameters for display - names only by default."""
     if not params:
         return ""
 
     formatted = []
     for param in params:
-        if 'type' in param:
-            formatted.append(f"{param['name']}: {param['type']}")
+        name = param['name']
+        # Skip 'self' and 'cls' params
+        if name in ('self', 'cls'):
+            continue
+        if include_types and 'type' in param:
+            formatted.append(f"{name}: {param['type']}")
         else:
-            formatted.append(param['name'])
+            formatted.append(name)
 
-    return ", ".join(formatted)
+    result = ", ".join(formatted)
+    # Truncate if too long
+    if len(result) > 50:
+        result = result[:50] + "..."
+    return result
+
+
+def update_claude_md(output_file, directory):
+    """Update CLAUDE.md to reference the codebase index file."""
+    # Find project root - look for CLAUDE.md or .git directory
+    project_root = os.getcwd()
+
+    # Walk up to find project root (where .git or CLAUDE.md exists)
+    check_dir = os.path.dirname(os.path.abspath(output_file))
+    for _ in range(5):  # Max 5 levels up
+        if os.path.exists(os.path.join(check_dir, '.git')) or os.path.exists(os.path.join(check_dir, 'CLAUDE.md')):
+            project_root = check_dir
+            break
+        parent = os.path.dirname(check_dir)
+        if parent == check_dir:
+            break
+        check_dir = parent
+
+    claude_md_path = os.path.join(project_root, 'CLAUDE.md')
+
+    # The section we want to add/update
+    index_section = f"""## Codebase Index
+
+**IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the codebase index:
+
+**`{os.path.relpath(output_file, project_root)}`**
+
+This index contains:
+- **Most Used Symbols**: Top functions/classes by usage count
+- **Library Files**: All exports with descriptions and "used by" references
+- **API Endpoints**: All REST API routes
+- **Dependency Graph**: Which files are most imported
+
+Reading the index first saves tokens and improves accuracy.
+"""
+
+    try:
+        if os.path.exists(claude_md_path):
+            with open(claude_md_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # Check if section already exists
+            if '## Codebase Index' in content:
+                # Update existing section
+                pattern = r'## Codebase Index.*?(?=\n## |\n# |\Z)'
+                content = re.sub(pattern, index_section.strip() + '\n\n', content, flags=re.DOTALL)
+            else:
+                # Add after first heading or at the end
+                if '\n## ' in content:
+                    # Insert before second section
+                    first_section_end = content.find('\n## ')
+                    content = content[:first_section_end] + '\n\n' + index_section + content[first_section_end:]
+                else:
+                    # Append
+                    content = content.rstrip() + '\n\n' + index_section
+
+            with open(claude_md_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            print(f"Updated CLAUDE.md with codebase index reference")
+        else:
+            # Create new CLAUDE.md
+            with open(claude_md_path, 'w', encoding='utf-8') as f:
+                f.write(f"# Project Configuration\n\n{index_section}")
+            print(f"Created CLAUDE.md with codebase index reference")
+
+    except Exception as e:
+        print(f"Warning: Could not update CLAUDE.md: {e}")
 
 
 def main():
@@ -513,6 +702,12 @@ Note: Both relative paths (./dir, ../dir) and absolute paths (/path/to/dir) are 
         help='Output Markdown file (default: codebase_overview.md)'
     )
 
+    parser.add_argument(
+        '--no-claude-md',
+        action='store_true',
+        help='Skip updating CLAUDE.md'
+    )
+
     args = parser.parse_args()
 
     # Validate directory exists
@@ -527,6 +722,10 @@ Note: Both relative paths (./dir, ../dir) and absolute paths (/path/to/dir) are 
     # Create Markdown file
     generate_markdown(extracted_info, args.output, args.directory)
     print(f"Found {len(extracted_info)} Python files")
+
+    # Update CLAUDE.md
+    if not args.no_claude_md:
+        update_claude_md(args.output, args.directory)
 
 
 if __name__ == "__main__":
