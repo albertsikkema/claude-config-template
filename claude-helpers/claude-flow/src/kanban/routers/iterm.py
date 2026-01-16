@@ -6,8 +6,11 @@ import subprocess
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
+from kanban.database import TaskDB, get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/iterm", tags=["iterm"])
@@ -300,14 +303,38 @@ class FocusTabRequest(BaseModel):
 
 
 @router.post("/focus-tab")
-async def focus_claude_tab(request: FocusTabRequest):
-    """Focus an iTerm tab by task ID prefix.
+async def focus_claude_tab(request: FocusTabRequest, db: Session = Depends(get_db)):
+    """Focus an iTerm tab for a task.
 
-    Searches for a tab whose name starts with the task ID and brings it to focus.
+    First tries to find the tab by iterm_session_id (most reliable), then
+    falls back to task ID prefix matching if iterm_session_id is not available.
     """
-    task_prefix = request.task_id[:8]
+    # Look up task to get iterm_session_id
+    task = db.query(TaskDB).filter(TaskDB.id == request.task_id).first()
 
-    script = f'''
+    if task and task.iterm_session_id:
+        # Use iterm_session_id for reliable matching
+        escaped_id = _escape_applescript(task.iterm_session_id)
+        script = f'''
+tell application "iTerm"
+    activate
+    repeat with w in windows
+        repeat with t in tabs of w
+            repeat with s in sessions of t
+                if unique ID of s is "{escaped_id}" then
+                    select t
+                    return "focused"
+                end if
+            end repeat
+        end repeat
+    end repeat
+    return "not_found"
+end tell
+'''
+    else:
+        # Fall back to task ID prefix matching
+        task_prefix = request.task_id[:8]
+        script = f'''
 tell application "iTerm"
     activate
     repeat with w in windows
