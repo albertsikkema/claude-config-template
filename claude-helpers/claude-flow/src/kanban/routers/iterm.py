@@ -258,3 +258,155 @@ async def list_claude_tabs():
         return {"tabs": tabs}
     except subprocess.TimeoutExpired:
         return {"tabs": [], "error": "timeout"}
+
+
+class OpenAppRequest(BaseModel):
+    """Request to open an application at a repo path."""
+
+    repo_id: str = Field(..., min_length=1, max_length=500, description="Repository path")
+
+
+@router.post("/open-vscode")
+async def open_vscode(request: OpenAppRequest):
+    """Open VS Code at the specified repository path."""
+    repo_path = request.repo_id
+
+    # Validate path exists
+    if not Path(repo_path).exists():
+        raise HTTPException(404, f"Path not found: {repo_path}")
+
+    try:
+        # Use 'code' command to open VS Code
+        subprocess.run(["code", repo_path], check=True, capture_output=True, timeout=10)
+        logger.info(f"Opened VS Code at: {repo_path}")
+        return {"status": "opened", "path": repo_path}
+    except FileNotFoundError as e:
+        raise HTTPException(
+            500,
+            "VS Code 'code' command not found. "
+            "Install it via VS Code: Cmd+Shift+P -> 'Shell Command: Install code command'",
+        ) from e
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout opening VS Code") from e
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to open VS Code: {e.stderr.decode()}")
+        raise HTTPException(500, f"Failed to open VS Code: {e.stderr.decode()}") from e
+
+
+@router.post("/open-terminal")
+async def open_terminal(request: OpenAppRequest):
+    """Open iTerm at the specified repository path."""
+    repo_path = request.repo_id
+
+    # Validate path exists
+    if not Path(repo_path).exists():
+        raise HTTPException(404, f"Path not found: {repo_path}")
+
+    escaped_path = _escape_applescript(repo_path)
+    iterm_was_running = _is_iterm_running()
+
+    if not iterm_was_running:
+        script = f'''
+tell application "iTerm"
+    activate
+    delay 0.5
+    tell current window
+        tell current session
+            write text "cd \\"{escaped_path}\\" && clear"
+        end tell
+    end tell
+end tell
+'''
+    else:
+        script = f'''
+tell application "iTerm"
+    activate
+    delay 0.3
+    if (count of windows) = 0 then
+        create window with default profile
+        tell current window
+            tell current session
+                write text "cd \\"{escaped_path}\\" && clear"
+            end tell
+        end tell
+    else
+        tell current window
+            create tab with default profile
+            tell current session
+                write text "cd \\"{escaped_path}\\" && clear"
+            end tell
+        end tell
+    end if
+end tell
+'''
+
+    try:
+        subprocess.run(["osascript", "-e", script], check=True, capture_output=True, timeout=10)
+        logger.info(f"Opened iTerm at: {repo_path}")
+        return {"status": "opened", "path": repo_path}
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout opening iTerm") from e
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to open iTerm: {e.stderr.decode()}")
+        raise HTTPException(500, f"Failed to open iTerm: {e.stderr.decode()}") from e
+
+
+@router.post("/open-claude")
+async def open_claude(request: OpenAppRequest):
+    """Open Claude CLI in iTerm at the specified repository path."""
+    repo_path = request.repo_id
+
+    # Validate path exists
+    if not Path(repo_path).exists():
+        raise HTTPException(404, f"Path not found: {repo_path}")
+
+    escaped_path = _escape_applescript(repo_path)
+    iterm_was_running = _is_iterm_running()
+
+    # Command to cd to path and start Claude CLI
+    command = f'cd \\"{escaped_path}\\" && clear && claude'
+
+    if not iterm_was_running:
+        script = f'''
+tell application "iTerm"
+    activate
+    delay 0.5
+    tell current window
+        tell current session
+            write text "{command}"
+        end tell
+    end tell
+end tell
+'''
+    else:
+        script = f'''
+tell application "iTerm"
+    activate
+    delay 0.3
+    if (count of windows) = 0 then
+        create window with default profile
+        tell current window
+            tell current session
+                write text "{command}"
+            end tell
+        end tell
+    else
+        tell current window
+            create tab with default profile
+            tell current session
+                write text "{command}"
+            end tell
+        end tell
+    end if
+end tell
+'''
+
+    try:
+        subprocess.run(["osascript", "-e", script], check=True, capture_output=True, timeout=10)
+        logger.info(f"Opened Claude CLI at: {repo_path}")
+        return {"status": "opened", "path": repo_path}
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout opening Claude CLI") from e
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Failed to open Claude CLI: {e.stderr.decode()}")
+        raise HTTPException(500, f"Failed to open Claude CLI: {e.stderr.decode()}") from e
