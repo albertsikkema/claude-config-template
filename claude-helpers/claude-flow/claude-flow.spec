@@ -115,7 +115,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # Add icon path here if you have one
+    icon=str(spec_root / 'icon.icns'),
 )
 
 coll = COLLECT(
@@ -133,7 +133,7 @@ coll = COLLECT(
 app = BUNDLE(
     coll,  # Use collected files for onedir mode
     name='Claude Flow.app',
-    icon=None,  # Add icon path here if you have one
+    icon=str(spec_root / 'icon.icns'),
     bundle_identifier='com.albertsikkema.claude-flow',
     info_plist={
         'NSPrincipalClass': 'NSApplication',  # Required for Finder launches
