@@ -7,10 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the codebase index:
 
-**`thoughts/codebase/codebase_overview_claude_flow_py.md`**
+**`thoughts/codebase/codebase_overview_claude_flow_board_js_ts.md`**
 
 This index contains:
-- **Most Used Symbols**: Top functions/classes by usage count
+- **Most Used Symbols**: Top functions/components by usage count
 - **Library Files**: All exports with descriptions and "used by" references
 - **API Endpoints**: All REST API routes
 - **Dependency Graph**: Which files are most imported
