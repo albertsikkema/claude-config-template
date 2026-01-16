@@ -123,6 +123,7 @@ class TaskDB(Base):
     claude_completed_at = Column(DateTime, nullable=True)
     approved_at = Column(DateTime, nullable=True)
     session_id = Column(String(100), nullable=True)
+    iterm_session_id = Column(String(100), nullable=True)  # iTerm's internal session ID
     # Notification tracking
     last_notification = Column(DateTime, nullable=True)
 
@@ -208,6 +209,14 @@ def migrate_db():
         try:
             cursor.execute("ALTER TABLE tasks ADD COLUMN auto_advance BOOLEAN DEFAULT 0 NOT NULL")
             print("Added column auto_advance to tasks table")
+        except sqlite3.OperationalError as e:
+            print(f"Migration note: {e}")
+
+    # Add iterm_session_id column if missing
+    if "iterm_session_id" not in existing_task_columns:
+        try:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN iterm_session_id VARCHAR(100)")
+            print("Added column iterm_session_id to tasks table")
         except sqlite3.OperationalError as e:
             print(f"Migration note: {e}")
 

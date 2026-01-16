@@ -87,6 +87,7 @@ class TaskBase(BaseModel):
     claude_completed_at: datetime | None = None
     approved_at: datetime | None = None
     session_id: str | None = None
+    iterm_session_id: str | None = None  # iTerm's internal session ID for tab management
     # Notification tracking
     last_notification: datetime | None = None  # When task last triggered a notification
 
@@ -121,6 +122,7 @@ class TaskUpdate(BaseModel):
     claude_completed_at: datetime | None = None
     approved_at: datetime | None = None
     session_id: str | None = None
+    iterm_session_id: str | None = None
     last_notification: datetime | None = None
 
 

@@ -54,6 +54,7 @@ def task_db_to_model(db_task: TaskDB) -> Task:
         claude_completed_at=db_task.claude_completed_at,
         approved_at=db_task.approved_at,
         session_id=db_task.session_id,
+        iterm_session_id=db_task.iterm_session_id,
         last_notification=db_task.last_notification,
     )
 
@@ -148,7 +149,7 @@ class MoveTaskResponse(BaseModel):
 
 
 @router.patch("/tasks/{task_id}/move", response_model=MoveTaskResponse)
-def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)):
+async def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)):
     """Move a task to a different stage.
 
     Returns the task and whether this stage supports starting a Claude session.
@@ -157,6 +158,24 @@ def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)):
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # Close existing iTerm tab if session exists and stage is changing
+    previous_stage = db_task.stage
+    if db_task.iterm_session_id and previous_stage != move.stage:
+        from kanban.routers.iterm import CloseTabByItermIdRequest, close_tab_by_iterm_id
+
+        try:
+            await close_tab_by_iterm_id(
+                CloseTabByItermIdRequest(iterm_session_id=db_task.iterm_session_id)
+            )
+            logger.info(
+                f"Closed iTerm tab for task {task_id} on stage change: {previous_stage} -> {move.stage}"
+            )
+            # Clear the iterm_session_id since tab is closed
+            db_task.iterm_session_id = None
+        except Exception as e:
+            logger.warning(f"Failed to close iTerm tab for task {task_id}: {e}")
+            # Don't fail the move operation if tab close fails
 
     db_task.stage = move.stage
     db_task.order = move.order
@@ -370,6 +389,19 @@ async def _start_session_for_task_internal(task_id: UUID, db: Session) -> StartS
 
     logger.info(f"Using model: {model.value}")
 
+    # Close any existing iTerm session before opening a new one
+    if db_task.iterm_session_id:
+        from kanban.routers.iterm import CloseTabByItermIdRequest, close_tab_by_iterm_id
+
+        try:
+            await close_tab_by_iterm_id(
+                CloseTabByItermIdRequest(iterm_session_id=db_task.iterm_session_id)
+            )
+            logger.info(f"Closed existing iTerm tab for task {task_id}")
+        except Exception as e:
+            logger.warning(f"Failed to close existing iTerm tab: {e}")
+            # Continue anyway - the old tab might already be closed
+
     # Open iTerm tab - generate session_id and pass it to Claude
     from kanban.routers.iterm import OpenTabRequest, open_claude_tab
 
@@ -399,9 +431,13 @@ async def _start_session_for_task_internal(task_id: UUID, db: Session) -> StartS
     db_task.claude_status = ClaudeStatus.RUNNING
     db_task.started_at = datetime.utcnow()
     db_task.session_id = response.session_id
+    db_task.iterm_session_id = response.iterm_session_id
     db.commit()
 
-    logger.info(f"Task {task_id} updated with session_id: {response.session_id}")
+    logger.info(
+        f"Task {task_id} updated with session_id: {response.session_id}, "
+        f"iterm_session_id: {response.iterm_session_id}"
+    )
     return StartSessionResponse(status="started", session_id=response.session_id)
 
 

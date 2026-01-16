@@ -44,6 +44,7 @@ class OpenTabResponse(BaseModel):
     status: str
     tab_name: str
     session_id: str
+    iterm_session_id: str | None = None  # iTerm's internal session unique ID
 
 
 class CloseTabRequest(BaseModel):
@@ -120,6 +121,7 @@ async def open_claude_tab(request: OpenTabRequest) -> OpenTabResponse:
     iterm_was_running = _is_iterm_running()
 
     # AppleScript to open tab and run the launch script
+    # Returns the iTerm session's unique ID so we can close it later
     if not iterm_was_running:
         script = f'''
 tell application "iTerm"
@@ -128,6 +130,7 @@ tell application "iTerm"
     tell current window
         tell current session
             write text "{_escape_applescript(full_command)}"
+            return unique ID
         end tell
     end tell
 end tell
@@ -142,6 +145,7 @@ tell application "iTerm"
         tell current window
             tell current session
                 write text "{_escape_applescript(full_command)}"
+                return unique ID
             end tell
         end tell
     else
@@ -149,6 +153,7 @@ tell application "iTerm"
             create tab with default profile
             tell current session
                 write text "{_escape_applescript(full_command)}"
+                return unique ID
             end tell
         end tell
     end if
@@ -156,9 +161,17 @@ end tell
 '''
 
     try:
-        subprocess.run(["osascript", "-e", script], check=True, capture_output=True, timeout=10)
-        logger.info(f"Opened iTerm tab: {tab_name}")
-        return OpenTabResponse(status="opened", tab_name=tab_name, session_id=session_id)
+        result = subprocess.run(
+            ["osascript", "-e", script], check=True, capture_output=True, timeout=10, text=True
+        )
+        iterm_session_id = result.stdout.strip() if result.stdout else None
+        logger.info(f"Opened iTerm tab: {tab_name}, iterm_session_id: {iterm_session_id}")
+        return OpenTabResponse(
+            status="opened",
+            tab_name=tab_name,
+            session_id=session_id,
+            iterm_session_id=iterm_session_id,
+        )
     except subprocess.TimeoutExpired as e:
         raise HTTPException(500, "Timeout opening iTerm tab") from e
     except subprocess.CalledProcessError as e:
@@ -166,9 +179,21 @@ end tell
         raise HTTPException(500, f"Failed to open tab: {e.stderr.decode()}") from e
 
 
+class CloseTabByTaskRequest(BaseModel):
+    """Request to close an iTerm tab by task ID prefix."""
+
+    task_id: str = Field(..., min_length=1, max_length=100)
+
+
+class CloseTabByItermIdRequest(BaseModel):
+    """Request to close an iTerm tab by its unique session ID."""
+
+    iterm_session_id: str = Field(..., min_length=1, max_length=100)
+
+
 @router.post("/close-tab")
 async def close_claude_tab(request: CloseTabRequest):
-    """Close an iTerm tab by name."""
+    """Close an iTerm tab by name (exact match - legacy)."""
     sanitized_name = sanitize_tab_name(request.tab_name)
     escaped_name = _escape_applescript(sanitized_name)
 
@@ -194,6 +219,76 @@ async def close_claude_tab(request: CloseTabRequest):
         )
         status = result.stdout.strip()
         return {"status": status, "tab_name": request.tab_name}
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout closing iTerm tab") from e
+
+
+@router.post("/close-tab-by-task")
+async def close_tab_by_task(request: CloseTabByTaskRequest):
+    """Close an iTerm tab by task ID prefix.
+
+    More reliable than close-tab because it uses 'starts with' matching,
+    which works even when Claude changes the terminal title during execution.
+    """
+    task_prefix = request.task_id[:8]
+
+    script = f'''
+tell application "iTerm"
+    repeat with w in windows
+        repeat with t in tabs of w
+            repeat with s in sessions of t
+                if name of s starts with "{task_prefix}" then
+                    close t
+                    return "closed"
+                end if
+            end repeat
+        end repeat
+    end repeat
+    return "not_found"
+end tell
+'''
+
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+        )
+        status = result.stdout.strip()
+        return {"status": status, "task_id": request.task_id}
+    except subprocess.TimeoutExpired as e:
+        raise HTTPException(500, "Timeout closing iTerm tab") from e
+
+
+@router.post("/close-tab-by-iterm-id")
+async def close_tab_by_iterm_id(request: CloseTabByItermIdRequest):
+    """Close an iTerm tab by its unique session ID.
+
+    This is the most reliable method because iTerm's unique ID never changes,
+    even when Claude changes the terminal title.
+    """
+    escaped_id = _escape_applescript(request.iterm_session_id)
+
+    script = f'''
+tell application "iTerm"
+    repeat with w in windows
+        repeat with t in tabs of w
+            repeat with s in sessions of t
+                if unique ID of s is "{escaped_id}" then
+                    close t
+                    return "closed"
+                end if
+            end repeat
+        end repeat
+    end repeat
+    return "not_found"
+end tell
+'''
+
+    try:
+        result = subprocess.run(
+            ["osascript", "-e", script], capture_output=True, text=True, timeout=5
+        )
+        status = result.stdout.strip()
+        return {"status": status, "iterm_session_id": request.iterm_session_id}
     except subprocess.TimeoutExpired as e:
         raise HTTPException(500, "Timeout closing iTerm tab") from e
 
