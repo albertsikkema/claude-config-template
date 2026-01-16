@@ -115,6 +115,8 @@ class TaskDB(Base):
     research_path = Column(String(500), nullable=True)
     plan_path = Column(String(500), nullable=True)
     review_path = Column(String(500), nullable=True)
+    # Auto-advance: when enabled, task automatically advances without manual approval
+    auto_advance = Column(Boolean, default=False, nullable=False)
     # Claude session tracking
     claude_status = Column(Enum(ClaudeStatus), nullable=True)
     started_at = Column(DateTime, nullable=True)
@@ -198,6 +200,14 @@ def migrate_db():
                   AND claude_completed_at IS NOT NULL
             """)
             print("Backfilled last_notification for existing completed tasks")
+        except sqlite3.OperationalError as e:
+            print(f"Migration note: {e}")
+
+    # Add auto_advance column if missing
+    if "auto_advance" not in existing_task_columns:
+        try:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN auto_advance BOOLEAN DEFAULT 0 NOT NULL")
+            print("Added column auto_advance to tasks table")
         except sqlite3.OperationalError as e:
             print(f"Migration note: {e}")
 

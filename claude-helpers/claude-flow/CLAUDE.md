@@ -41,10 +41,15 @@ if getattr(sys, "frozen", False):
     os.environ["PYDANTIC_DISABLE_PLUGINS"] = "1"
 ```
 
-**Database path** - Store in repo, not bundle:
-```python
-if getattr(sys, "frozen", False):
-    db_path = Path.cwd() / "claude-helpers/claude-flow/data/kanban.db"
+**Database path** - Global location shared across all repos:
+- macOS: `~/Library/Application Support/claude-flow/kanban.db`
+- Windows: `%LOCALAPPDATA%/claude-flow/kanban.db`
+- Linux: `~/.local/share/claude-flow/kanban.db`
+
+To query the database directly:
+```bash
+sqlite3 ~/Library/Application\ Support/claude-flow/kanban.db "SELECT * FROM tasks;"
+sqlite3 ~/Library/Application\ Support/claude-flow/kanban.db "SELECT * FROM settings;"
 ```
 
 ## Codebase Indexes

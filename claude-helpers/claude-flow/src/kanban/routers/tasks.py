@@ -43,6 +43,7 @@ def task_db_to_model(db_task: TaskDB) -> Task:
         order=db_task.order,
         model=db_task.model,
         complexity=db_task.complexity,
+        auto_advance=db_task.auto_advance,
         created_at=db_task.created_at,
         updated_at=db_task.updated_at,
         research_path=db_task.research_path,
@@ -89,6 +90,7 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         order=task.order,
         model=task.model,
         complexity=task.complexity,
+        auto_advance=task.auto_advance,
     )
     db_task.tags = task.tags
     db.add(db_task)
@@ -326,11 +328,21 @@ class StartSessionResponse(BaseModel):
     session_id: str
 
 
-@router.post("/tasks/{task_id}/start-session", response_model=StartSessionResponse)
-async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
-    """Start a new Claude session for a task.
+async def _start_session_for_task_internal(task_id: UUID, db: Session) -> StartSessionResponse:
+    """Internal function to start a Claude session for a task.
 
+    This can be called from both the API endpoint and from hooks for auto-advance.
     Opens an iTerm tab and updates task status to running.
+
+    Args:
+        task_id: The task UUID to start a session for
+        db: Database session
+
+    Returns:
+        StartSessionResponse with status and session_id
+
+    Raises:
+        HTTPException: If task not found or prompt generation fails
     """
     logger.info(f"Starting Claude session for task: {task_id}")
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
@@ -391,6 +403,15 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
 
     logger.info(f"Task {task_id} updated with session_id: {response.session_id}")
     return StartSessionResponse(status="started", session_id=response.session_id)
+
+
+@router.post("/tasks/{task_id}/start-session", response_model=StartSessionResponse)
+async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
+    """Start a new Claude session for a task.
+
+    Opens an iTerm tab and updates task status to running.
+    """
+    return await _start_session_for_task_internal(task_id, db)
 
 
 @router.post("/tasks/{task_id}/resume", response_model=StartSessionResponse)

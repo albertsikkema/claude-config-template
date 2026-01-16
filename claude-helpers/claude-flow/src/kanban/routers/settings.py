@@ -16,6 +16,10 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 # Known setting keys
 SETTING_OPENAI_API_KEY = "openai_api_key"
 
+# Auto-advance workflow settings
+SETTING_AUTO_ADVANCE_RESEARCH_TO_PLANNING = "auto_advance_research_to_planning"
+SETTING_AUTO_ADVANCE_IMPLEMENTATION_TO_REVIEW = "auto_advance_impl_to_review"
+
 # Validation pattern for setting keys: lowercase letters, numbers, underscores
 # Must start with a letter, max 100 characters
 VALID_KEY_PATTERN = re.compile(r"^[a-z][a-z0-9_]{0,99}$")
@@ -183,3 +187,16 @@ def retrieve_setting(key: str) -> str | None:
         return get_setting(db, key)
     finally:
         db.close()
+
+
+def is_auto_advance_enabled(setting_key: str) -> bool:
+    """Check if an auto-advance setting is enabled.
+
+    Args:
+        setting_key: The setting key for the auto-advance option
+
+    Returns:
+        True if the setting is enabled ("true"), False otherwise
+    """
+    value = retrieve_setting(setting_key)
+    return value == "true"

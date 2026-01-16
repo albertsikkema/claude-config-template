@@ -75,6 +75,8 @@ class TaskBase(BaseModel):
     order: int = 0
     model: ClaudeModel = ClaudeModel.SONNET  # Default to sonnet
     complexity: WorkflowComplexity = WorkflowComplexity.COMPLETE  # Default to complete
+    # Auto-advance: when enabled, task automatically advances to next stage without manual approval
+    auto_advance: bool = False
     # Artifact paths
     research_path: str | None = Field(default=None, max_length=500)
     plan_path: str | None = Field(default=None, max_length=500)
@@ -108,6 +110,7 @@ class TaskUpdate(BaseModel):
     order: int | None = None
     model: ClaudeModel | None = None
     complexity: WorkflowComplexity | None = None
+    auto_advance: bool | None = None
     # Artifact paths
     research_path: str | None = Field(default=None, max_length=500)
     plan_path: str | None = Field(default=None, max_length=500)
