@@ -224,7 +224,7 @@ async def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)
         Stage.CLEANUP,
         Stage.COMMIT,
     }
-    can_start_session = move.stage in action_stages
+    can_start_session = move.stage in action_stages and previous_stage != move.stage
 
     return MoveTaskResponse(
         task=task_db_to_model(db_task),

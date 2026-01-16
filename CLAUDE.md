@@ -305,7 +305,7 @@ This project maintains automatically generated codebase overview files in `thoug
 ### Available Index Files
 - `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts (24 Python files)
 - `codebase_overview_claude_flow_py.md` - Claude-Flow FastAPI backend (18 Python files)
-- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (86 TypeScript files)
+- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (96 TypeScript files)
 
 These files are automatically generated and kept up-to-date by the `/index_codebase` command.
 
