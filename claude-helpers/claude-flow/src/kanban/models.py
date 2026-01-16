@@ -213,7 +213,7 @@ STAGES: list[StageInfo] = [
         name="Commit",
         color="#EC4899",  # pink
         command="/commit",
-        description="Committing changes and creating PR",
+        description="Committing changes",
     ),
     StageInfo(
         id=Stage.DONE,
