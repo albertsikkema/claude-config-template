@@ -32,6 +32,8 @@ import uvicorn
 import webview
 from webview import Window
 
+from kanban.database import get_global_app_dir
+
 # Parse --dev flag early
 DEV_MODE = "--dev" in sys.argv
 
@@ -89,6 +91,9 @@ FIXED_PORT = 9118
 def is_port_available(port: int) -> bool:
     """Check if a port is available.
 
+    Uses SO_REUSEADDR to allow binding to ports in TIME_WAIT state,
+    which happens briefly after the app closes.
+
     Args:
         port: Port number to check
 
@@ -96,6 +101,7 @@ def is_port_available(port: int) -> bool:
         bool: True if port is available
     """
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             s.bind(("127.0.0.1", port))
             return True
@@ -377,8 +383,12 @@ def main() -> None:
         api.set_window(window)
 
         # Start the window (this blocks until window is closed)
+        # Use storage_path to persist localStorage across sessions
+        storage_path = get_global_app_dir() / "webview_storage"
+        storage_path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Using storage path: {storage_path}")
         logger.info("Starting webview...")
-        webview.start()
+        webview.start(storage_path=str(storage_path))
         logger.info("Application closed")
     except Exception as e:
         logger.error(f"Failed to start webview: {e}", exc_info=True)

@@ -53,6 +53,7 @@ def task_db_to_model(db_task: TaskDB) -> Task:
         claude_completed_at=db_task.claude_completed_at,
         approved_at=db_task.approved_at,
         session_id=db_task.session_id,
+        last_notification=db_task.last_notification,
     )
 
 
