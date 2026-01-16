@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 from pathlib import Path
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -357,11 +357,14 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
 
     logger.info(f"Using model: {model.value}")
 
-    # Open iTerm tab
+    # Open iTerm tab - generate session_id and pass it to Claude
     from kanban.routers.iterm import OpenTabRequest, open_claude_tab
 
     logger.info(f"Opening iTerm tab for task {task_id}")
     try:
+        # Generate session_id that we'll pass to Claude with --session-id flag
+        # This ensures we can resume the session later
+        new_session_id = str(uuid4())
         response = await open_claude_tab(
             OpenTabRequest(
                 task_id=str(task_id),
@@ -369,6 +372,8 @@ async def start_task_session(task_id: UUID, db: Session = Depends(get_db)):
                 prompt=prompt,
                 stage=db_task.stage.value,
                 model=model.value,
+                session_id=new_session_id,
+                is_resume=False,
                 repo_id=db_task.repo_id,
             )
         )
@@ -392,6 +397,8 @@ async def resume_task_session(task_id: UUID, db: Session = Depends(get_db)):
     """Resume an existing Claude session.
 
     Opens iTerm tab with `claude --resume <session_id>`.
+    The session_id was passed to Claude with --session-id when the session started,
+    so Claude knows this session ID and can resume it.
     """
     db_task = db.query(TaskDB).filter(TaskDB.id == str(task_id)).first()
     if not db_task:
@@ -409,7 +416,8 @@ async def resume_task_session(task_id: UUID, db: Session = Depends(get_db)):
             task_title=db_task.title,
             stage=db_task.stage.value,
             model=db_task.model.value,
-            resume_session_id=db_task.session_id,
+            session_id=db_task.session_id,
+            is_resume=True,
             repo_id=db_task.repo_id,
         )
     )

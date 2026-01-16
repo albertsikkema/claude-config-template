@@ -1,6 +1,9 @@
 #!/bin/bash
 # Launch a Claude session in iTerm with title and color
-# Usage: launch-claude-tab.sh <task_id> <task_title> <stage> <project_dir> <model> [prompt] [resume_session_id]
+# Usage: launch-claude-tab.sh <task_id> <task_title> <stage> <project_dir> <model> [prompt] [session_id] [is_resume]
+#
+# session_id: UUID for the Claude session (used for both new and resume)
+# is_resume: "true" to resume existing session, empty for new session
 
 set -e
 
@@ -13,7 +16,8 @@ STAGE="${3:-default}"
 PROJECT_DIR="${4:-$(pwd)}"
 MODEL="${5:-sonnet}"
 PROMPT="${6:-}"
-RESUME_SESSION_ID="${7:-}"
+SESSION_ID="${7:-}"
+IS_RESUME="${8:-}"
 
 # Sanitize tab name (remove special chars, keep alphanumeric, spaces, hyphens, dots)
 TAB_NAME=$(echo "${TASK_ID:0:8} ${TASK_TITLE:0:50}" | tr -c '[:alnum:] .\-' ' ' | tr -s ' ')
@@ -46,13 +50,20 @@ clear
 export CLAUDE_FLOW_TASK_ID="$TASK_ID"
 
 # Start Claude
-if [ -n "$RESUME_SESSION_ID" ]; then
+if [ "$IS_RESUME" = "true" ] && [ -n "$SESSION_ID" ]; then
     # Resume existing session
-    exec claude --dangerously-skip-permissions --resume "$RESUME_SESSION_ID"
+    exec claude --dangerously-skip-permissions --resume "$SESSION_ID"
+elif [ -n "$SESSION_ID" ]; then
+    # New session with specific session ID (so we can resume later)
+    if [ -n "$PROMPT" ]; then
+        exec claude --dangerously-skip-permissions --model "$MODEL" --session-id "$SESSION_ID" "$PROMPT"
+    else
+        exec claude --dangerously-skip-permissions --model "$MODEL" --session-id "$SESSION_ID"
+    fi
 elif [ -n "$PROMPT" ]; then
-    # New session with prompt
+    # New session with prompt (no session tracking)
     exec claude --dangerously-skip-permissions --model "$MODEL" "$PROMPT"
 else
-    # New session without prompt
+    # New session without prompt (no session tracking)
     exec claude --dangerously-skip-permissions --model "$MODEL"
 fi

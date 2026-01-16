@@ -33,7 +33,8 @@ class OpenTabRequest(BaseModel):
     prompt: str = Field(default="", description="Prompt to pass to Claude")
     stage: str = Field(default="default", description="Stage for color coding")
     model: str = Field(default="sonnet", description="Claude model to use")
-    resume_session_id: str | None = Field(default=None, description="Session ID to resume")
+    session_id: str | None = Field(default=None, description="Session ID for new session")
+    is_resume: bool = Field(default=False, description="True to resume existing session")
     repo_id: str = Field(..., min_length=1, max_length=500, description="Repository path")
 
 
@@ -77,10 +78,14 @@ async def open_claude_tab(request: OpenTabRequest) -> OpenTabResponse:
     """Open a new iTerm tab with Claude for a task.
 
     Creates a named tab, sets the color based on stage, and runs the specified command.
-    Returns a session_id that can be used to correlate Claude hooks.
+    Returns a session_id that can be used to correlate Claude hooks and resume sessions.
+
+    The session_id is passed to Claude with --session-id flag so it uses our ID,
+    making session resume work correctly.
     """
     tab_name = sanitize_tab_name(f"{request.task_id[:8]} {request.task_title[:50]}")
-    session_id = str(uuid4())
+    # Use provided session_id or generate new one
+    session_id = request.session_id or str(uuid4())
 
     # Build the shell command that calls our launch script
     # The script handles title, color, cd, clear, and exec
@@ -97,7 +102,8 @@ async def open_claude_tab(request: OpenTabRequest) -> OpenTabResponse:
     project_dir = request.repo_id
 
     # Full command to run in the terminal (script handles quoting internally)
-    resume_id = request.resume_session_id or ""
+    # Pass session_id and is_resume flag
+    is_resume_flag = "true" if request.is_resume else ""
     full_command = (
         f'"{script_path}" '
         f'"{request.task_id}" '
@@ -106,7 +112,8 @@ async def open_claude_tab(request: OpenTabRequest) -> OpenTabResponse:
         f'"{project_dir}" '
         f'"{request.model}" '
         f'"{request.prompt}" '
-        f'"{resume_id}"'
+        f'"{session_id}" '
+        f'"{is_resume_flag}"'
     )
 
     # Check if iTerm is running
