@@ -1,4 +1,4 @@
-.PHONY: run dev sync check format clean-all test lint desktop build-frontend build-app clean-build install
+.PHONY: run dev sync check format clean-all test lint desktop build-frontend build-backend build clean-build install
 
 # Alias for desktop
 run: desktop
@@ -33,16 +33,17 @@ clean-all:
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 	find . -type d -name .ruff_cache -exec rm -rf {} + 2>/dev/null || true
 
+# Clean build artifacts
+clean-build:
+	rm -rf build/ dist/ *.spec.bak
+	find . -name "*.pyc" -delete
+
 # Build frontend for desktop app
 build-frontend:
 	cd claude-flow-board && npm run build
 
-# Run desktop app with full HMR (backend + frontend hot reload)
-desktop: sync
-	uv run python desktop_app.py --dev
-
-# Build standalone executable
-build-app: build-frontend
+# Build backend executable with PyInstaller
+build-backend:
 	@echo "Installing build dependencies..."
 	uv sync --extra build
 	@echo "Building executable with PyInstaller..."
@@ -54,6 +55,9 @@ build-app: build-frontend
 		sed -i '' 's|<string>claude-flow</string>|<string>launcher</string>|' "dist/Claude Flow.app/Contents/Info.plist" && \
 		echo "Launcher installed successfully"; \
 	fi
+
+# Build complete app (frontend + backend)
+build: clean-build build-frontend build-backend
 	@echo ""
 	@echo "Build complete!"
 	@echo "  macOS: dist/Claude Flow.app"
@@ -62,16 +66,19 @@ build-app: build-frontend
 	@echo "Test the app:"
 	@echo "  open 'dist/Claude Flow.app'"
 
+# Run desktop app with full HMR (backend + frontend hot reload)
+desktop: sync
+	uv run python desktop_app.py --dev
+
 # Build and install to /Applications
-install: build-app
+install: build
 	@echo "Installing to /Applications..."
 	@rm -rf "/Applications/Claude Flow.app"
 	@cp -r "dist/Claude Flow.app" /Applications/
+	@echo "Clearing icon cache..."
+	@rm -rf ~/Library/Caches/com.apple.iconservices.store 2>/dev/null || true
+	@touch "/Applications/Claude Flow.app"
+	@killall Dock 2>/dev/null || true
 	@echo ""
 	@echo "Installed to /Applications/Claude Flow.app"
 	@echo "Launch with: open -a 'Claude Flow'"
-
-# Clean build artifacts
-clean-build:
-	rm -rf build/ dist/ *.spec.bak
-	find . -name "*.pyc" -delete

@@ -9,11 +9,15 @@ Claude Flow - FastAPI backend with React frontend for Kanban-style workflow mana
 ## Commands
 
 ```bash
-make desktop      # Launch desktop app with full HMR
-make build-app    # Create standalone executable
-make dev          # Backend + frontend in separate processes
-make test         # Run tests
-make lint         # Lint and format
+make desktop        # Launch desktop app with full HMR
+make build          # Build complete app (clean + frontend + backend)
+make build-frontend # Build React frontend only
+make build-backend  # Build Python backend with PyInstaller
+make install        # Build and install to /Applications
+make dev            # Backend + frontend in separate processes
+make test           # Run tests
+make lint           # Lint and format
+make clean-build    # Remove build artifacts
 ```
 
 ## Key Files

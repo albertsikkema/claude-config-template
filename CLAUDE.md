@@ -58,8 +58,11 @@ uv run claude-helpers/orchestrator.py --no-implement "Refactor database"  # Stop
 cd claude-helpers/claude-flow
 
 # Desktop app (recommended - single window, no ports to manage)
-make desktop   # Build frontend + launch desktop app
-make build-app # Create standalone executable for distribution
+make desktop   # Launch desktop app with full HMR
+
+# Build for distribution
+make build     # Build complete app (clean + frontend + backend)
+make install   # Build and install to /Applications
 
 # Development mode (split terminal setup)
 make dev       # Start development server (backend only)

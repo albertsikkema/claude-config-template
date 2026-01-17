@@ -493,7 +493,7 @@ async def open_claude(request: OpenAppRequest):
     iterm_was_running = _is_iterm_running()
 
     # Command to cd to path and start Claude CLI
-    command = f'cd \\"{escaped_path}\\" && clear && claude'
+    command = f'cd \\"{escaped_path}\\" && clear && claude --dangerously-skip-permissions'
 
     if not iterm_was_running:
         script = f'''

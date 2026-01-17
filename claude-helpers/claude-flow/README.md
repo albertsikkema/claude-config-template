@@ -9,8 +9,11 @@ Kanban board for Claude Code workflow management. Runs as a per-repo desktop app
 make desktop
 
 # Or build standalone executable
-make build-app
+make build
 open 'dist/Claude Flow.app'
+
+# Build and install to /Applications
+make install
 ```
 
 ## Architecture
@@ -25,10 +28,14 @@ open 'dist/Claude Flow.app'
 | Command | Description |
 |---------|-------------|
 | `make desktop` | Launch desktop app with full HMR |
-| `make build-app` | Create standalone `.app` bundle |
+| `make build` | Build complete app (clean + frontend + backend) |
+| `make build-frontend` | Build React frontend only |
+| `make build-backend` | Build Python backend with PyInstaller |
+| `make install` | Build and install to /Applications |
 | `make dev` | Backend + frontend in separate processes |
 | `make test` | Run tests |
 | `make lint` | Lint and format code |
+| `make clean-build` | Remove build artifacts |
 
 ## Workflow Stages
 
@@ -43,7 +50,8 @@ open 'dist/Claude Flow.app'
 ## Building for Distribution
 
 ```bash
-make build-app
+make build      # Build to dist/
+make install    # Build and install to /Applications
 ```
 
 Output: `dist/Claude Flow.app` (macOS) or `dist/claude-flow` (Linux/Windows)
