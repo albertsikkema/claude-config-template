@@ -2,7 +2,6 @@
 
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -10,6 +9,7 @@ from sqlalchemy import Boolean, Column, DateTime, Enum, Integer, String, Text, c
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from kanban.models import ClaudeModel, ClaudeStatus, Priority, Stage, WorkflowComplexity
+from kanban.utils import utc_now
 
 
 def get_global_app_dir() -> Path:
@@ -65,7 +65,8 @@ class SettingDB(Base):
 
     key = Column(String(100), primary_key=True)
     value = Column(Text, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # timezone=True ensures proper timezone-aware datetime storage
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
 
 class RepoDB(Base):
@@ -80,20 +81,25 @@ class RepoDB(Base):
     name = Column(String(200), nullable=True)
     # Whether this repo is active (can be hidden but tasks preserved)
     active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # timezone=True ensures proper timezone-aware datetime storage
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     # Template tracking fields
     template_status = Column(
         String(50), default="not_installed"
     )  # not_installed, installing, installed, failed
     template_version = Column(String(50), nullable=True)  # e.g., "1.0.0"
-    template_installed_at = Column(DateTime, nullable=True)
+    template_installed_at = Column(DateTime(timezone=True), nullable=True)
     # Track when this repo was last accessed/selected for recent projects feature
-    last_accessed_at = Column(DateTime, nullable=True)
+    last_accessed_at = Column(DateTime(timezone=True), nullable=True)
 
 
 class TaskDB(Base):
-    """SQLAlchemy model for tasks."""
+    """SQLAlchemy model for tasks.
+
+    All datetime columns use timezone=True to ensure timezone-aware UTC storage.
+    This prevents the timezone offset issue where SQLite strips timezone information.
+    """
 
     __tablename__ = "tasks"
 
@@ -111,8 +117,9 @@ class TaskDB(Base):
     complexity = Column(
         Enum(WorkflowComplexity), default=WorkflowComplexity.COMPLETE, nullable=False
     )
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # timezone=True ensures proper timezone-aware datetime storage
+    created_at = Column(DateTime(timezone=True), default=utc_now)
+    updated_at = Column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
     # Artifact paths
     research_path = Column(String(500), nullable=True)
     plan_path = Column(String(500), nullable=True)
@@ -121,13 +128,13 @@ class TaskDB(Base):
     auto_advance = Column(Boolean, default=False, nullable=False)
     # Claude session tracking
     claude_status = Column(Enum(ClaudeStatus), nullable=True)
-    started_at = Column(DateTime, nullable=True)
-    claude_completed_at = Column(DateTime, nullable=True)
-    approved_at = Column(DateTime, nullable=True)
+    started_at = Column(DateTime(timezone=True), nullable=True)
+    claude_completed_at = Column(DateTime(timezone=True), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
     session_id = Column(String(100), nullable=True)
     iterm_session_id = Column(String(100), nullable=True)  # iTerm's internal session ID
     # Notification tracking
-    last_notification = Column(DateTime, nullable=True)
+    last_notification = Column(DateTime(timezone=True), nullable=True)
 
     @property
     def tags(self) -> list[str]:
@@ -226,6 +233,113 @@ def migrate_db():
             print("Added column iterm_session_id to tasks table")
         except sqlite3.OperationalError as e:
             print(f"Migration note: {e}")
+
+    # Migrate existing timestamps to include UTC timezone suffix
+    # This fixes the timezone offset issue where naive datetimes are interpreted as local time
+    print("Migrating timestamps to include UTC timezone information...")
+
+    # Tasks table datetime columns
+    task_timestamp_columns = [
+        "created_at",
+        "updated_at",
+        "started_at",
+        "claude_completed_at",
+        "approved_at",
+        "last_notification",
+    ]
+
+    for col in task_timestamp_columns:
+        try:
+            # Check if any values need migration (don't have timezone suffix)
+            cursor.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM tasks
+                WHERE {col} IS NOT NULL
+                AND {col} NOT LIKE '%+%'
+                AND {col} NOT LIKE '%Z'
+            """
+            )
+            count = cursor.fetchone()[0]
+
+            if count > 0:
+                # Append +00:00 to naive timestamps (assume they're UTC)
+                cursor.execute(
+                    f"""
+                    UPDATE tasks
+                    SET {col} = {col} || '+00:00'
+                    WHERE {col} IS NOT NULL
+                    AND {col} NOT LIKE '%+%'
+                    AND {col} NOT LIKE '%Z'
+                """
+                )
+                print(f"  Migrated {count} timestamps in tasks.{col}")
+        except sqlite3.OperationalError as e:
+            print(f"Migration note for tasks.{col}: {e}")
+
+    # Repos table datetime columns
+    repo_timestamp_columns = [
+        "created_at",
+        "updated_at",
+        "template_installed_at",
+        "last_accessed_at",
+    ]
+
+    for col in repo_timestamp_columns:
+        try:
+            cursor.execute(
+                f"""
+                SELECT COUNT(*)
+                FROM repos
+                WHERE {col} IS NOT NULL
+                AND {col} NOT LIKE '%+%'
+                AND {col} NOT LIKE '%Z'
+            """
+            )
+            count = cursor.fetchone()[0]
+
+            if count > 0:
+                cursor.execute(
+                    f"""
+                    UPDATE repos
+                    SET {col} = {col} || '+00:00'
+                    WHERE {col} IS NOT NULL
+                    AND {col} NOT LIKE '%+%'
+                    AND {col} NOT LIKE '%Z'
+                """
+                )
+                print(f"  Migrated {count} timestamps in repos.{col}")
+        except sqlite3.OperationalError as e:
+            print(f"Migration note for repos.{col}: {e}")
+
+    # Settings table datetime column
+    try:
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM settings
+            WHERE updated_at IS NOT NULL
+            AND updated_at NOT LIKE '%+%'
+            AND updated_at NOT LIKE '%Z'
+        """
+        )
+        count = cursor.fetchone()[0]
+
+        if count > 0:
+            cursor.execute(
+                """
+                UPDATE settings
+                SET updated_at = updated_at || '+00:00'
+                WHERE updated_at IS NOT NULL
+                AND updated_at NOT LIKE '%+%'
+                AND updated_at NOT LIKE '%Z'
+            """
+            )
+            print(f"  Migrated {count} timestamps in settings.updated_at")
+    except sqlite3.OperationalError as e:
+        print(f"Migration note for settings.updated_at: {e}")
+
+    print("Timestamp migration complete!")
 
     conn.commit()
     conn.close()

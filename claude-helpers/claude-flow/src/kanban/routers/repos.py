@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from kanban.database import RepoDB, TaskDB, get_db
 from kanban.models import RepoCreate
+from kanban.utils import utc_now
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/repos", tags=["repos"])
@@ -174,7 +175,7 @@ def register_repo(
             raise HTTPException(status_code=409, detail="Repository already registered")
         # Reactivate inactive repo
         existing.active = True
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = utc_now()
         if repo.name:
             existing.name = repo.name
 
@@ -263,7 +264,7 @@ def deactivate_repo(repo_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Repository not found")
 
     db_repo.active = False
-    db_repo.updated_at = datetime.utcnow()
+    db_repo.updated_at = utc_now()
     db.commit()
 
     logger.info(f"Deactivated repository: {repo_id}")
@@ -303,7 +304,7 @@ def _set_last_used_repo(db: Session, repo_id: str) -> None:
     setting = db.query(SettingDB).filter(SettingDB.key == LAST_USED_REPO_KEY).first()
     if setting:
         setting.value = repo_id
-        setting.updated_at = datetime.utcnow()
+        setting.updated_at = utc_now()
     else:
         setting = SettingDB(key=LAST_USED_REPO_KEY, value=repo_id)
         db.add(setting)
@@ -383,7 +384,7 @@ def set_current_repo(
     # Update last_accessed_at for this repo
     db_repo = db.query(RepoDB).filter(RepoDB.repo_id == repo_id).first()
     if db_repo:
-        db_repo.last_accessed_at = datetime.utcnow()
+        db_repo.last_accessed_at = utc_now()
         db.commit()
 
     logger.info(f"Set current repo to: {repo_id}")

@@ -1,10 +1,12 @@
 """Pydantic models for the Kanban API."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+from kanban.utils import utc_now
 
 
 class Stage(str, Enum):
@@ -134,14 +136,49 @@ class TaskMove(BaseModel):
 
 
 class Task(TaskBase):
-    """Full task model with system fields."""
+    """Full task model with system fields.
+
+    All datetime fields are validated to ensure they are timezone-aware UTC.
+    This provides defense-in-depth against timezone issues from the database layer.
+    """
 
     id: UUID = Field(default_factory=uuid4)
     repo_id: str = Field(..., min_length=1, max_length=500)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
     model_config = {"from_attributes": True}
+
+    @field_validator(
+        "created_at",
+        "updated_at",
+        "started_at",
+        "claude_completed_at",
+        "approved_at",
+        "last_notification",
+        mode="before",
+    )
+    @classmethod
+    def ensure_timezone_aware(cls, v: datetime | None) -> datetime | None:
+        """Ensure all datetime fields are timezone-aware UTC.
+
+        SQLite stores datetimes as TEXT without timezone information. This validator
+        ensures that naive datetimes (from DB) are treated as UTC and timezone-aware
+        datetimes are converted to UTC.
+
+        Args:
+            v: Datetime value (may be None, naive, or timezone-aware)
+
+        Returns:
+            Timezone-aware UTC datetime, or None if input is None
+        """
+        if v is None:
+            return None
+        if v.tzinfo is None:
+            # Assume naive datetimes are UTC (as per backend's utc_now() function)
+            return v.replace(tzinfo=UTC)
+        # Already timezone-aware, normalize to UTC
+        return v.astimezone(UTC)
 
 
 class RepoBase(BaseModel):
@@ -163,8 +200,8 @@ class Repo(RepoBase):
     id: UUID = Field(default_factory=uuid4)
     active: bool = True
     task_count: int = 0  # Populated by query
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
 
     model_config = {"from_attributes": True}
 

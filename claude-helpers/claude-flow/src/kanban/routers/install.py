@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from kanban.database import RepoDB, SessionLocal, get_db
+from kanban.utils import utc_now
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/install", tags=["install"])
@@ -60,8 +61,8 @@ def _update_repo_status(
             if version:
                 repo.template_version = version
             if status == "installed":
-                repo.template_installed_at = datetime.utcnow()
-            repo.updated_at = datetime.utcnow()
+                repo.template_installed_at = utc_now()
+            repo.updated_at = utc_now()
             db.commit()
             logger.info(f"Updated repo {repo_id} template_status to {status}")
     finally:

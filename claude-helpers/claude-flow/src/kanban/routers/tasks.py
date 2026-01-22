@@ -1,7 +1,7 @@
 """Task management endpoints."""
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -20,6 +20,7 @@ from kanban.models import (
     TaskMove,
     TaskUpdate,
 )
+from kanban.utils import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,34 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["tasks"])
 
 
+def ensure_utc(dt: datetime | None) -> datetime | None:
+    """Ensure datetime is timezone-aware UTC.
+
+    SQLite stores datetimes as TEXT without timezone information. When retrieved,
+    SQLAlchemy returns naive datetime objects. This function ensures all datetimes
+    are timezone-aware UTC before serialization to prevent frontend timezone issues.
+
+    Args:
+        dt: Datetime object (may be naive or timezone-aware)
+
+    Returns:
+        Timezone-aware UTC datetime, or None if input is None
+    """
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        # Assume naive datetimes from DB are UTC (as per utc_now() function)
+        return dt.replace(tzinfo=UTC)
+    # Already timezone-aware, ensure it's UTC
+    return dt.astimezone(UTC)
+
+
 def task_db_to_model(db_task: TaskDB) -> Task:
-    """Convert database model to Pydantic model."""
+    """Convert database model to Pydantic model.
+
+    Ensures all datetime fields are timezone-aware UTC before serialization.
+    This fixes the timezone offset issue where SQLite stores datetimes as naive TEXT.
+    """
     return Task(
         id=UUID(db_task.id),
         repo_id=db_task.repo_id,
@@ -44,18 +71,18 @@ def task_db_to_model(db_task: TaskDB) -> Task:
         model=db_task.model,
         complexity=db_task.complexity,
         auto_advance=db_task.auto_advance,
-        created_at=db_task.created_at,
-        updated_at=db_task.updated_at,
+        created_at=ensure_utc(db_task.created_at),
+        updated_at=ensure_utc(db_task.updated_at),
         research_path=db_task.research_path,
         plan_path=db_task.plan_path,
         review_path=db_task.review_path,
         claude_status=db_task.claude_status,
-        started_at=db_task.started_at,
-        claude_completed_at=db_task.claude_completed_at,
-        approved_at=db_task.approved_at,
+        started_at=ensure_utc(db_task.started_at),
+        claude_completed_at=ensure_utc(db_task.claude_completed_at),
+        approved_at=ensure_utc(db_task.approved_at),
         session_id=db_task.session_id,
         iterm_session_id=db_task.iterm_session_id,
-        last_notification=db_task.last_notification,
+        last_notification=ensure_utc(db_task.last_notification),
     )
 
 
@@ -123,7 +150,7 @@ def update_task(task_id: UUID, task: TaskUpdate, db: Session = Depends(get_db)):
     for field, value in update_data.items():
         setattr(db_task, field, value)
 
-    db_task.updated_at = datetime.utcnow()
+    db_task.updated_at = utc_now()
     db.commit()
     db.refresh(db_task)
     return task_db_to_model(db_task)
@@ -179,12 +206,12 @@ async def move_task(task_id: UUID, move: TaskMove, db: Session = Depends(get_db)
 
     db_task.stage = move.stage
     db_task.order = move.order
-    db_task.updated_at = datetime.utcnow()
+    db_task.updated_at = utc_now()
 
     # If moving to next stage from ready_for_review, auto-approve
     if db_task.claude_status == ClaudeStatus.READY_FOR_REVIEW:
         db_task.claude_status = ClaudeStatus.APPROVED
-        db_task.approved_at = datetime.utcnow()
+        db_task.approved_at = utc_now()
 
     # Track cleanup for done stage
     cleaned_files: list[str] = []
@@ -280,7 +307,7 @@ def approve_task(task_id: UUID, db: Session = Depends(get_db)):
         )
 
     db_task.claude_status = ClaudeStatus.APPROVED
-    db_task.approved_at = datetime.utcnow()
+    db_task.approved_at = utc_now()
     db.commit()
     db.refresh(db_task)
 
@@ -429,7 +456,7 @@ async def _start_session_for_task_internal(task_id: UUID, db: Session) -> StartS
 
     # Update task
     db_task.claude_status = ClaudeStatus.RUNNING
-    db_task.started_at = datetime.utcnow()
+    db_task.started_at = utc_now()
     db_task.session_id = response.session_id
     db_task.iterm_session_id = response.iterm_session_id
     db.commit()
@@ -482,7 +509,7 @@ async def resume_task_session(task_id: UUID, db: Session = Depends(get_db)):
 
     # Update status
     db_task.claude_status = ClaudeStatus.RUNNING
-    db_task.started_at = datetime.utcnow()
+    db_task.started_at = utc_now()
     db.commit()
 
     return StartSessionResponse(status="resumed", session_id=db_task.session_id)
@@ -564,7 +591,7 @@ async def improve_task_endpoint(task_id: UUID, db: Session = Depends(get_db)):
     db_task.title = improved.title
     db_task.description = improved.description
     db_task.tags = improved.tags
-    db_task.updated_at = datetime.utcnow()
+    db_task.updated_at = utc_now()
     db.commit()
     db.refresh(db_task)
 

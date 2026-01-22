@@ -1,6 +1,21 @@
 """Shared utility functions for the kanban package."""
 
+from datetime import UTC, datetime
 from pathlib import Path
+
+
+def utc_now() -> datetime:
+    """Return the current UTC datetime as timezone-aware.
+
+    This replaces datetime.utcnow() which is deprecated in Python 3.12+
+    and produces timezone-naive datetimes that cause serialization issues.
+
+    Returns:
+        Timezone-aware UTC datetime that serializes with timezone info
+        (e.g., "2026-01-22T10:30:00+00:00" instead of "2026-01-22T10:30:00")
+    """
+    return datetime.now(UTC)
+
 
 # Project root path (utils.py -> kanban -> src -> claude-flow -> claude-helpers -> PROJECT_ROOT)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent.parent

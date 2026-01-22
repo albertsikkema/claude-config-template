@@ -2,13 +2,13 @@
 
 import logging
 import re
-from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from kanban.database import SettingDB, get_db
+from kanban.utils import utc_now
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -110,7 +110,7 @@ def set_setting(db: Session, key: str, value: str | None) -> None:
     else:
         if setting:
             setting.value = value
-            setting.updated_at = datetime.utcnow()
+            setting.updated_at = utc_now()
         else:
             setting = SettingDB(key=key, value=value)
             db.add(setting)

@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 from kanban.database import RepoDB, SessionLocal, TaskDB
 from kanban.models import ClaudeStatus, Stage
+from kanban.utils import utc_now
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/hooks", tags=["hooks"])
@@ -181,7 +182,7 @@ async def handle_session_end(request: SessionEndRequest):
             return {"status": "not_found", "session_id": request.session_id}
 
         # Update status based on exit code
-        now = datetime.utcnow()
+        now = utc_now()
         auto_advanced = False
         new_stage = None
 
@@ -276,7 +277,7 @@ async def handle_artifact_created(request: ArtifactCreatedRequest):
 
         # Set status to ready_for_review when artifact is written
         if artifact_type:
-            now = datetime.utcnow()
+            now = utc_now()
             task.claude_status = ClaudeStatus.READY_FOR_REVIEW
             task.claude_completed_at = now
             task.last_notification = now
@@ -345,7 +346,7 @@ async def handle_stop(request: StopRequest):
         # Auto-advance here is aggressive - it will trigger even on questions.
         # Users who enable auto-advance accept this behavior.
         if task.claude_status == ClaudeStatus.RUNNING:
-            now = datetime.utcnow()
+            now = utc_now()
             task.claude_status = ClaudeStatus.READY_FOR_REVIEW
             task.claude_completed_at = now
             task.last_notification = now
