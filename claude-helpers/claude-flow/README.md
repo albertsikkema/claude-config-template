@@ -1,6 +1,17 @@
 # Claude Flow
 
-Kanban board for Claude Code workflow management. Runs as a per-repo desktop application.
+A lightweight, local Kanban board for Claude Code workflow management.
+
+**Open-source** · **Lightweight** · **Local-first** · **No internet required** · **Fast** · **Non-obtrusive** · **macOS only**
+
+## Features
+
+- **100% Local** - All data stays on your machine, no cloud services or accounts needed
+- **Lightweight** - Uses system WebView (~10MB vs Electron's ~100MB)
+- **Fast** - Native performance, instant startup
+- **Non-obtrusive** - Runs quietly in the background, integrates with iTerm hooks
+- **Easy to use** - One command to install, works out of the box
+- **Per-repo isolation** - Each repository gets its own app instance
 
 ## Quick Start
 
@@ -18,10 +29,10 @@ make install
 
 ## Architecture
 
-- **Per-Repo**: Each repository gets its own app instance with isolated data
-- **PyWebView**: Uses system WebView (~10MB vs Electron's ~100MB)
-- **Dynamic Ports**: Automatically finds available port, saves to `.claude-flow.port`
-- **No Node Runtime**: Frontend pre-built, served by FastAPI
+- **PyWebView** - Uses macOS native WebView, no Electron bloat
+- **FastAPI backend** - Serves API and pre-built React frontend
+- **SQLite database** - Local storage in `~/Library/Application Support/claude-flow/`
+- **Dynamic ports** - Automatically finds available port, saves to `.claude-flow.port`
 
 ## Commands
 
@@ -54,9 +65,9 @@ make build      # Build to dist/
 make install    # Build and install to /Applications
 ```
 
-Output: `dist/Claude Flow.app` (macOS) or `dist/claude-flow` (Linux/Windows)
+Output: `dist/Claude Flow.app`
 
-The built app includes Python runtime - no installation needed on target machines.
+The built app bundles Python runtime - no dependencies needed on target machines.
 
 ### macOS "App is Damaged" Fix
 ```bash
