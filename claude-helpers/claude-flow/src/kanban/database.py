@@ -88,6 +88,8 @@ class RepoDB(Base):
     )  # not_installed, installing, installed, failed
     template_version = Column(String(50), nullable=True)  # e.g., "1.0.0"
     template_installed_at = Column(DateTime, nullable=True)
+    # Track when this repo was last accessed/selected for recent projects feature
+    last_accessed_at = Column(DateTime, nullable=True)
 
 
 class TaskDB(Base):
@@ -172,6 +174,7 @@ def migrate_db():
         ("template_status", "VARCHAR(50) DEFAULT 'not_installed'"),
         ("template_version", "VARCHAR(50)"),
         ("template_installed_at", "DATETIME"),
+        ("last_accessed_at", "DATETIME"),
     ]
 
     for column_name, column_def in migrations:
@@ -179,6 +182,10 @@ def migrate_db():
             try:
                 cursor.execute(f"ALTER TABLE repos ADD COLUMN {column_name} {column_def}")
                 print(f"Added column {column_name} to repos table")
+                # Backfill last_accessed_at with updated_at for existing repos
+                if column_name == "last_accessed_at":
+                    cursor.execute("UPDATE repos SET last_accessed_at = updated_at")
+                    print("Backfilled last_accessed_at for existing repos")
             except sqlite3.OperationalError as e:
                 # Column might already exist
                 print(f"Migration note: {e}")

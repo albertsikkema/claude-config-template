@@ -33,6 +33,8 @@ class RepoWithCount(BaseModel):
     template_status: str
     template_version: str | None
     template_installed_at: datetime | None
+    # Recent projects tracking
+    last_accessed_at: datetime | None
 
 
 def get_repo_name_from_path(repo_path: str) -> str | None:
@@ -116,6 +118,7 @@ def list_repos(
             template_status=repo.template_status or "not_installed",
             template_version=repo.template_version,
             template_installed_at=repo.template_installed_at,
+            last_accessed_at=repo.last_accessed_at,
         )
         for repo, task_count in results
     ]
@@ -199,6 +202,7 @@ def register_repo(
             template_status=existing.template_status or "not_installed",
             template_version=existing.template_version,
             template_installed_at=existing.template_installed_at,
+            last_accessed_at=existing.last_accessed_at,
         )
 
     # Extract name from git remote if not provided
@@ -236,6 +240,7 @@ def register_repo(
         template_status=db_repo.template_status or "not_installed",
         template_version=db_repo.template_version,
         template_installed_at=db_repo.template_installed_at,
+        last_accessed_at=db_repo.last_accessed_at,
     )
 
 
@@ -374,6 +379,13 @@ def set_current_repo(
 
     # Save to settings
     _set_last_used_repo(db, repo_id)
+
+    # Update last_accessed_at for this repo
+    db_repo = db.query(RepoDB).filter(RepoDB.repo_id == repo_id).first()
+    if db_repo:
+        db_repo.last_accessed_at = datetime.utcnow()
+        db.commit()
+
     logger.info(f"Set current repo to: {repo_id}")
 
     return {
