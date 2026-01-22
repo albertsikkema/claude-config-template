@@ -9,12 +9,6 @@ import os
 import sys
 from pathlib import Path
 
-# Add hooks directory to path for utils import
-HOOKS_DIR = Path(__file__).parent
-sys.path.insert(0, str(HOOKS_DIR))
-
-from utils.constants import ensure_session_log_dir
-
 # API base URL for claude-flow backend
 CLAUDE_FLOW_API = os.environ.get("CLAUDE_FLOW_API", "http://localhost:9118")
 
@@ -75,27 +69,6 @@ def main():
             # Check if it's a research, plan, or review file
             if 'thoughts/shared' in file_path:
                 notify_artifact_created(task_id, session_id, file_path)
-
-        # Ensure session log directory exists
-        log_dir = ensure_session_log_dir(session_id)
-        log_path = log_dir / 'post_tool_use.json'
-
-        # Read existing log data or initialize empty list
-        if log_path.exists():
-            with open(log_path, 'r') as f:
-                try:
-                    log_data = json.load(f)
-                except (json.JSONDecodeError, ValueError):
-                    log_data = []
-        else:
-            log_data = []
-
-        # Append new data
-        log_data.append(input_data)
-
-        # Write back to file with formatting
-        with open(log_path, 'w') as f:
-            json.dump(log_data, f, indent=2)
 
         sys.exit(0)
 

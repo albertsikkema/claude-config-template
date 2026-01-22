@@ -21,31 +21,6 @@ except ImportError:
     pass  # dotenv is optional
 
 
-def log_session_start(input_data):
-    """Log session start event to logs directory."""
-    # Ensure logs directory exists
-    log_dir = Path("logs")
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_file = log_dir / 'session_start.json'
-    
-    # Read existing log data or initialize empty list
-    if log_file.exists():
-        with open(log_file, 'r') as f:
-            try:
-                log_data = json.load(f)
-            except (json.JSONDecodeError, ValueError):
-                log_data = []
-    else:
-        log_data = []
-    
-    # Append the entire input data
-    log_data.append(input_data)
-    
-    # Write back to file with formatting
-    with open(log_file, 'w') as f:
-        json.dump(log_data, f, indent=2)
-
-
 def get_git_status():
     """Get current git status information."""
     try:
@@ -155,12 +130,8 @@ def main():
         input_data = json.loads(sys.stdin.read())
         
         # Extract fields
-        session_id = input_data.get('session_id', 'unknown')
         source = input_data.get('source', 'unknown')  # "startup", "resume", or "clear"
-        
-        # Log the session start event
-        log_session_start(input_data)
-        
+
         # Load development context if requested
         if args.load_context:
             context = load_development_context(source)
