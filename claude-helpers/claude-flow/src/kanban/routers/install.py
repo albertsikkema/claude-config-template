@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import subprocess
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -39,6 +40,13 @@ class InstallStatusResponse(BaseModel):
     template_status: str
     template_version: str | None
     template_installed_at: datetime | None
+
+
+class LatestVersionResponse(BaseModel):
+    """Response containing latest available template version (git commit hash)."""
+
+    version: str | None
+    source: str  # "git" or "unavailable"
 
 
 def _update_repo_status(
@@ -82,6 +90,44 @@ def _read_installed_version(repo_path: str) -> str | None:
     if version_file.exists():
         return version_file.read_text().strip()
     return None
+
+
+def _get_source_version() -> str | None:
+    """Get git commit hash from the template source repository.
+
+    Returns:
+        Short git hash or None if unavailable
+    """
+    from kanban.main import CLAUDE_FLOW_DIR
+
+    # Go from claude-helpers/claude-flow -> repo root
+    repo_root = CLAUDE_FLOW_DIR.parent.parent
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return None
+
+
+def _write_version_file(repo_path: str, version: str) -> None:
+    """Write VERSION file to installed template.
+
+    Args:
+        repo_path: Repository path
+        version: Version string to write
+    """
+    version_file = Path(repo_path) / ".claude" / "VERSION"
+    version_file.parent.mkdir(parents=True, exist_ok=True)
+    version_file.write_text(version + "\n")
 
 
 async def _run_install(repo_path: str, force_thoughts: bool = False) -> None:
@@ -139,7 +185,15 @@ async def _run_install(repo_path: str, force_thoughts: bool = False) -> None:
             stderr_text = stderr.decode() if stderr else ""
 
             if process.returncode == 0:
-                version = _read_installed_version(repo_path)
+                # Get version from source repo and write to target
+                # (install script can't get git hash when downloaded from GitHub)
+                version = _get_source_version()
+                if version:
+                    _write_version_file(repo_path, version)
+                    logger.info(f"[Thread {thread_id}] Wrote VERSION file: {version}")
+                else:
+                    # Fallback to reading whatever was installed
+                    version = _read_installed_version(repo_path)
                 _update_repo_status(repo_path, "installed", version)
                 logger.info(f"[Thread {thread_id}] Installation completed for {repo_path}")
                 if stdout_text:
@@ -205,6 +259,22 @@ def trigger_install(repo_path: str, force_thoughts: bool = False) -> None:
         daemon=True,
     )
     thread.start()
+
+
+# Static routes must come before path-parameter routes
+@router.get("/latest-version", response_model=LatestVersionResponse)
+def get_latest_version():
+    """Get the latest available template version (git commit hash).
+
+    Reads the git commit hash from the template source repository.
+
+    Returns:
+        LatestVersionResponse with version hash and source
+    """
+    version = _get_source_version()
+    if version:
+        return LatestVersionResponse(version=version, source="git")
+    return LatestVersionResponse(version=None, source="unavailable")
 
 
 @router.post("/{repo_path:path}", response_model=InstallResponse)

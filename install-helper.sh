@@ -19,8 +19,8 @@ DRY_RUN=false
 TARGET_DIR="."
 GLOBAL_APP_MODE=false
 
-# Version
-VERSION="1.0.0"
+# Version (from git commit hash if available)
+VERSION=$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --short HEAD 2>/dev/null || echo "1.0.0")
 
 # Usage information
 usage() {
@@ -427,15 +427,15 @@ main() {
         fi
     fi
 
-    # Install VERSION file
+    # Write VERSION file with git commit hash
     if [ "$INSTALL_CLAUDE" = true ]; then
-        if [ -f "$SCRIPT_DIR/.claude/VERSION" ]; then
-            print_message "$BLUE" "Installing VERSION file..."
-            if [ "$DRY_RUN" != true ]; then
-                cp "$SCRIPT_DIR/.claude/VERSION" "$TARGET_DIR/.claude/VERSION"
-            fi
-            print_message "$GREEN" "  ✓ Installed VERSION file"
+        print_message "$BLUE" "Writing version (git commit hash)..."
+        if [ "$DRY_RUN" != true ]; then
+            COMMIT_HASH=$(cd "$SCRIPT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+            echo "$COMMIT_HASH" > "$TARGET_DIR/.claude/VERSION"
         fi
+        COMMIT_HASH=$(cd "$SCRIPT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+        print_message "$GREEN" "  ✓ Wrote version: $COMMIT_HASH"
     fi
 
     # Update .gitignore
