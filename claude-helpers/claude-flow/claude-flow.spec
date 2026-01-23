@@ -17,6 +17,27 @@ with open(pyproject_path, "rb") as f:
     pyproject_data = tomllib.load(f)
 VERSION = pyproject_data["project"]["version"]
 
+# Get git commit hash for template version tracking
+import subprocess
+try:
+    # Go to repo root (two levels up from claude-helpers/claude-flow)
+    repo_root = spec_root.parent.parent
+    result = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    GIT_HASH = result.stdout.strip() if result.returncode == 0 else "unknown"
+except Exception:
+    GIT_HASH = "unknown"
+
+# Write TEMPLATE_VERSION file to be bundled
+template_version_file = spec_root / "TEMPLATE_VERSION"
+template_version_file.write_text(GIT_HASH + "\n")
+print(f"Template version (git hash): {GIT_HASH}")
+
 # Collect all FastAPI/Uvicorn/Pydantic dependencies
 hiddenimports = [
     'uvicorn.logging',
@@ -78,6 +99,9 @@ if frontend_dist.exists():
     datas.append((str(frontend_dist), 'claude-flow-board/dist'))
 else:
     print("WARNING: Frontend not built! Run 'npm run build' in claude-flow-board/")
+
+# Include template version file
+datas.append((str(template_version_file), '.'))
 
 a = Analysis(
     ['desktop_app.py'],

@@ -95,11 +95,27 @@ def _read_installed_version(repo_path: str) -> str | None:
 def _get_source_version() -> str | None:
     """Get git commit hash from the template source repository.
 
+    When running from PyInstaller bundle, reads from bundled TEMPLATE_VERSION file.
+    When running from source, uses git command.
+
     Returns:
         Short git hash or None if unavailable
     """
+    import sys
+
     from kanban.main import CLAUDE_FLOW_DIR
 
+    # When running from PyInstaller bundle, read from bundled file
+    if getattr(sys, "frozen", False):
+        # sys._MEIPASS is where PyInstaller extracts files
+        bundle_dir = Path(sys._MEIPASS)
+        version_file = bundle_dir / "TEMPLATE_VERSION"
+        if version_file.exists():
+            version = version_file.read_text().strip()
+            if version and version != "unknown":
+                return version
+
+    # When running from source, use git command
     # Go from claude-helpers/claude-flow -> repo root
     repo_root = CLAUDE_FLOW_DIR.parent.parent
 
