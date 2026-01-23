@@ -200,7 +200,10 @@ def parse_typescript(source, file_path):
 
     # Extract React components (function components and class components)
     # Function components: export const ComponentName = () => { or function ComponentName() {
+    # Note: Also detect multi-line signatures by just matching the declaration start
     func_component_pattern = r'(?:export\s+)?(?:const|function)\s+([A-Z][a-zA-Z0-9]*)\s*(?::\s*React\.FC)?(?:<[^>]*>)?\s*=?\s*(?:\([^)]*\))?\s*(?::\s*[^=]+)?\s*(?:=>)?\s*\{'
+    # Simpler pattern to catch multi-line function declarations (just the start)
+    func_component_start_pattern = r'^(?:export\s+(?:default\s+)?)?function\s+([A-Z][a-zA-Z0-9]*)\s*\('
 
     # Class components: class ComponentName extends React.Component
     class_component_pattern = r'(?:export\s+)?class\s+([A-Z][a-zA-Z0-9]*)\s+extends\s+(?:React\.)?(?:Component|PureComponent)'
@@ -227,12 +230,30 @@ def parse_typescript(source, file_path):
 
     for i, line in enumerate(lines, 1):
         # React Function Components (capitalized names)
+        # First try full pattern (single-line signatures)
         matches = re.finditer(func_component_pattern, line)
         for match in matches:
             name = match.group(1)
             if name and name not in found_components:
                 # Extract props from the function signature
                 props = extract_props_from_signature(source, match.start())
+                details["components"].append({
+                    "name": name,
+                    "type": "function",
+                    "line": i,
+                    "props": props,
+                    "exported": "export" in line,
+                })
+                found_components.add(name)
+
+        # Also try simpler pattern for multi-line function declarations
+        matches = re.finditer(func_component_start_pattern, line)
+        for match in matches:
+            name = match.group(1)
+            if name and name not in found_components:
+                # Calculate position in source for prop extraction
+                pos = sum(len(lines[j]) + 1 for j in range(i-1)) + match.start()
+                props = extract_props_from_signature(source, pos)
                 details["components"].append({
                     "name": name,
                     "type": "function",
