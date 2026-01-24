@@ -19,6 +19,7 @@ SETTING_OPENAI_API_KEY = "openai_api_key"
 # Auto-advance workflow settings
 SETTING_AUTO_ADVANCE_RESEARCH_TO_PLANNING = "auto_advance_research_to_planning"
 SETTING_AUTO_ADVANCE_IMPLEMENTATION_TO_REVIEW = "auto_advance_impl_to_review"
+SETTING_AUTO_ADVANCE_CLEANUP_TO_COMMIT = "auto_advance_cleanup_to_commit"
 
 # Validation pattern for setting keys: lowercase letters, numbers, underscores
 # Must start with a letter, max 100 characters

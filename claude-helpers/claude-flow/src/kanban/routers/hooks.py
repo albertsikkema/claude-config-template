@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/hooks", tags=["hooks"])
 AUTO_ADVANCE_TRANSITIONS: dict[Stage, Stage] = {
     Stage.RESEARCH: Stage.PLANNING,
     Stage.IMPLEMENTATION: Stage.REVIEW,
-    # Future: add more transitions here as needed
+    Stage.CLEANUP: Stage.COMMIT,
 }
 
 
