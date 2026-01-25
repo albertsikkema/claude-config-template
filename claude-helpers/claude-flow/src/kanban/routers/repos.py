@@ -76,6 +76,30 @@ def get_repo_name_from_path(repo_path: str) -> str | None:
     return repo_name
 
 
+def get_current_branch(repo_path: str) -> str | None:
+    """Get current branch name for a repository.
+
+    Args:
+        repo_path: Absolute path to the repository
+
+    Returns:
+        Branch name, "HEAD" if detached, or None if not a git repo
+    """
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            cwd=repo_path,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return None
+
+
 @router.get("", response_model=list[RepoWithCount])
 def list_repos(
     active_only: bool = True,
@@ -279,6 +303,7 @@ class CurrentRepoResponse(BaseModel):
     name: str | None
     is_valid_git_repo: bool
     source: str  # "cwd", "last_used", or "none"
+    current_branch: str | None = None
 
 
 LAST_USED_REPO_KEY = "last_used_repo"
@@ -334,6 +359,7 @@ def get_current_repo(db: Session = Depends(get_db)):
             name=get_repo_name_from_path(cwd_path),
             is_valid_git_repo=True,
             source="cwd",
+            current_branch=get_current_branch(cwd_path),
         )
 
     # Fall back to last used repo
@@ -344,6 +370,7 @@ def get_current_repo(db: Session = Depends(get_db)):
             name=get_repo_name_from_path(last_used),
             is_valid_git_repo=True,
             source="last_used",
+            current_branch=get_current_branch(last_used),
         )
 
     # No valid repo found

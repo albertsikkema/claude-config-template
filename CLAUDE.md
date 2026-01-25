@@ -307,9 +307,9 @@ Documented patterns in `thoughts/best_practices/`:
 This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
 
 ### Available Index Files
-- `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts (24 Python files)
+- `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts (25 Python files)
 - `codebase_overview_claude_flow_py.md` - Claude-Flow FastAPI backend (16 Python files)
-- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (99 TypeScript files)
+- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (100 TypeScript files)
 
 These files are automatically generated and kept up-to-date by the `/index_codebase` command.
 
