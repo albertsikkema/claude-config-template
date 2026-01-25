@@ -1,6 +1,6 @@
 # Codebase Indexers
 
-Generate comprehensive, searchable markdown documentation for Python, TypeScript/React, and Go codebases.
+Generate comprehensive, searchable markdown documentation for Python, TypeScript/React, Go, and C/C++ codebases.
 
 ## Overview
 
@@ -9,6 +9,7 @@ These indexers automatically discover and document code structure across multipl
 - **`index_python.py`** - Python codebases (functions, classes, Pydantic models)
 - **`index_js_ts.py`** - JavaScript/TypeScript/React codebases (components, functions, interfaces, types)
 - **`index_go.py`** - Go codebases (packages, structs, interfaces, functions)
+- **`index_cpp.py`** - C/C++ codebases (classes, structs, functions, enums, macros)
 
 ## Quick Start
 
@@ -19,8 +20,8 @@ These indexers automatically discover and document code structure across multipl
 ```
 
 Claude will:
-1. Auto-detect your project languages (Python, TypeScript, Go)
-2. Find the right directories to scan (backend/, frontend/, etc.)
+1. Auto-detect your project languages (Python, TypeScript, Go, C/C++)
+2. Find the right directories to scan (backend/, frontend/, src/, etc.)
 3. Run the appropriate indexers
 4. Save documentation to `thoughts/codebase/`
 
@@ -35,6 +36,9 @@ python claude-helpers/index_js_ts.py ./frontend -o codebase_overview_frontend_js
 
 # Go
 python claude-helpers/index_go.py ./server -o codebase_overview_server_go.md
+
+# C/C++
+python claude-helpers/index_cpp.py ./src -o codebase_overview_src_cpp.md
 ```
 
 ## Features
@@ -217,6 +221,52 @@ The indexer gracefully handles both - JavaScript shows parameters without types,
 - **Signature:** `func (*User) Save(ctx context.Context) error`
 ```
 
+### C/C++ Indexer (`index_cpp.py`)
+
+**Extracts:**
+- ✅ Classes with methods and members
+- ✅ Structs with fields
+- ✅ Functions with signatures and return types
+- ✅ Enums (including enum class) with values
+- ✅ Typedefs and using aliases
+- ✅ Macros (uppercase constants)
+- ✅ Namespaces
+- ✅ Include dependencies
+
+**Smart Detection:**
+- Extracts Doxygen/doc comments
+- Tracks usage across files (which files use which symbols)
+- Handles template declarations
+- Distinguishes forward declarations from definitions
+- Parses class inheritance
+
+**Skips:**
+- `build`, `cmake-build-*`, `bin`, `lib`, `out` - Build outputs
+- `third_party`, `vendor`, `external`, `deps` - Dependencies
+- `JUCE`, `tracktion_engine`, `modules` - Large frameworks
+- `*_test.*`, `test_*`, `mock_*` - Test files
+- `.git`, `.vscode`, `.idea` - IDE/VCS directories
+
+**Supported Extensions:**
+- C++: `.cpp`, `.cxx`, `.cc`, `.c++`, `.C`
+- Headers: `.hpp`, `.hxx`, `.hh`, `.h++`, `.H`, `.h`
+- Templates: `.ipp`, `.inl`, `.tpp`, `.txx`
+
+**Example Output:**
+```markdown
+## Most Used Symbols
+
+- **AudioProcessor**()**`src/audio/Processor.hpp:45`** - Base class for audio processing → 12 refs
+- **ProcessBlock**(buffer, midiMessages)**`src/audio/Processor.hpp:67`** → 8 refs
+
+## Library Files
+
+### `src/audio/Processor.hpp`
+  - `AudioProcessor`:45 - class methods: processBlock, prepareToPlay, reset
+    ↳ used by: `src/synth/Oscillator.cpp`, `src/effects/Reverb.cpp`
+  - `ProcessorState`:23 - enum values: Idle, Processing, Bypassed
+```
+
 ## Output Format
 
 All indexers generate markdown files with:
@@ -275,6 +325,9 @@ python claude-helpers/index_js_ts.py
 
 python claude-helpers/index_go.py
 # → Output: codebase_overview_go.md
+
+python claude-helpers/index_cpp.py
+# → Output: codebase_overview_cpp.md
 ```
 
 ### Scan Specific Directory
@@ -288,6 +341,9 @@ python claude-helpers/index_js_ts.py ./frontend/src -o frontend_docs.md
 
 # Go microservice
 python claude-helpers/index_go.py ./services/api -o api_docs.md
+
+# C++ audio plugin
+python claude-helpers/index_cpp.py ./Source -o plugin_docs.md
 ```
 
 ### Nested Project Structure
@@ -297,6 +353,7 @@ python claude-helpers/index_go.py ./services/api -o api_docs.md
 python claude-helpers/index_python.py ./myapp/backend -o thoughts/codebase/backend_py.md
 python claude-helpers/index_js_ts.py ./myapp/frontend -o thoughts/codebase/frontend_js_ts.md
 python claude-helpers/index_go.py ./myapp/services -o thoughts/codebase/services_go.md
+python claude-helpers/index_cpp.py ./myapp/native -o thoughts/codebase/native_cpp.md
 ```
 
 ## Integration with `/index_codebase`
@@ -304,7 +361,7 @@ python claude-helpers/index_go.py ./myapp/services -o thoughts/codebase/services
 The `/index_codebase` slash command uses these scripts intelligently:
 
 1. **Auto-Detection**
-   - Scans for `.py`, `.ts/.tsx`, `.go` files
+   - Scans for `.py`, `.ts/.tsx`, `.go`, `.cpp/.hpp/.h` files
    - Identifies language-specific directories
    - Determines appropriate indexer(s)
 
@@ -312,6 +369,7 @@ The `/index_codebase` slash command uses these scripts intelligently:
    - Python: Looks for `backend/`, `server/`, `api/`, `app/`
    - TypeScript: Looks for `frontend/`, `client/`, `web/`, `src/`
    - Go: Looks for `cmd/`, `pkg/`, `internal/`, `api/`
+   - C/C++: Looks for `src/`, `include/`, `lib/`, `source/`
 
 3. **Organized Output**
    - All docs saved to `thoughts/codebase/`
@@ -414,11 +472,13 @@ chmod +r -R /path/to/directory
 - Python: ~1000 files/second
 - TypeScript: ~800 files/second
 - Go: ~1200 files/second
+- C/C++: ~900 files/second
 
 **Large codebases:**
 - 10,000 Python files: ~10 seconds
 - 5,000 TypeScript files: ~6 seconds
 - 8,000 Go files: ~7 seconds
+- 6,000 C/C++ files: ~7 seconds
 
 ## Technical Details
 
@@ -442,6 +502,13 @@ chmod +r -R /path/to/directory
 - **Package detection:** Analyzes `package` declarations
 - **Struct tags:** Extracts backtick-quoted field tags
 - **Receiver analysis:** Distinguishes `*Type` from `Type` receivers
+
+### C/C++ Indexer
+
+- **Parsing:** Regex-based pattern matching
+- **Doc extraction:** Parses Doxygen-style comments (`///`, `/**`)
+- **Usage tracking:** Two-pass analysis to find where symbols are used
+- **Class analysis:** Extracts public methods, members, and inheritance
 
 ## Why Use These Indexers?
 

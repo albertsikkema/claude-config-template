@@ -122,7 +122,7 @@ Monitoring dashboard:
 | `/security` | Comprehensive security analysis with Codeguard rules |
 | `/deploy` | Automated deployment preparation (version, changelog, build, release) |
 | `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
-| `/index_codebase` | Index Python/TypeScript/Go codebases |
+| `/index_codebase` | Index Python/TypeScript/Go/C++ codebases |
 
 ### 📁 Directory Structure
 
@@ -344,6 +344,7 @@ This template includes several utility scripts in the `claude-helpers/` director
   - `index_python.py` - Index Python codebases (functions, classes, models)
   - `index_js_ts.py` - Index JavaScript/TypeScript/React codebases (components, functions, interfaces)
   - `index_go.py` - Index Go codebases (structs, interfaces, functions)
+  - `index_cpp.py` - Index C/C++ codebases (classes, structs, functions, enums)
   - Use via `/index_codebase` slash command
   - **📖 See [docs/README-indexers.md](docs/README-indexers.md) for detailed guide**
 

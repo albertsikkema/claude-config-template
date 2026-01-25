@@ -2,10 +2,11 @@ You are tasked with indexing a codebase and generating comprehensive Markdown do
 
 ## Available Indexers
 
-The repository has three indexer scripts in `./claude-helpers/`:
+The repository has four indexer scripts in `./claude-helpers/`:
 1. **claude-helpers/index_python.py** - For Python codebases
 2. **claude-helpers/index_js_ts.py** - For JavaScript/TypeScript/React codebases
 3. **claude-helpers/index_go.py** - For Go codebases
+4. **claude-helpers/index_cpp.py** - For C/C++ codebases
 
 ## Your Task
 
@@ -15,6 +16,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
    - Python: Look for `.py` files, `requirements.txt`, `pyproject.toml`, `setup.py`, etc.
    - JavaScript/TypeScript: Look for `.js/.jsx/.ts/.tsx` files, `package.json`, `tsconfig.json`, etc.
    - Go: Look for `.go` files, `go.mod`, `go.sum`, etc.
+   - C/C++: Look for `.cpp/.cxx/.cc/.c/.hpp/.h` files, `CMakeLists.txt`, `Makefile`, `*.vcxproj`, etc.
 
 2. **Automatically determine paths**:
    - For Python:
@@ -38,6 +40,13 @@ The repository has three indexer scripts in `./claude-helpers/`:
      - Search in both root and nested structures (e.g., `./backend`, `./project/backend`)
      - If found, index the parent directory to capture `go.mod`, `go.sum`, etc.
      - Fall back to `./` if no specific structure found
+   - For C/C++:
+     - First check for common C/C++ directory names with source files:
+       - `src/`, `source/`, `Source/`, `lib/`, `include/`, `app/`
+     - Search in both root and nested structures (e.g., `./src`, `./project/src`)
+     - If found, index the parent directory to capture `CMakeLists.txt`, headers, etc.
+     - Check for build system files: `CMakeLists.txt`, `Makefile`, `*.vcxproj`
+     - Fall back to `./` if no specific structure found
    - If user provides a path in their message, use that path exactly
 
 3. **Determine output filenames** based on the directory being scanned:
@@ -46,6 +55,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
    - Format: `codebase_overview_<dirname>_py.md` for Python
    - Format: `codebase_overview_<dirname>_js_ts.md` for JavaScript/TypeScript
    - Format: `codebase_overview_<dirname>_go.md` for Go
+   - Format: `codebase_overview_<dirname>_cpp.md` for C/C++
 
 4. **Run the appropriate indexer(s)** automatically:
    ```bash
@@ -57,6 +67,9 @@ The repository has three indexer scripts in `./claude-helpers/`:
 
    # For Go
    python ./claude-helpers/index_go.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_go.md
+
+   # For C/C++
+   python ./claude-helpers/index_cpp.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_cpp.md
    ```
 
    **Important**: All output files must be saved to `thoughts/codebase/` directory.
@@ -81,7 +94,8 @@ The repository has three indexer scripts in `./claude-helpers/`:
 3. Index Python if `.py` files are found
 4. Index JavaScript/TypeScript if `.js/.jsx/.ts/.tsx` files are found
 5. Index Go if `.go` files are found
-6. Index multiple languages if multiple are present
+6. Index C/C++ if `.cpp/.cxx/.cc/.c/.hpp/.h` files are found
+7. Index multiple languages if multiple are present
 7. **Smart Directory Detection for Python**:
    - Look for common backend directory names with Python files:
      - `backend/`, `server/`, `api/`, `service/`, `app/`, `src/`
@@ -117,7 +131,18 @@ The repository has three indexer scripts in `./claude-helpers/`:
      - `server/` (with Go microservice) → Index `server/`
      - `cmd/` (with main packages) → Index `cmd/`
      - `internal/` (with internal packages) → Index `internal/`
-10. **FastAPI Detection**: If Python code is detected, check for FastAPI usage:
+10. **Smart Directory Detection for C/C++**:
+    - Look for common C/C++ directory names with source files:
+      - `src/`, `source/`, `Source/`, `lib/`, `include/`, `app/`
+    - Search in both root (e.g., `./src`) and nested (e.g., `./project/src`) structures
+    - Check for build system indicators: `CMakeLists.txt`, `Makefile`, `*.vcxproj`, `meson.build`
+    - Index the parent directory to capture complete structure
+    - Common patterns:
+      - `src/` or `Source/` (with `.cpp/.h` files) → Index `src/` or `Source/`
+      - Root with `CMakeLists.txt` and source files → Index `./`
+      - `include/` (with headers) + `src/` (with sources) → Index parent
+    - **Note**: The C/C++ indexer automatically skips common library directories like `JUCE`, `tracktion_engine`, `third_party`, `vendor`, `external`, etc.
+11. **FastAPI Detection**: If Python code is detected, check for FastAPI usage:
    - Look for `from fastapi import` or `import fastapi` in Python files
    - If FastAPI is detected, attempt to fetch OpenAPI schema using `./claude-helpers/fetch_openapi.sh`
    - Only run if a server might be running (non-intrusive check)
@@ -129,6 +154,7 @@ The repository has three indexer scripts in `./claude-helpers/`:
 python ./claude-helpers/index_python.py ./ -o thoughts/codebase/codebase_overview_root_py.md
 python ./claude-helpers/index_js_ts.py ./ -o thoughts/codebase/codebase_overview_root_js_ts.md
 python ./claude-helpers/index_go.py ./ -o thoughts/codebase/codebase_overview_root_go.md
+python ./claude-helpers/index_cpp.py ./ -o thoughts/codebase/codebase_overview_root_cpp.md
 ```
 
 ### Index specific directory (backend)
@@ -151,6 +177,17 @@ python ./claude-helpers/index_js_ts.py ./cc_wrapper/frontend -o thoughts/codebas
 # Directory: ./backend -> filename includes "backend"
 # Indexes entire Go backend structure (cmd/, pkg/, internal/, go.mod)
 python ./claude-helpers/index_go.py ./backend -o thoughts/codebase/codebase_overview_backend_go.md
+```
+
+### Index specific directory (C/C++ source)
+```bash
+# Directory: ./Source -> filename includes "Source"
+# Indexes C/C++ source files (classes, structs, functions, enums)
+# Automatically skips library directories (JUCE, tracktion_engine, etc.)
+python ./claude-helpers/index_cpp.py ./Source -o thoughts/codebase/codebase_overview_Source_cpp.md
+
+# Or index from root (will skip build/, third_party/, etc.)
+python ./claude-helpers/index_cpp.py ./ -o thoughts/codebase/codebase_overview_root_cpp.md
 ```
 
 ### Fetch FastAPI OpenAPI schema (if FastAPI detected)
@@ -200,12 +237,14 @@ When FastAPI is detected:
   - `codebase_overview_<dirname>_py.md` - Python documentation
   - `codebase_overview_<dirname>_js_ts.md` - JavaScript/TypeScript documentation
   - `codebase_overview_<dirname>_go.md` - Go documentation
+  - `codebase_overview_<dirname>_cpp.md` - C/C++ documentation
   - `openapi.json` - FastAPI OpenAPI schema (if applicable)
 
 **Filename Examples:**
 - Scanning `./` (Python) → `codebase_overview_root_py.md`
 - Scanning `./` (JavaScript/TypeScript) → `codebase_overview_root_js_ts.md`
 - Scanning `./` (Go) → `codebase_overview_root_go.md`
+- Scanning `./` (C/C++) → `codebase_overview_root_cpp.md`
 - Scanning `./backend` (Python) → `codebase_overview_backend_py.md`
 - Scanning `./backend` (Go) → `codebase_overview_backend_go.md`
 - Scanning `./server` → `codebase_overview_server_py.md`
@@ -216,9 +255,12 @@ When FastAPI is detected:
 - Scanning `./web` → `codebase_overview_web_js_ts.md`
 - Scanning `./static` → `codebase_overview_static_js_ts.md`
 - Scanning `./cc_wrapper/frontend` → `codebase_overview_frontend_js_ts.md`
-- Scanning `./src` (standalone) → `codebase_overview_src_js_ts.md`
+- Scanning `./src` (standalone JS/TS) → `codebase_overview_src_js_ts.md`
 - Scanning `./cmd` (Go) → `codebase_overview_cmd_go.md`
 - Scanning `./pkg` (Go) → `codebase_overview_pkg_go.md`
+- Scanning `./Source` (C/C++) → `codebase_overview_Source_cpp.md`
+- Scanning `./src` (C/C++) → `codebase_overview_src_cpp.md`
+- Scanning `./lib` (C/C++) → `codebase_overview_lib_cpp.md`
 
 ## Update CLAUDE.md Documentation
 
@@ -238,6 +280,7 @@ This project maintains automatically generated codebase overview files in `thoug
 - `codebase_overview_*_py.md` - Python codebase overview
 - `codebase_overview_*_js_ts.md` - JavaScript/TypeScript codebase overview
 - `codebase_overview_*_go.md` - Go codebase overview
+- `codebase_overview_*_cpp.md` - C/C++ codebase overview
 - `openapi.json` - FastAPI OpenAPI schema (if applicable)
 
 ### What These Files Contain
@@ -265,7 +308,7 @@ The indexer will automatically detect your project type and generate appropriate
 
 4. **If a mention already exists, update it** to match the format above, ensuring:
    - The location `thoughts/codebase/` is correct
-   - All file types are mentioned (Python, JS/TS, Go)
+   - All file types are mentioned (Python, JS/TS, Go, C/C++)
    - The content description includes: file tree, classes/functions, signatures (input params, return types), and call relationships
    - The regeneration command `/index_codebase` is documented
 

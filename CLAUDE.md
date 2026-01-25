@@ -84,6 +84,7 @@ claude-helpers/
 ├── index_python.py   # Python codebase indexer
 ├── index_js_ts.py    # JavaScript/TypeScript indexer
 ├── index_go.py       # Go indexer
+├── index_cpp.py      # C/C++ indexer
 ├── build_c4_diagrams.py  # C4 diagram generator
 ├── fetch-docs.py     # Documentation fetcher
 ├── orchestrator.py   # Full workflow automation
@@ -129,7 +130,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 | `/security` | Security analysis with Codeguard rules |
 | `/deploy` | Deployment preparation |
 | `/fetch_technical_docs` | Fetch documentation from context7.com |
-| `/index_codebase` | Index Python/TypeScript/Go codebases |
+| `/index_codebase` | Index Python/TypeScript/Go/C++ codebases |
 
 ## Agent Types
 
