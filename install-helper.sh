@@ -298,14 +298,10 @@ main() {
             done
         fi
 
-        # Install settings.json (with hooks) if not exists
+        # Install settings.json (with hooks) - always overwrite to get latest hooks
         if [ -f "$SCRIPT_DIR/.claude/settings.json" ]; then
-            if [ ! -f "$TARGET_DIR/.claude/settings.json" ]; then
-                print_message "$BLUE" "Installing settings.json (with hooks)..."
-                install_item "$SCRIPT_DIR/.claude/settings.json" "$TARGET_DIR/.claude/settings.json" "settings.json"
-            else
-                print_message "$YELLOW" "  ⊘ settings.json already exists, skipping"
-            fi
+            print_message "$BLUE" "Installing settings.json (with hooks)..."
+            install_item "$SCRIPT_DIR/.claude/settings.json" "$TARGET_DIR/.claude/settings.json" "settings.json"
         fi
 
         # Install settings.local.json (always overwrite)
@@ -320,8 +316,9 @@ main() {
             if [ "$DRY_RUN" != true ]; then
                 mkdir -p "$TARGET_DIR/.claude/hooks"
                 cp -r "$SCRIPT_DIR/.claude/hooks"/* "$TARGET_DIR/.claude/hooks/"
-                # Make hook scripts executable
+                # Make hook scripts executable (both .py and .sh)
                 chmod +x "$TARGET_DIR/.claude/hooks"/*.py 2>/dev/null || true
+                chmod +x "$TARGET_DIR/.claude/hooks"/*.sh 2>/dev/null || true
             fi
             print_message "$GREEN" "  ✓ Installed hooks directory"
         fi
