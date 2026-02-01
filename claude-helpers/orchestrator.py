@@ -88,9 +88,12 @@ class CleanupPhaseResult:
 
 # --- Utility functions ---
 
-def print_separator() -> None:
-    """Print a visual separator between phases."""
-    print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
+def print_phase_header(phase_name: str) -> None:
+    """Print a prominent phase header with separators."""
+    color = STAGE_COLORS.get(phase_name, Fore.WHITE)
+    print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}", file=sys.stderr, flush=True)
+    print(f"\n{color}Starting Phase: {phase_name}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
+    print(f"{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
 
 
 def stream_progress(stage: str, message: str) -> None:
@@ -177,7 +180,7 @@ def format_stream_event(line: str) -> str | None:
     return None
 
 
-def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tuple[int, str, float]:
+def run_claude_command(command: list[str], cwd: str, timeout: int = 600, phase: str = '') -> tuple[int, str, float]:
     """Run a Claude Code command with real-time output streaming.
 
     Returns:
@@ -189,11 +192,9 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
     command.insert(2, '--output-format')
     command.insert(3, 'stream-json')
 
-    # Extract the slash command from the -p argument
-    cmd_display = command[-1] if command else ""
-    if cmd_display.startswith('/'):
-        cmd_display = cmd_display.split('\n')[0]  # First line only for multi-line prompts
-    print(f"{Fore.BLUE}Starting new Claude Code session...{Style.RESET_ALL} ({cmd_display})", file=sys.stderr, flush=True)
+    # Print phase header if provided
+    if phase:
+        print_phase_header(phase)
     start_time = time.time()
     process = subprocess.Popen(
         command,
@@ -222,7 +223,6 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
     elapsed = time.time() - start_time
     # Fallback to 1 if returncode is None (shouldn't happen after wait())
     returncode = process.returncode if process.returncode is not None else 1
-    print_separator()
     return returncode, ''.join(output_lines), elapsed
 
 
@@ -289,7 +289,8 @@ Focus on core frameworks, skip small utilities."""
     returncode, output, _ = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '--model', 'opus', '-p', prompt],
         cwd=project_path,
-        timeout=60
+        timeout=60,
+        phase='Docs'
     )
 
     if returncode != 0:
@@ -348,11 +349,11 @@ def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
     """Phase 1: Index → Docs → Research → Plan"""
 
     # Step 1: Index codebase
-    stream_progress("Indexing", "Starting codebase indexing...")
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', '/index_codebase'],
         cwd=project_path,
-        timeout=600
+        timeout=600,
+        phase='Indexing'
     )
     if returncode != 0:
         raise RuntimeError(f"Indexing failed with code {returncode}")
@@ -376,11 +377,11 @@ def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
         stream_progress("Docs", "No packages found, skipping doc fetch")
 
     # Step 3: Research
-    stream_progress("Research", f"Researching: {query}...")
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', f'/research_codebase {query}'],
         cwd=project_path,
-        timeout=600
+        timeout=600,
+        phase='Research'
     )
     if returncode != 0:
         raise RuntimeError(f"Research failed with code {returncode}")
@@ -391,7 +392,6 @@ def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
     stream_progress("Research", f"Complete: {research_path} ({format_duration(elapsed)})")
 
     # Step 4: Create plan
-    stream_progress("Planning", "Creating implementation plan...")
     prompt = f"""/create_plan {research_path}
 
 Context: {query}
@@ -401,7 +401,8 @@ Please proceed with reasonable defaults based on the research."""
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', prompt],
         cwd=project_path,
-        timeout=600
+        timeout=600,
+        phase='Planning'
     )
     if returncode != 0:
         raise RuntimeError(f"Planning failed with code {returncode}")
@@ -437,22 +438,22 @@ def run_phase_implement(plan_path: str, project_path: str) -> ImplementPhaseResu
         raise RuntimeError(f"Plan file not found: {plan_path}")
 
     # Step 1: Implement plan (includes validation)
-    stream_progress("Implement", f"Implementing plan: {plan_path}...")
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', f'/implement_plan {plan_path}'],
         cwd=project_path,
-        timeout=1800  # 30 min for implementation
+        timeout=1800,  # 30 min for implementation
+        phase='Implement'
     )
     if returncode != 0:
         raise RuntimeError(f"Implementation failed with code {returncode}")
     stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
 
     # Step 2: Code review
-    stream_progress("Review", "Running code review...")
     returncode, review_output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer'],
         cwd=project_path,
-        timeout=600
+        timeout=600,
+        phase='Review'
     )
     if returncode != 0:
         raise RuntimeError(f"Code review failed with code {returncode}")
@@ -499,7 +500,6 @@ def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, proj
         raise RuntimeError(f"Plan file not found: {plan_path}")
 
     # Step 1: Cleanup
-    stream_progress("Cleanup", "Running cleanup...")
     cleanup_cmd = f'/cleanup {plan_path}'
     if research_path:
         cleanup_cmd += f' {research_path}'
@@ -509,7 +509,8 @@ def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, proj
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', cleanup_cmd],
         cwd=project_path,
-        timeout=600
+        timeout=600,
+        phase='Cleanup'
     )
     if returncode != 0:
         raise RuntimeError(f"Cleanup failed with code {returncode}")
