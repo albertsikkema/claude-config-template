@@ -113,6 +113,10 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
     Returns:
         Tuple of (return_code, captured_output, elapsed_seconds)
     """
+    # Always use verbose mode for full turn-by-turn output
+    command = command.copy()
+    command.insert(1, '--verbose')
+
     # Extract the slash command from the -p argument
     cmd_display = command[-1] if command else ""
     if cmd_display.startswith('/'):
