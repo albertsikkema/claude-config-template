@@ -88,6 +88,11 @@ class CleanupPhaseResult:
 
 # --- Utility functions ---
 
+def print_separator() -> None:
+    """Print a visual separator between phases."""
+    print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
+
+
 def stream_progress(stage: str, message: str) -> None:
     """Print progress update to stderr for real-time feedback."""
     color = STAGE_COLORS.get(stage, Fore.WHITE)
@@ -129,34 +134,44 @@ def format_stream_event(line: str) -> str | None:
             if item.get('type') == 'text':
                 text = item.get('text', '').strip()
                 if text:
-                    parts.append(f"{Fore.WHITE}{text}{Style.RESET_ALL}")
+                    parts.append(f"\n{Fore.WHITE}{text}{Style.RESET_ALL}\n")
             elif item.get('type') == 'tool_use':
                 tool_name = item.get('name', 'unknown')
                 tool_input = item.get('input', {})
                 # Show brief input summary
                 if isinstance(tool_input, dict):
-                    input_summary = ', '.join(f"{k}={repr(v)[:50]}" for k, v in list(tool_input.items())[:3])
+                    input_parts = []
+                    for k, v in list(tool_input.items())[:3]:
+                        v_str = repr(v) if len(repr(v)) <= 40 else repr(v)[:40] + '...'
+                        input_parts.append(f"{k}={v_str}")
+                    input_summary = ', '.join(input_parts)
                 else:
-                    input_summary = str(tool_input)[:100]
-                parts.append(f"{Fore.CYAN}→ {tool_name}({input_summary}){Style.RESET_ALL}")
+                    input_summary = str(tool_input)[:80]
+                parts.append(f"  {Fore.CYAN}→ {tool_name}{Style.RESET_ALL}({input_summary})")
         return '\n'.join(parts) if parts else None
 
-    # Tool results
+    # Tool results - show abbreviated
     if event_type == 'user':
         content = event.get('message', {}).get('content', [])
         for item in content:
             if item.get('type') == 'tool_result':
-                tool_id = item.get('tool_use_id', '')[:8]
-                result = str(item.get('content', ''))[:200]
-                if result:
-                    return f"{Fore.YELLOW}← result: {result}...{Style.RESET_ALL}" if len(result) >= 200 else f"{Fore.YELLOW}← result: {result}{Style.RESET_ALL}"
+                result = str(item.get('content', ''))
+                # Show first line only, truncated
+                first_line = result.split('\n')[0][:100]
+                if first_line:
+                    suffix = '...' if len(result) > len(first_line) else ''
+                    return f"  {Fore.YELLOW}← {first_line}{suffix}{Style.RESET_ALL}"
         return None
 
     # Result event (final output)
     if event_type == 'result':
         result_text = event.get('result', '')
         if result_text:
-            return f"{Fore.GREEN}✓ Result: {result_text[:500]}{Style.RESET_ALL}"
+            # Show first 3 lines max
+            lines = result_text.strip().split('\n')[:3]
+            preview = '\n'.join(lines)
+            suffix = '\n...' if len(result_text.split('\n')) > 3 else ''
+            return f"\n{Fore.GREEN}✓ Done{Style.RESET_ALL}\n"
         return None
 
     return None
@@ -207,6 +222,7 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
     elapsed = time.time() - start_time
     # Fallback to 1 if returncode is None (shouldn't happen after wait())
     returncode = process.returncode if process.returncode is not None else 1
+    print_separator()
     return returncode, ''.join(output_lines), elapsed
 
 
