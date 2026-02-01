@@ -502,9 +502,9 @@ def run_phase_implement(plan_path: str, project_path: str) -> ImplementPhaseResu
         raise RuntimeError(f"Implementation failed with code {returncode}")
     stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
 
-    # Step 2: Code review
+    # Step 2: Code review (interactive so user can ask questions and suggest improvements)
     returncode, review_output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer'],
+        ['claude', '--dangerously-skip-permissions', '/code_reviewer'],
         cwd=project_path,
         timeout=600,
         phase='Review'
