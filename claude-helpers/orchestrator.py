@@ -539,7 +539,7 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False)
         raise RuntimeError("Could not extract research file path from output")
     stream_progress("Research", f"Complete: {research_path} ({format_duration(elapsed)})")
 
-    # Step 5: Create plan with full context
+    # Step 5: Create plan interactively
     context_section = f"Context: {working_query}"
     if refined.context_notes:
         context_section += f"\n\nAdditional context from codebase analysis:\n{refined.context_notes}"
@@ -551,7 +551,7 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False)
 Please proceed with reasonable defaults based on the research."""
 
     returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', prompt],
+        ['claude', '--dangerously-skip-permissions', prompt],
         cwd=project_path,
         timeout=600,
         phase='Planning'
