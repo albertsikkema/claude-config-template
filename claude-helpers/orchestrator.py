@@ -403,57 +403,51 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
     timestamp = time.strftime('%Y-%m-%d-%H%M%S')
     output_file = refinement_dir / f'{timestamp}-query-refinement.json'
 
-    prompt = f'''You are helping refine a development task query before research begins.
+    prompt = f'''You are helping quickly refine a development task query. Keep this session SHORT and focused.
 
 ## User's Original Query
 {query}
 
-## Codebase Context
+## Codebase Index
 {index_context}
+
+## IMPORTANT CONSTRAINTS
+- **ONLY read the codebase index file** - do NOT read individual source files
+- Deep research happens in the next phase - this is just query refinement
+- Keep the session brief - aim for 1-2 exchanges with the user
+- Focus on WHAT to do, not HOW (the research phase will figure out the how)
 
 ## Your Task
 
-1. **Read the codebase index** (if available) to understand the project structure
-2. **Analyze the user's query** in context of this codebase
-3. **Propose an improved query** that:
-   - Is more specific and actionable
-   - References relevant existing code/patterns found in the index
+1. **Read ONLY the codebase index** to understand project structure at a high level
+2. **Quickly propose an improved query** that:
    - Clarifies scope and boundaries
-   - Identifies potential challenges based on current architecture
+   - Mentions relevant areas from the index (e.g., "modify backend/auth/*")
+   - Is specific enough to guide research
+3. **List technical docs needed** (libraries/frameworks to fetch docs for)
+4. **Ask user to confirm or adjust** - one quick exchange
+5. **Write the result** to: thoughts/shared/refinement/{timestamp}-query-refinement.json
 
-4. **Identify technical documentation needed**:
-   - Which libraries/frameworks need docs fetched?
-   - Are there new technologies being introduced that need research?
-
-5. **Present your findings** and ask the user:
-   - Show the refined query
-   - List recommended technical docs to fetch
-   - Ask if they want to modify anything
-
-6. **After user confirms**, write the final result to: thoughts/shared/refinement/{timestamp}-query-refinement.json
-
-IMPORTANT: Use exactly this filename with the timestamp shown above.
-
-The JSON format for the output file:
+## Output Format
 ```json
 {{
-  "refined_query": "The improved, detailed query",
+  "refined_query": "The improved query (2-4 sentences)",
   "technical_docs": ["package1", "package2"],
-  "context_notes": "Brief notes about codebase context relevant to this task"
+  "context_notes": "One sentence about relevant codebase areas"
 }}
 ```
 
-Start by reading the codebase index, then present your analysis.'''
+Be concise. Present your refined query and docs list, ask for confirmation, then write the file.'''
 
     print_phase_header("Query Refinement")
     print(f"{Fore.WHITE}Starting interactive query refinement session...{Style.RESET_ALL}", file=sys.stderr)
     print(f"{Fore.YELLOW}Original query:{Style.RESET_ALL} {query}\n", file=sys.stderr)
     print(f"{Fore.CYAN}You can interact with Claude to refine the query. Type 'exit' or press Ctrl+C when done.{Style.RESET_ALL}\n", file=sys.stderr)
 
-    # Run truly interactive Claude session (no -p flag)
+    # Run truly interactive Claude session (no -p flag, but skip permissions for speed)
     # --system-prompt sets context, initial message starts the conversation
     process = subprocess.run(
-        ['claude', '--system-prompt', prompt, 'Please start by reading the codebase index and analyzing my query.'],
+        ['claude', '--dangerously-skip-permissions', '--system-prompt', prompt, 'Read the codebase index and propose a refined query. Keep it brief.'],
         cwd=project_path,
     )
 
