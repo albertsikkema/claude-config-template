@@ -403,46 +403,38 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
     timestamp = time.strftime('%Y-%m-%d-%H%M%S')
     output_file = refinement_dir / f'{timestamp}-query-refinement.json'
 
-    prompt = f'''You are helping quickly refine a development task query. Keep this session SHORT and focused.
+    prompt = f'''Quickly refine a development task query. This is NOT research - just improve the query text.
 
-## USER'S ORIGINAL QUERY (preserve ALL details and intentions):
----
+## USER'S ORIGINAL QUERY:
 {query}
----
 
-## Context Files to Read
+## Context (skim briefly)
 {index_context}
-- CLAUDE.md (if exists) - project instructions and patterns
-- README.md (if exists) - project overview
-- thoughts/shared/project/*.md (if exists) - project documentation
+- CLAUDE.md, README.md, thoughts/shared/project/ (if they exist)
 
-## CRITICAL RULES
-- **PRESERVE all user intentions** from the original query - do not drop any requirements
-- **ONLY read the context files listed above** - do NOT read individual source files
-- Deep research happens in the next phase - this is just query refinement
-- Keep the session brief - aim for 1-2 exchanges with the user
+## RULES
+- **DO NOT list files to change** - that's for the research phase
+- **DO NOT do detailed analysis** - just refine the query
+- Keep the refined query to **4-5 sentences max**
+- Preserve all user requirements from the original
+- You may ask **up to 2 clarifying questions** if something is unclear or ambiguous
 
-## Your Task
+## Output a refined query like this:
+"[Clear action verb] [what to change] from [old tech] to [new tech]. [Key requirements from original]. Use [recommended libraries]."
 
-1. **Read the codebase index** to understand project structure at a high level
-2. **Propose an improved query** that:
-   - **KEEPS all user requirements** from the original (e.g., "no data migration", "no mongodb patterns")
-   - Adds specific file/folder references from the index
-   - Clarifies scope and boundaries
-3. **List technical docs needed** (libraries/frameworks to fetch docs for)
-4. **Ask user to confirm or adjust**
-5. **Write the result** to: thoughts/shared/refinement/{timestamp}-query-refinement.json
+Example: "Replace MongoDB/Beanie with PostgreSQL/SQLAlchemy 2.0 async in the FastAPI backend. Clean implementation - no data migration, no MongoDB patterns to preserve. Use asyncpg driver and Alembic for migrations. Follow repository pattern for data access."
 
-## Output Format
+## Then list technical docs needed (just package names)
+
+Ask user to confirm (or ask up to 2 clarifying questions first), then write to: thoughts/shared/refinement/{timestamp}-query-refinement.json
+
 ```json
 {{
-  "refined_query": "The improved query - MUST include all original requirements plus codebase context",
+  "refined_query": "4-5 sentence improved query",
   "technical_docs": ["package1", "package2"],
-  "context_notes": "Relevant codebase areas"
+  "context_notes": "One line summary"
 }}
-```
-
-Present your refined query, ask for confirmation, then write the file.'''
+```'''
 
     print_phase_header("Query Refinement")
     print(f"{Fore.WHITE}Starting interactive query refinement session...{Style.RESET_ALL}", file=sys.stderr)
