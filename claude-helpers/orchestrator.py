@@ -107,6 +107,61 @@ def format_duration(seconds: float) -> str:
     return f"{minutes}m {secs:.1f}s"
 
 
+def format_stream_event(line: str) -> str | None:
+    """Parse a stream-json line and return a human-readable string, or None to skip."""
+    try:
+        event = json.loads(line)
+    except json.JSONDecodeError:
+        return line.strip() if line.strip() else None
+
+    event_type = event.get('type')
+
+    # Skip init events (too verbose)
+    if event_type == 'system' and event.get('subtype') == 'init':
+        return None
+
+    # Assistant messages - extract text and tool calls
+    if event_type == 'assistant':
+        message = event.get('message', {})
+        content = message.get('content', [])
+        parts = []
+        for item in content:
+            if item.get('type') == 'text':
+                text = item.get('text', '').strip()
+                if text:
+                    parts.append(f"{Fore.WHITE}{text}{Style.RESET_ALL}")
+            elif item.get('type') == 'tool_use':
+                tool_name = item.get('name', 'unknown')
+                tool_input = item.get('input', {})
+                # Show brief input summary
+                if isinstance(tool_input, dict):
+                    input_summary = ', '.join(f"{k}={repr(v)[:50]}" for k, v in list(tool_input.items())[:3])
+                else:
+                    input_summary = str(tool_input)[:100]
+                parts.append(f"{Fore.CYAN}→ {tool_name}({input_summary}){Style.RESET_ALL}")
+        return '\n'.join(parts) if parts else None
+
+    # Tool results
+    if event_type == 'user':
+        content = event.get('message', {}).get('content', [])
+        for item in content:
+            if item.get('type') == 'tool_result':
+                tool_id = item.get('tool_use_id', '')[:8]
+                result = str(item.get('content', ''))[:200]
+                if result:
+                    return f"{Fore.YELLOW}← result: {result}...{Style.RESET_ALL}" if len(result) >= 200 else f"{Fore.YELLOW}← result: {result}{Style.RESET_ALL}"
+        return None
+
+    # Result event (final output)
+    if event_type == 'result':
+        result_text = event.get('result', '')
+        if result_text:
+            return f"{Fore.GREEN}✓ Result: {result_text[:500]}{Style.RESET_ALL}"
+        return None
+
+    return None
+
+
 def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tuple[int, str, float]:
     """Run a Claude Code command with real-time output streaming.
 
@@ -138,8 +193,10 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
     try:
         if process.stdout:
             for line in process.stdout:
-                print(line, end='', file=sys.stderr, flush=True)
                 output_lines.append(line)
+                formatted = format_stream_event(line)
+                if formatted:
+                    print(formatted, file=sys.stderr, flush=True)
 
         process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
