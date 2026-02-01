@@ -113,10 +113,11 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
     Returns:
         Tuple of (return_code, captured_output, elapsed_seconds)
     """
-    # Use stream-json for real-time output in -p mode
+    # Use stream-json with verbose for real-time output in -p mode
     command = command.copy()
-    command.insert(1, '--output-format')
-    command.insert(2, 'stream-json')
+    command.insert(1, '--verbose')
+    command.insert(2, '--output-format')
+    command.insert(3, 'stream-json')
 
     # Extract the slash command from the -p argument
     cmd_display = command[-1] if command else ""
