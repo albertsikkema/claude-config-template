@@ -8,11 +8,19 @@
 """
 Multi-phase Claude Code orchestrator: Plan → Implement → Cleanup
 
+Plan Phase Flow:
+    1. Index codebase
+    2. Interactive query refinement (analyzes codebase, improves query, identifies docs)
+    3. Fetch technical documentation
+    4. Research codebase with refined query
+    5. Create implementation plan
+
 Usage:
     uv run claude-helpers/orchestrator.py "Add user authentication"              # Run all phases
     uv run claude-helpers/orchestrator.py --phase plan "Add user authentication" # Plan phase only
     uv run claude-helpers/orchestrator.py --phase implement path/to/plan.md      # Implement phase
     uv run claude-helpers/orchestrator.py --phase cleanup path/to/plan.md        # Cleanup phase
+    uv run claude-helpers/orchestrator.py --no-refine "Quick fix"                # Skip query refinement
 
 Aliases: Add to ~/.zshrc or ~/.bashrc:
 
@@ -23,7 +31,8 @@ Aliases: Add to ~/.zshrc or ~/.bashrc:
     alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
 
 Then use:
-    orch "Add user authentication"           # All phases
+    orch "Add user authentication"           # All phases (with interactive refinement)
+    orch --no-refine "Quick bugfix"          # Skip refinement for simple tasks
     orch-plan "Add user authentication"      # Plan only
     orch-impl thoughts/shared/plans/xxx.md   # Implement only
     orch-clean thoughts/shared/plans/xxx.md  # Cleanup only
@@ -33,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import signal
 import subprocess
@@ -84,6 +94,14 @@ class CleanupPhaseResult:
     """Result from the cleanup phase."""
     committed: bool
     commit_hash: str | None
+
+
+@dataclass
+class QueryRefinementResult:
+    """Result from interactive query refinement."""
+    refined_query: str
+    technical_docs: list[str]
+    context_notes: str
 
 
 # --- Utility functions ---
@@ -348,10 +366,125 @@ def fetch_package_docs(package_name: str, project_path: str) -> bool:
     return result.returncode == 0
 
 
+# --- Query refinement ---
+
+def find_codebase_index(project_path: str) -> str | None:
+    """Find the most recent codebase index file."""
+    codebase_dir = Path(project_path) / 'thoughts' / 'codebase'
+    if not codebase_dir.exists():
+        return None
+
+    # Find all overview files
+    index_files = list(codebase_dir.glob('codebase_overview_*.md'))
+    if not index_files:
+        return None
+
+    # Return the most recently modified one
+    return str(max(index_files, key=lambda f: f.stat().st_mtime))
+
+
+def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult:
+    """Interactive session to refine the query based on codebase context.
+
+    Returns refined query, list of technical docs needed, and context notes.
+    """
+    # Find codebase index
+    index_path = find_codebase_index(project_path)
+    index_context = ""
+    if index_path:
+        rel_path = os.path.relpath(index_path, project_path)
+        index_context = f"The codebase has been indexed. Read the index at: {rel_path}"
+    else:
+        index_context = "No codebase index found."
+
+    # Create output file in thoughts/shared/refinement/ with timestamp
+    refinement_dir = Path(project_path) / 'thoughts' / 'shared' / 'refinement'
+    refinement_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = time.strftime('%Y-%m-%d-%H%M%S')
+    output_file = refinement_dir / f'{timestamp}-query-refinement.json'
+
+    prompt = f'''You are helping refine a development task query before research begins.
+
+## User's Original Query
+{query}
+
+## Codebase Context
+{index_context}
+
+## Your Task
+
+1. **Read the codebase index** (if available) to understand the project structure
+2. **Analyze the user's query** in context of this codebase
+3. **Propose an improved query** that:
+   - Is more specific and actionable
+   - References relevant existing code/patterns found in the index
+   - Clarifies scope and boundaries
+   - Identifies potential challenges based on current architecture
+
+4. **Identify technical documentation needed**:
+   - Which libraries/frameworks need docs fetched?
+   - Are there new technologies being introduced that need research?
+
+5. **Present your findings** and ask the user:
+   - Show the refined query
+   - List recommended technical docs to fetch
+   - Ask if they want to modify anything
+
+6. **After user confirms**, write the final result to: thoughts/shared/refinement/{timestamp}-query-refinement.json
+
+IMPORTANT: Use exactly this filename with the timestamp shown above.
+
+The JSON format for the output file:
+```json
+{{
+  "refined_query": "The improved, detailed query",
+  "technical_docs": ["package1", "package2"],
+  "context_notes": "Brief notes about codebase context relevant to this task"
+}}
+```
+
+Start by reading the codebase index, then present your analysis.'''
+
+    print_phase_header("Query Refinement")
+    print(f"{Fore.WHITE}Starting interactive query refinement session...{Style.RESET_ALL}", file=sys.stderr)
+    print(f"{Fore.YELLOW}Original query:{Style.RESET_ALL} {query}\n", file=sys.stderr)
+
+    # Run interactive Claude session
+    process = subprocess.run(
+        ['claude', '-p', prompt],
+        cwd=project_path,
+    )
+
+    if process.returncode != 0:
+        stream_progress("Query Refinement", "Session ended with non-zero exit")
+
+    # Read the output file
+    if output_file.exists():
+        try:
+            result = json.loads(output_file.read_text())
+            rel_output = os.path.relpath(output_file, project_path)
+            stream_progress("Query Refinement", f"Complete: {rel_output}")
+            return QueryRefinementResult(
+                refined_query=result.get('refined_query', query),
+                technical_docs=result.get('technical_docs', []),
+                context_notes=result.get('context_notes', '')
+            )
+        except json.JSONDecodeError:
+            stream_progress("Query Refinement", "Warning: Could not parse output, using original query")
+
+    # Fallback to original query if something went wrong
+    stream_progress("Query Refinement", "Using original query (no refinement output)")
+    return QueryRefinementResult(
+        refined_query=query,
+        technical_docs=[],
+        context_notes=''
+    )
+
+
 # --- Phase implementations ---
 
-def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
-    """Phase 1: Index → Docs → Research → Plan"""
+def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False) -> PlanPhaseResult:
+    """Phase 1: Index → Refine Query → Docs → Research → Plan"""
 
     # Step 1: Index codebase
     returncode, output, elapsed = run_claude_command(
@@ -364,26 +497,42 @@ def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
         raise RuntimeError(f"Indexing failed with code {returncode}")
     stream_progress("Indexing", f"Complete ({format_duration(elapsed)})")
 
-    # Step 2: Fast scan + fetch docs
+    # Step 2: Interactive query refinement
+    if skip_refinement:
+        refined = QueryRefinementResult(refined_query=query, technical_docs=[], context_notes='')
+        stream_progress("Query Refinement", "Skipped (--no-refine)")
+    else:
+        refined = run_query_refinement(query, project_path)
+
+    working_query = refined.refined_query
+    print(f"\n{Fore.GREEN}Using query:{Style.RESET_ALL} {working_query}\n", file=sys.stderr)
+
+    # Step 3: Fetch docs (combine auto-discovery + refinement recommendations)
     stream_progress("Docs", "Discovering packages...")
     packages = discover_packages(project_path)
 
     docs_fetched = []
-    if packages.get('packages'):
-        stream_progress("Docs", "Identifying relevant packages with Opus...")
-        relevant = fast_scan_relevant_packages(query, packages, project_path)
+    docs_to_fetch = set(refined.technical_docs)  # Start with refinement recommendations
 
-        for pkg in relevant:
+    if packages.get('packages'):
+        # Add auto-discovered relevant packages
+        stream_progress("Docs", "Identifying relevant packages...")
+        relevant = fast_scan_relevant_packages(working_query, packages, project_path)
+        docs_to_fetch.update(relevant)
+
+    if docs_to_fetch:
+        stream_progress("Docs", f"Fetching docs for: {', '.join(docs_to_fetch)}")
+        for pkg in docs_to_fetch:
             stream_progress("Docs", f"Fetching docs for {pkg}...")
             if fetch_package_docs(pkg, project_path):
                 docs_fetched.append(pkg)
         stream_progress("Docs", f"Fetched {len(docs_fetched)} package docs")
     else:
-        stream_progress("Docs", "No packages found, skipping doc fetch")
+        stream_progress("Docs", "No packages to fetch")
 
-    # Step 3: Research
+    # Step 4: Research with refined query
     returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', f'/research_codebase {query}'],
+        ['claude', '--dangerously-skip-permissions', '-p', f'/research_codebase {working_query}'],
         cwd=project_path,
         timeout=600,
         phase='Research'
@@ -396,10 +545,14 @@ def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
         raise RuntimeError("Could not extract research file path from output")
     stream_progress("Research", f"Complete: {research_path} ({format_duration(elapsed)})")
 
-    # Step 4: Create plan
+    # Step 5: Create plan with full context
+    context_section = f"Context: {working_query}"
+    if refined.context_notes:
+        context_section += f"\n\nAdditional context from codebase analysis:\n{refined.context_notes}"
+
     prompt = f"""/create_plan {research_path}
 
-Context: {query}
+{context_section}
 
 Please proceed with reasonable defaults based on the research."""
 
@@ -613,7 +766,8 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s "Add user authentication"              # Run all phases
+  %(prog)s "Add user authentication"              # Run all phases (with interactive query refinement)
+  %(prog)s --no-refine "Fix typo in readme"       # Skip refinement for simple tasks
   %(prog)s --phase plan "Add user authentication" # Plan phase only
   %(prog)s --phase implement path/to/plan.md      # Implement phase
   %(prog)s --phase cleanup path/to/plan.md        # Cleanup phase
@@ -626,6 +780,8 @@ Examples:
     parser.add_argument('--research', help='Research file path (for cleanup phase)')
     parser.add_argument('--review', help='Review file path (for cleanup phase)')
     parser.add_argument('--json', action='store_true', help='Output JSON format')
+    parser.add_argument('--no-refine', action='store_true', dest='no_refine',
+                        help='Skip interactive query refinement (use original query as-is)')
 
     args = parser.parse_args()
 
@@ -643,7 +799,7 @@ Examples:
         total_start = time.time()
 
         if args.phase == 'plan':
-            result = run_phase_plan(args.query_or_path, args.project)
+            result = run_phase_plan(args.query_or_path, args.project, skip_refinement=args.no_refine)
             print_result(result, args.json)
 
         elif args.phase == 'implement':
@@ -661,7 +817,7 @@ Examples:
 
         elif args.phase == 'all':
             # Run all phases sequentially
-            plan_result = run_phase_plan(args.query_or_path, args.project)
+            plan_result = run_phase_plan(args.query_or_path, args.project, skip_refinement=args.no_refine)
             print_result(plan_result, args.json)
 
             implement_result = run_phase_implement(plan_result.plan_path, args.project)
