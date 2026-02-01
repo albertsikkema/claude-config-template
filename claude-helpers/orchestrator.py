@@ -76,7 +76,6 @@ class PlanPhaseResult:
     """Result from the plan phase."""
     research_path: str
     plan_path: str
-    docs_fetched: list[str]
     summary: str
 
 
@@ -277,94 +276,6 @@ def extract_file_path(output: str, path_type: str = 'research') -> str | None:
     return None
 
 
-# --- Package discovery and doc fetching ---
-
-def discover_packages(project_path: str) -> dict:
-    """Run fetch-docs.py discover and return packages."""
-    result = subprocess.run(
-        ['python3', 'claude-helpers/fetch-docs.py', 'discover'],
-        cwd=project_path,
-        capture_output=True,
-        text=True
-    )
-    if result.returncode != 0:
-        return {}
-    try:
-        return json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return {}
-
-
-def fast_scan_relevant_packages(query: str, packages: dict, project_path: str) -> list[str]:
-    """Use Opus to identify which packages are relevant to the query."""
-    if not packages.get('packages'):
-        return []
-
-    package_list = list(packages['packages'].keys())
-    prompt = f"""Given this task: "{query}"
-
-And these packages in the project: {', '.join(package_list)}
-
-Which packages (max 5) would need documentation for implementing this task?
-List only the package names, one per line, nothing else.
-Focus on core frameworks, skip small utilities."""
-
-    returncode, output, _ = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '--model', 'opus', '-p', prompt],
-        cwd=project_path,
-        timeout=60,
-        phase='Docs'
-    )
-
-    if returncode != 0:
-        return []
-
-    # Parse package names from output
-    relevant = []
-    package_list_lower = [p.lower() for p in package_list]
-    for line in output.strip().split('\n'):
-        pkg = line.strip().lower()
-        # Remove common prefixes/noise
-        pkg = pkg.lstrip('- ').strip()
-        if pkg in package_list_lower:
-            # Get original case
-            idx = package_list_lower.index(pkg)
-            relevant.append(package_list[idx])
-    return relevant[:5]
-
-
-def fetch_package_docs(package_name: str, project_path: str) -> bool:
-    """Search for and fetch docs for a package."""
-    # Search
-    result = subprocess.run(
-        ['python3', 'claude-helpers/fetch-docs.py', 'search', package_name, '1'],
-        cwd=project_path,
-        capture_output=True,
-        text=True
-    )
-    if result.returncode != 0:
-        return False
-
-    try:
-        search_result = json.loads(result.stdout)
-    except json.JSONDecodeError:
-        return False
-
-    if not search_result.get('results'):
-        return False
-
-    # Get the top result
-    top = search_result['results'][0]
-
-    # Fetch
-    result = subprocess.run(
-        ['python3', 'claude-helpers/fetch-docs.py', 'get', top['project'], package_name, '--overwrite'],
-        cwd=project_path,
-        capture_output=True,
-        text=True
-    )
-    return result.returncode == 0
-
 
 # --- Query refinement ---
 
@@ -501,28 +412,14 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False)
     working_query = refined.refined_query
     print(f"\n{Fore.GREEN}Using query:{Style.RESET_ALL} {working_query}\n", file=sys.stderr)
 
-    # Step 3: Fetch docs (combine auto-discovery + refinement recommendations)
-    stream_progress("Docs", "Discovering packages...")
-    packages = discover_packages(project_path)
-
-    docs_fetched = []
-    docs_to_fetch = set(refined.technical_docs)  # Start with refinement recommendations
-
-    if packages.get('packages'):
-        # Add auto-discovered relevant packages
-        stream_progress("Docs", "Identifying relevant packages...")
-        relevant = fast_scan_relevant_packages(working_query, packages, project_path)
-        docs_to_fetch.update(relevant)
-
-    if docs_to_fetch:
-        stream_progress("Docs", f"Fetching docs for: {', '.join(docs_to_fetch)}")
-        for pkg in docs_to_fetch:
-            stream_progress("Docs", f"Fetching docs for {pkg}...")
-            if fetch_package_docs(pkg, project_path):
-                docs_fetched.append(pkg)
-        stream_progress("Docs", f"Fetched {len(docs_fetched)} package docs")
-    else:
-        stream_progress("Docs", "No packages to fetch")
+    # Step 3: Fetch docs using /fetch_technical_docs (has smart selection logic)
+    returncode, output, elapsed = run_claude_command(
+        ['claude', '--dangerously-skip-permissions', '-p', '/fetch_technical_docs'],
+        cwd=project_path,
+        timeout=600,
+        phase='Docs'
+    )
+    stream_progress("Docs", f"Complete ({format_duration(elapsed)})")
 
     # Step 4: Research with refined query
     returncode, output, elapsed = run_claude_command(
@@ -569,14 +466,12 @@ Please proceed with reasonable defaults based on the research."""
 
 Research: {research_path}
 Plan: {plan_path}
-Technical docs fetched: {', '.join(docs_fetched) if docs_fetched else 'None'}
 
 Next step: Review the plan, then run --phase implement"""
 
     return PlanPhaseResult(
         research_path=research_path,
         plan_path=plan_path,
-        docs_fetched=docs_fetched,
         summary=summary
     )
 
@@ -727,8 +622,6 @@ def print_result(result: PlanPhaseResult | ImplementPhaseResult | CleanupPhaseRe
             print(f"\n{Fore.GREEN}{Style.BRIGHT}Plan Phase Complete:{Style.RESET_ALL}")
             print(f"  {Fore.YELLOW}Research:{Style.RESET_ALL} {result.research_path}")
             print(f"  {Fore.MAGENTA}Plan:{Style.RESET_ALL} {result.plan_path}")
-            if result.docs_fetched:
-                print(f"  {Fore.CYAN}Docs fetched:{Style.RESET_ALL} {', '.join(result.docs_fetched)}")
             print(f"\n  {Fore.BLUE}Next:{Style.RESET_ALL} Review the plan, then run --phase implement {result.plan_path}")
 
         elif isinstance(result, ImplementPhaseResult):
