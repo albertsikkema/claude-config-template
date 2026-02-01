@@ -145,11 +145,15 @@ def format_stream_event(line: str) -> str | None:
                 if isinstance(tool_input, dict):
                     input_parts = []
                     for k, v in list(tool_input.items())[:3]:
-                        v_str = repr(v) if len(repr(v)) <= 40 else repr(v)[:40] + '...'
+                        v_str = str(v)
+                        # Longer limit for file paths, shorter for other values
+                        max_len = 80 if k in ('file_path', 'path', 'pattern') else 50
+                        if len(v_str) > max_len:
+                            v_str = v_str[:max_len] + '...'
                         input_parts.append(f"{k}={v_str}")
                     input_summary = ', '.join(input_parts)
                 else:
-                    input_summary = str(tool_input)[:80]
+                    input_summary = str(tool_input)[:100]
                 parts.append(f"  {Fore.CYAN}→ {tool_name}{Style.RESET_ALL}({input_summary})")
         return '\n'.join(parts) if parts else None
 
@@ -159,11 +163,12 @@ def format_stream_event(line: str) -> str | None:
         for item in content:
             if item.get('type') == 'tool_result':
                 result = str(item.get('content', ''))
-                # Show first line only, truncated
-                first_line = result.split('\n')[0][:100]
-                if first_line:
-                    suffix = '...' if len(result) > len(first_line) else ''
-                    return f"  {Fore.YELLOW}← {first_line}{suffix}{Style.RESET_ALL}"
+                # Show first 2 lines, truncated
+                lines = result.split('\n')[:2]
+                preview = ' | '.join(line.strip() for line in lines if line.strip())[:150]
+                if preview:
+                    suffix = '...' if len(result) > 150 else ''
+                    return f"  {Fore.YELLOW}← {preview}{suffix}{Style.RESET_ALL}"
         return None
 
     # Result event (final output)
