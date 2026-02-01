@@ -412,9 +412,16 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False)
     working_query = refined.refined_query
     print(f"\n{Fore.GREEN}Using query:{Style.RESET_ALL} {working_query}\n", file=sys.stderr)
 
-    # Step 3: Fetch docs using /fetch_technical_docs (has smart selection logic)
+    # Step 3: Fetch docs using /fetch_technical_docs
+    # Pass suggested packages from refinement as arguments (quote packages with spaces)
+    if refined.technical_docs:
+        quoted_pkgs = [f"'{pkg}'" if ' ' in pkg else pkg for pkg in refined.technical_docs]
+        docs_prompt = f"/fetch_technical_docs {' '.join(quoted_pkgs)}"
+    else:
+        docs_prompt = '/fetch_technical_docs'
+
     returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', '/fetch_technical_docs'],
+        ['claude', '--dangerously-skip-permissions', '-p', docs_prompt],
         cwd=project_path,
         timeout=600,
         phase='Docs'
