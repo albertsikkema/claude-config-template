@@ -408,11 +408,14 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
 ## User's Original Query
 {query}
 
-## Codebase Index
+## Context Files to Read
 {index_context}
+- CLAUDE.md (if exists) - project instructions and patterns
+- README.md (if exists) - project overview
+- thoughts/shared/project/*.md (if exists) - project documentation
 
 ## IMPORTANT CONSTRAINTS
-- **ONLY read the codebase index file** - do NOT read individual source files
+- **ONLY read the context files listed above** - do NOT read individual source files
 - Deep research happens in the next phase - this is just query refinement
 - Keep the session brief - aim for 1-2 exchanges with the user
 - Focus on WHAT to do, not HOW (the research phase will figure out the how)
@@ -447,7 +450,8 @@ Be concise. Present your refined query and docs list, ask for confirmation, then
     # Run truly interactive Claude session (no -p flag, but skip permissions for speed)
     # --system-prompt sets context, initial message starts the conversation
     process = subprocess.run(
-        ['claude', '--dangerously-skip-permissions', '--system-prompt', prompt, 'Read the codebase index and propose a refined query. Keep it brief.'],
+        ['claude', '--dangerously-skip-permissions', '--system-prompt', prompt,
+         'Read the context files (codebase index, CLAUDE.md, README.md, thoughts/shared/project/) and propose a refined query. Keep it brief.'],
         cwd=project_path,
     )
 
