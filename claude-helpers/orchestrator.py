@@ -2,110 +2,91 @@
 # /// script
 # requires-python = ">=3.10"
 # dependencies = [
-#     "pydantic-ai>=0.0.1",
-#     "python-dotenv>=1.0.0",
 #     "colorama>=0.4.6",
 # ]
 # ///
 """
-Orchestrate Claude Code workflows: index → research → plan → implement → review.
+Multi-phase Claude Code orchestrator: Plan → Implement → Cleanup
 
 Usage:
-    uv run claude-helpers/orchestrator.py "Add user authentication"
-    uv run claude-helpers/orchestrator.py --json "Refactor database layer"
+    uv run claude-helpers/orchestrator.py "Add user authentication"              # Run all phases
+    uv run claude-helpers/orchestrator.py --phase plan "Add user authentication" # Plan phase only
+    uv run claude-helpers/orchestrator.py --phase implement path/to/plan.md      # Implement phase
+    uv run claude-helpers/orchestrator.py --phase cleanup path/to/plan.md        # Cleanup phase
 
-Tip: Add an alias to your ~/.zshrc or ~/.bashrc for easy access:
-    alias orchestrate='uv run claude-helpers/orchestrator.py'
+Aliases: Add to ~/.zshrc or ~/.bashrc:
 
-Then use: orchestrate "Add user authentication"
+    # Orchestrator aliases
+    alias orch='uv run claude-helpers/orchestrator.py'
+    alias orch-plan='uv run claude-helpers/orchestrator.py --phase plan'
+    alias orch-impl='uv run claude-helpers/orchestrator.py --phase implement'
+    alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
+
+Then use:
+    orch "Add user authentication"           # All phases
+    orch-plan "Add user authentication"      # Plan only
+    orch-impl thoughts/shared/plans/xxx.md   # Implement only
+    orch-clean thoughts/shared/plans/xxx.md  # Cleanup only
 """
 
+from __future__ import annotations
+
 import argparse
-import asyncio
 import json
-import os
 import re
 import signal
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
+from pathlib import Path
 
 from colorama import Fore, Style, init
-from dotenv import load_dotenv
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
-# Initialize colorama and load .env.claude file
+# Initialize colorama
 init()
-load_dotenv('.env.claude')
-
-
-def get_model() -> str | OpenAIChatModel:
-    """Get the appropriate model based on available environment variables.
-
-    Returns OpenAI model string if OPENAI_API_KEY is set,
-    otherwise returns Azure OpenAI configured model.
-    """
-    if os.getenv('OPENAI_API_KEY'):
-        return 'openai:gpt-4o'
-
-    # Use Azure OpenAI
-    azure_endpoint = os.getenv('AZURE_OPENAI_ENDPOINT')
-    azure_key = os.getenv('AZURE_OPENAI_API_KEY')
-    azure_version = os.getenv('AZURE_OPENAI_API_VERSION', '2024-12-01-preview')
-    azure_deployment = os.getenv('AZURE_OPENAI_DEPLOYMENT', 'gpt-4')
-
-    if not azure_endpoint or not azure_key:
-        raise ValueError("Neither OPENAI_API_KEY nor Azure OpenAI credentials found in .env")
-
-    # Import here to avoid dependency if not using Azure
-    from openai import AsyncAzureOpenAI
-
-    client = AsyncAzureOpenAI(
-        azure_endpoint=azure_endpoint,
-        api_version=azure_version,
-        api_key=azure_key,
-    )
-
-    return OpenAIChatModel(
-        azure_deployment,
-        provider=OpenAIProvider(openai_client=client),
-    )
 
 # Color mapping for stages
 STAGE_COLORS = {
     'Indexing': Fore.CYAN,
+    'Docs': Fore.CYAN,
     'Research': Fore.YELLOW,
     'Planning': Fore.MAGENTA,
     'Implement': Fore.GREEN,
     'Review': Fore.BLUE,
+    'Cleanup': Fore.YELLOW,
+    'Commit': Fore.GREEN,
 }
 
 
+# --- Result dataclasses ---
+
 @dataclass
-class OrchestratorDeps:
-    """Dependencies for the orchestrator agent."""
-    project_path: str
-    user_query: str
-    implement: bool = True
+class PlanPhaseResult:
+    """Result from the plan phase."""
+    research_path: str
+    plan_path: str
+    docs_fetched: list[str]
+    summary: str
 
 
-class WorkflowResult(BaseModel):
-    """Structured output for the workflow."""
-    index_summary: str = Field(description='Summary of indexing results')
-    research_path: str = Field(description='Path to research document')
-    plan_path: str = Field(description='Path to implementation plan')
-    implemented: bool = Field(default=False, description='Whether plan was implemented')
-    implementation_summary: str = Field(default='', description='Summary of what was implemented')
-    review_path: str = Field(default='', description='Path to code review document')
-    review_summary: str = Field(default='', description='Key findings from code review')
-    status: str = Field(description='Overall workflow status')
-    error: str | None = Field(default=None, description='Error message if failed')
-    tokens_used: int = Field(default=0, description='Total tokens used by orchestrator')
+@dataclass
+class ImplementPhaseResult:
+    """Result from the implement phase."""
+    plan_path: str
+    review_path: str
+    changes_summary: str
+    issues: list[str]
 
+
+@dataclass
+class CleanupPhaseResult:
+    """Result from the cleanup phase."""
+    committed: bool
+    commit_hash: str | None
+
+
+# --- Utility functions ---
 
 def stream_progress(stage: str, message: str) -> None:
     """Print progress update to stderr for real-time feedback."""
@@ -161,360 +142,464 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600) -> tupl
         raise RuntimeError(f"Command timed out after {format_duration(elapsed)}")
 
     elapsed = time.time() - start_time
-    return process.returncode, ''.join(output_lines), elapsed
+    # Fallback to 1 if returncode is None (shouldn't happen after wait())
+    returncode = process.returncode if process.returncode is not None else 1
+    return returncode, ''.join(output_lines), elapsed
 
 
-def extract_file_path(output: str) -> str | None:
-    """Extract file path from Claude Code output."""
+def run_claude_interactive(prompt: str, cwd: str) -> int:
+    """Run Claude without --dangerously-skip-permissions for user interaction."""
+    print(f"{Fore.BLUE}Starting interactive Claude session...{Style.RESET_ALL}", file=sys.stderr)
+    process = subprocess.run(
+        ['claude', '-p', prompt],
+        cwd=cwd,
+    )
+    return process.returncode
+
+
+def extract_file_path(output: str, path_type: str = 'research') -> str | None:
+    """Extract file path from Claude Code output.
+
+    Args:
+        output: The command output to search
+        path_type: One of 'research', 'plans', or 'reviews'
+
+    Returns:
+        The file path if found, None otherwise
+    """
     # Look for markdown file paths in the output
-    matches = re.findall(r'thoughts/shared/(?:research|plans)/[\w\-]+\.md', output)
+    pattern = rf'thoughts/shared/{path_type}/[\w\-]+\.md'
+    matches = re.findall(pattern, output)
     if matches:
         return matches[-1]  # Return last match (most likely the created file)
     return None
 
 
-# Lazy initialization of orchestrator agent
-_orchestrator = None
+# --- Package discovery and doc fetching ---
+
+def discover_packages(project_path: str) -> dict:
+    """Run fetch-docs.py discover and return packages."""
+    result = subprocess.run(
+        ['python3', 'claude-helpers/fetch-docs.py', 'discover'],
+        cwd=project_path,
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        return {}
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return {}
 
 
-def get_orchestrator() -> Agent:
-    """Get or create the orchestrator agent."""
-    global _orchestrator
-    if _orchestrator is None:
-        _orchestrator = Agent(
-            get_model(),
-            deps_type=OrchestratorDeps,
-            output_type=WorkflowResult,
-            system_prompt='''You orchestrate Claude Code automation workflows.
+def fast_scan_relevant_packages(query: str, packages: dict, project_path: str) -> list[str]:
+    """Use Opus to identify which packages are relevant to the query."""
+    if not packages.get('packages'):
+        return []
 
-Execute these steps in EXACT order:
-1. Call index_codebase to index the codebase
-2. Call research_codebase with the user's query topic
-3. Extract the research file path from the research output
-4. Call create_plan with the research file path AND context to answer questions
-5. If deps.implement is True, call implement_plan with the plan file path
-6. If deps.implement is True, call code_review to review the changes
+    package_list = list(packages['packages'].keys())
+    prompt = f"""Given this task: "{query}"
 
-IMPORTANT:
-- Execute steps sequentially, wait for each to complete
-- Parse file paths from tool outputs carefully
-- Stop immediately if any step fails
-- Report the final file paths in your result
-- Set implemented=True in result only if implement_plan was called and succeeded
-- Extract a brief implementation_summary (2-3 sentences) describing what was done
-- Extract key findings (critical issues, improvements) from the code review output for review_summary
+And these packages in the project: {', '.join(package_list)}
 
-HANDLING INTERACTIVE COMMANDS:
-Some commands like /create_plan may ask clarifying questions. When calling create_plan,
-provide enough context in the prompt so Claude Code can answer its own questions:
-- Include the original user query
-- Include key findings from research
-- Specify any constraints or preferences mentioned by the user
-This allows the command to proceed without blocking on user input.
-'''
-        )
-        # Register tools
-        _orchestrator.tool(index_codebase)
-        _orchestrator.tool(research_codebase)
-        _orchestrator.tool(create_plan)
-        _orchestrator.tool(implement_plan)
-        _orchestrator.tool(code_review)
+Which packages (max 5) would need documentation for implementing this task?
+List only the package names, one per line, nothing else.
+Focus on core frameworks, skip small utilities."""
 
-    return _orchestrator
+    returncode, output, _ = run_claude_command(
+        ['claude', '--dangerously-skip-permissions', '--model', 'opus', '-p', prompt],
+        cwd=project_path,
+        timeout=60
+    )
+
+    if returncode != 0:
+        return []
+
+    # Parse package names from output
+    relevant = []
+    package_list_lower = [p.lower() for p in package_list]
+    for line in output.strip().split('\n'):
+        pkg = line.strip().lower()
+        # Remove common prefixes/noise
+        pkg = pkg.lstrip('- ').strip()
+        if pkg in package_list_lower:
+            # Get original case
+            idx = package_list_lower.index(pkg)
+            relevant.append(package_list[idx])
+    return relevant[:5]
 
 
-# Tool functions
-async def index_codebase(ctx: RunContext[OrchestratorDeps]) -> str:
-    """Index the codebase using Claude Code /index_codebase command.
+def fetch_package_docs(package_name: str, project_path: str) -> bool:
+    """Search for and fetch docs for a package."""
+    # Search
+    result = subprocess.run(
+        ['python3', 'claude-helpers/fetch-docs.py', 'search', package_name, '1'],
+        cwd=project_path,
+        capture_output=True,
+        text=True
+    )
+    if result.returncode != 0:
+        return False
 
-    This auto-detects languages and creates index files in thoughts/codebase/.
-    """
+    try:
+        search_result = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return False
+
+    if not search_result.get('results'):
+        return False
+
+    # Get the top result
+    top = search_result['results'][0]
+
+    # Fetch
+    result = subprocess.run(
+        ['python3', 'claude-helpers/fetch-docs.py', 'get', top['project'], package_name, '--overwrite'],
+        cwd=project_path,
+        capture_output=True,
+        text=True
+    )
+    return result.returncode == 0
+
+
+# --- Phase implementations ---
+
+def run_phase_plan(query: str, project_path: str) -> PlanPhaseResult:
+    """Phase 1: Index → Docs → Research → Plan"""
+
+    # Step 1: Index codebase
     stream_progress("Indexing", "Starting codebase indexing...")
-
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', '/index_codebase'],
-        cwd=ctx.deps.project_path,
+        cwd=project_path,
         timeout=600
     )
-
     if returncode != 0:
-        stream_progress("Indexing", f"FAILED ({format_duration(elapsed)})")
         raise RuntimeError(f"Indexing failed with code {returncode}")
-
     stream_progress("Indexing", f"Complete ({format_duration(elapsed)})")
-    return output or "Indexing completed successfully"
 
+    # Step 2: Fast scan + fetch docs
+    stream_progress("Docs", "Discovering packages...")
+    packages = discover_packages(project_path)
 
-async def research_codebase(ctx: RunContext[OrchestratorDeps], topic: str) -> str:
-    """Research the codebase using Claude Code /research_codebase command.
+    docs_fetched = []
+    if packages.get('packages'):
+        stream_progress("Docs", "Identifying relevant packages with Opus...")
+        relevant = fast_scan_relevant_packages(query, packages, project_path)
 
-    Args:
-        topic: The topic to research (from user query)
+        for pkg in relevant:
+            stream_progress("Docs", f"Fetching docs for {pkg}...")
+            if fetch_package_docs(pkg, project_path):
+                docs_fetched.append(pkg)
+        stream_progress("Docs", f"Fetched {len(docs_fetched)} package docs")
+    else:
+        stream_progress("Docs", "No packages found, skipping doc fetch")
 
-    Returns:
-        Output containing the path to the research document.
-        Parse this to find: thoughts/shared/research/YYYY-MM-DD-*.md
-    """
-    stream_progress("Research", f"Researching: {topic}...")
-
+    # Step 3: Research
+    stream_progress("Research", f"Researching: {query}...")
     returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', f'/research_codebase {topic}'],
-        cwd=ctx.deps.project_path,
+        ['claude', '--dangerously-skip-permissions', '-p', f'/research_codebase {query}'],
+        cwd=project_path,
         timeout=600
     )
-
     if returncode != 0:
-        stream_progress("Research", f"FAILED ({format_duration(elapsed)})")
         raise RuntimeError(f"Research failed with code {returncode}")
 
-    file_path = extract_file_path(output)
+    research_path = extract_file_path(output, 'research')
+    if not research_path:
+        raise RuntimeError("Could not extract research file path from output")
+    stream_progress("Research", f"Complete: {research_path} ({format_duration(elapsed)})")
 
-    if file_path:
-        stream_progress("Research", f"Complete: {file_path} ({format_duration(elapsed)})")
-    else:
-        stream_progress("Research", f"Complete ({format_duration(elapsed)})")
-
-    return output
-
-
-async def create_plan(ctx: RunContext[OrchestratorDeps], research_file_path: str, context_for_questions: str) -> str:
-    """Create implementation plan using Claude Code /create_plan command.
-
-    Args:
-        research_file_path: Path to the research document
-                           (e.g., thoughts/shared/research/2025-11-21-topic.md)
-        context_for_questions: Additional context to help answer any clarifying questions
-                              the /create_plan command may ask. Include:
-                              - Original user query/intent
-                              - Key findings from research
-                              - Any constraints or preferences
-
-    Returns:
-        Output containing the path to the plan document.
-        Parse this to find: thoughts/shared/plans/YYYY-MM-DD-*.md
-    """
+    # Step 4: Create plan
     stream_progress("Planning", "Creating implementation plan...")
+    prompt = f"""/create_plan {research_path}
 
-    # Build prompt with context so Claude Code can answer its own questions
-    prompt = f"""/create_plan {research_file_path}
+Context: {query}
 
-Context for any questions that may arise:
-{context_for_questions}
-
-User's original request: {ctx.deps.user_query}
-
-Please proceed with reasonable defaults based on the research and context provided."""
+Please proceed with reasonable defaults based on the research."""
 
     returncode, output, elapsed = run_claude_command(
         ['claude', '--dangerously-skip-permissions', '-p', prompt],
-        cwd=ctx.deps.project_path,
+        cwd=project_path,
         timeout=600
     )
-
     if returncode != 0:
-        stream_progress("Planning", f"FAILED ({format_duration(elapsed)})")
         raise RuntimeError(f"Planning failed with code {returncode}")
 
-    file_path = extract_file_path(output)
+    plan_path = extract_file_path(output, 'plans')
+    if not plan_path:
+        raise RuntimeError("Could not extract plan file path from output")
+    stream_progress("Planning", f"Complete: {plan_path} ({format_duration(elapsed)})")
 
-    if file_path:
-        stream_progress("Planning", f"Complete: {file_path} ({format_duration(elapsed)})")
-    else:
-        stream_progress("Planning", f"Complete ({format_duration(elapsed)})")
+    # Generate summary
+    summary = f"""Plan Phase Complete
 
-    return output
+Research: {research_path}
+Plan: {plan_path}
+Technical docs fetched: {', '.join(docs_fetched) if docs_fetched else 'None'}
 
+Next step: Review the plan, then run --phase implement"""
 
-async def implement_plan(ctx: RunContext[OrchestratorDeps], plan_file_path: str) -> str:
-    """Implement the plan using Claude Code /implement_plan command.
-
-    Args:
-        plan_file_path: Path to the plan document
-                       (e.g., thoughts/shared/plans/2025-11-21-topic.md)
-
-    Returns:
-        Output from the implementation process.
-    """
-    if not ctx.deps.implement:
-        return "Implementation skipped (implement=False)"
-
-    stream_progress("Implement", f"Implementing plan: {plan_file_path}...")
-
-    returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', f'/implement_plan {plan_file_path}'],
-        cwd=ctx.deps.project_path,
-        timeout=1800  # 30 min timeout for implementation
+    return PlanPhaseResult(
+        research_path=research_path,
+        plan_path=plan_path,
+        docs_fetched=docs_fetched,
+        summary=summary
     )
 
-    if returncode != 0:
-        stream_progress("Implement", f"FAILED ({format_duration(elapsed)})")
-        raise RuntimeError(f"Implementation failed with code {returncode}")
 
-    stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
-    return output
+def run_phase_implement(plan_path: str, project_path: str) -> ImplementPhaseResult:
+    """Phase 2: Implement → Review"""
 
+    # Validate plan exists
+    full_plan_path = Path(project_path) / plan_path
+    if not full_plan_path.exists():
+        raise RuntimeError(f"Plan file not found: {plan_path}")
 
-async def code_review(ctx: RunContext[OrchestratorDeps], plan_path: str, research_path: str) -> str:
-    """Review code changes using Claude Code /code_reviewer command.
-
-    Reviews both staged and unstaged changes from the implementation,
-    using the plan and research as context for the review.
-
-    Args:
-        plan_path: Path to the implementation plan
-        research_path: Path to the research document
-
-    Returns:
-        Output containing the review results and path to the review document.
-        Parse this to find: thoughts/shared/reviews/code-review-*.md
-        Also extract key findings (critical issues, improvements) for the summary.
-    """
-    stream_progress("Review", "Reviewing code changes...")
-
-    # Call code_reviewer with plan and research context
-    prompt = f"""/code_reviewer
-
-Please review the current git changes (both staged and unstaged).
-
-Context for this review:
-- Implementation plan: {plan_path}
-- Research document: {research_path}
-- Original request: {ctx.deps.user_query}
-
-Focus on:
-- Whether the implementation matches the plan's requirements
-- Changes made align with the research findings
-- Use `git diff` and `git diff --staged` to see all changes
-- Provide a thorough review following the standard format"""
-
+    # Step 1: Implement plan (includes validation)
+    stream_progress("Implement", f"Implementing plan: {plan_path}...")
     returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '-p', prompt],
-        cwd=ctx.deps.project_path,
+        ['claude', '--dangerously-skip-permissions', '-p', f'/implement_plan {plan_path}'],
+        cwd=project_path,
+        timeout=1800  # 30 min for implementation
+    )
+    if returncode != 0:
+        raise RuntimeError(f"Implementation failed with code {returncode}")
+    stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
+
+    # Step 2: Code review
+    stream_progress("Review", "Running code review...")
+    returncode, review_output, elapsed = run_claude_command(
+        ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer'],
+        cwd=project_path,
         timeout=600
     )
-
     if returncode != 0:
-        stream_progress("Review", f"FAILED ({format_duration(elapsed)})")
         raise RuntimeError(f"Code review failed with code {returncode}")
 
-    # Extract review file path
-    review_matches = re.findall(r'thoughts/shared/reviews/[\w\-]+\.md', output)
-    review_path = review_matches[-1] if review_matches else ""
+    review_path = extract_file_path(review_output, 'reviews')
+    stream_progress("Review", f"Complete: {review_path or 'no file created'} ({format_duration(elapsed)})")
 
-    if review_path:
-        stream_progress("Review", f"Complete: {review_path} ({format_duration(elapsed)})")
-    else:
-        stream_progress("Review", f"Complete ({format_duration(elapsed)})")
+    # Extract issues from review output (simple heuristic)
+    issues = []
+    skip_patterns = ['no critical', 'no issues', 'no problems', 'no bugs', 'no errors',
+                     'without issue', 'without error', 'none found', '0 issues', '0 errors']
+    for line in review_output.split('\n'):
+        line_lower = line.lower()
+        # Skip lines that indicate absence of issues
+        if any(skip in line_lower for skip in skip_patterns):
+            continue
+        if any(marker in line_lower for marker in ['critical', 'issue', 'problem', 'bug', 'error']):
+            cleaned = line.strip()
+            if cleaned and len(cleaned) > 10:  # Skip short/empty lines
+                issues.append(cleaned)
 
-    return output
+    summary = f"""Implement Phase Complete
 
+Plan: {plan_path}
+Review: {review_path or 'N/A'}
+Issues found: {len(issues)}
 
-async def run_orchestrator(query: str, project_path: str = '.', implement: bool = True) -> WorkflowResult:
-    """Run the orchestrator workflow."""
-    deps = OrchestratorDeps(
-        project_path=project_path,
-        user_query=query,
-        implement=implement
+Next step: Review the changes manually, then run --phase cleanup"""
+
+    return ImplementPhaseResult(
+        plan_path=plan_path,
+        review_path=review_path or '',
+        changes_summary=summary,
+        issues=issues[:10]  # Limit to top 10
     )
 
-    orchestrator = get_orchestrator()
-    prompt = f'Execute the full workflow for this user request: {query}'
-    result = await orchestrator.run(prompt, deps=deps)
 
-    # Get token usage from PydanticAI result
-    total_tokens = 0
+def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, project_path: str) -> CleanupPhaseResult:
+    """Phase 3: Cleanup → Commit (interactive) → Complete"""
+
+    # Validate plan exists
+    full_plan_path = Path(project_path) / plan_path
+    if not full_plan_path.exists():
+        raise RuntimeError(f"Plan file not found: {plan_path}")
+
+    # Step 1: Cleanup
+    stream_progress("Cleanup", "Running cleanup...")
+    cleanup_cmd = f'/cleanup {plan_path}'
+    if research_path:
+        cleanup_cmd += f' {research_path}'
+    if review_path:
+        cleanup_cmd += f' {review_path}'
+
+    returncode, output, elapsed = run_claude_command(
+        ['claude', '--dangerously-skip-permissions', '-p', cleanup_cmd],
+        cwd=project_path,
+        timeout=600
+    )
+    if returncode != 0:
+        raise RuntimeError(f"Cleanup failed with code {returncode}")
+    stream_progress("Cleanup", f"Complete ({format_duration(elapsed)})")
+
+    # Step 2: Commit - INTERACTIVE
+    stream_progress("Commit", "Starting interactive commit (approval required)...")
+    returncode = run_claude_interactive(
+        '/commit',
+        cwd=project_path
+    )
+
+    committed = returncode == 0
+
+    # Step 3: Mark plan complete (update frontmatter)
+    if committed:
+        mark_plan_complete(full_plan_path)
+
+    return CleanupPhaseResult(
+        committed=committed,
+        commit_hash=get_current_commit_hash(project_path) if committed else None
+    )
+
+
+def mark_plan_complete(plan_path: Path) -> None:
+    """Update plan frontmatter to mark as complete."""
     try:
-        usage = result.usage()
-        total_tokens = (usage.input_tokens or 0) + (usage.output_tokens or 0)
+        content = plan_path.read_text()
+
+        # Only update status within YAML frontmatter (between --- markers)
+        if content.startswith('---'):
+            frontmatter_end = content.find('---', 3)
+            if frontmatter_end > 0:
+                frontmatter = content[:frontmatter_end]
+                body = content[frontmatter_end:]
+                if 'status:' in frontmatter:
+                    frontmatter = re.sub(r'status:\s*\w+', 'status: complete', frontmatter)
+                    plan_path.write_text(frontmatter + body)
     except Exception as e:
-        print(f"{Fore.YELLOW}Warning: Could not get token usage: {e}{Style.RESET_ALL}", file=sys.stderr)
+        stream_progress("Cleanup", f"Warning: Could not update plan status: {e}")
 
-    # Update result with token count
-    output = result.output
-    output.tokens_used = total_tokens
 
-    return output
+def get_current_commit_hash(project_path: str) -> str | None:
+    """Get the current HEAD commit hash."""
+    result = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=project_path,
+        capture_output=True,
+        text=True
+    )
+    return result.stdout.strip() if result.returncode == 0 else None
 
+
+# --- Output formatting ---
+
+def print_result(result: PlanPhaseResult | ImplementPhaseResult | CleanupPhaseResult, as_json: bool) -> None:
+    """Print the result to stdout."""
+    if as_json:
+        print(json.dumps(asdict(result), indent=2))
+    else:
+        if isinstance(result, PlanPhaseResult):
+            print(f"\n{Fore.GREEN}{Style.BRIGHT}Plan Phase Complete:{Style.RESET_ALL}")
+            print(f"  {Fore.YELLOW}Research:{Style.RESET_ALL} {result.research_path}")
+            print(f"  {Fore.MAGENTA}Plan:{Style.RESET_ALL} {result.plan_path}")
+            if result.docs_fetched:
+                print(f"  {Fore.CYAN}Docs fetched:{Style.RESET_ALL} {', '.join(result.docs_fetched)}")
+            print(f"\n  {Fore.BLUE}Next:{Style.RESET_ALL} Review the plan, then run --phase implement {result.plan_path}")
+
+        elif isinstance(result, ImplementPhaseResult):
+            print(f"\n{Fore.GREEN}{Style.BRIGHT}Implement Phase Complete:{Style.RESET_ALL}")
+            print(f"  {Fore.MAGENTA}Plan:{Style.RESET_ALL} {result.plan_path}")
+            if result.review_path:
+                print(f"  {Fore.BLUE}Review:{Style.RESET_ALL} {result.review_path}")
+            print(f"  {Fore.YELLOW}Issues found:{Style.RESET_ALL} {len(result.issues)}")
+            if result.issues:
+                for issue in result.issues[:5]:
+                    print(f"    - {issue[:80]}...")
+            print(f"\n  {Fore.BLUE}Next:{Style.RESET_ALL} Review changes, then run --phase cleanup {result.plan_path}")
+
+        elif isinstance(result, CleanupPhaseResult):
+            print(f"\n{Fore.GREEN}{Style.BRIGHT}Cleanup Phase Complete:{Style.RESET_ALL}")
+            if result.committed:
+                print(f"  {Fore.GREEN}Committed:{Style.RESET_ALL} Yes ({result.commit_hash[:8] if result.commit_hash else 'N/A'})")
+            else:
+                print(f"  {Fore.YELLOW}Committed:{Style.RESET_ALL} No (user declined or error)")
+            print(f"\n  {Fore.BLUE}Next:{Style.RESET_ALL} Run /pr to create a pull request")
+
+
+# --- Main entry point ---
 
 def main() -> int:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description='Orchestrate Claude Code workflows: index → research → plan → implement',
+        description='Multi-phase Claude Code orchestrator',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s "Add user authentication"
-  %(prog)s --no-implement "Refactor database layer"
-  %(prog)s --json "Improve error handling"
+  %(prog)s "Add user authentication"              # Run all phases
+  %(prog)s --phase plan "Add user authentication" # Plan phase only
+  %(prog)s --phase implement path/to/plan.md      # Implement phase
+  %(prog)s --phase cleanup path/to/plan.md        # Cleanup phase
         """
     )
-    parser.add_argument('query', help='User query for research and planning')
-    parser.add_argument('--json', action='store_true', help='Output JSON format')
+    parser.add_argument('query_or_path', help='Query (for plan) or plan path (for implement/cleanup)')
+    parser.add_argument('--phase', choices=['plan', 'implement', 'cleanup', 'all'],
+                        default='all', help='Which phase to run (default: all)')
     parser.add_argument('--project', default='.', help='Project directory path')
-    parser.add_argument('--no-implement', action='store_true', help='Skip implementation step')
+    parser.add_argument('--research', help='Research file path (for cleanup phase)')
+    parser.add_argument('--review', help='Review file path (for cleanup phase)')
+    parser.add_argument('--json', action='store_true', help='Output JSON format')
 
     args = parser.parse_args()
 
-    # Check for API keys
-    if not os.getenv('OPENAI_API_KEY') and not os.getenv('AZURE_OPENAI_API_KEY'):
-        print("Error: No API key found in .env.claude file", file=sys.stderr)
-        print("Create .env.claude with OPENAI_API_KEY or AZURE_OPENAI_API_KEY", file=sys.stderr)
-        return 1
+    # Handle SIGTERM and SIGINT for graceful shutdown
+    def handle_signal(signum, frame):
+        sig_name = 'SIGTERM' if signum == signal.SIGTERM else 'SIGINT'
+        exit_code = 143 if signum == signal.SIGTERM else 130
+        print(f"\n{sig_name} received, shutting down...", file=sys.stderr)
+        sys.exit(exit_code)
 
-    # Show which provider is being used
-    if os.getenv('OPENAI_API_KEY'):
-        print(f"{Fore.CYAN}Using OpenAI{Style.RESET_ALL}", file=sys.stderr)
-    else:
-        print(f"{Fore.CYAN}Using Azure OpenAI{Style.RESET_ALL}", file=sys.stderr)
-
-    # Handle SIGTERM for graceful shutdown
-    def handle_sigterm(signum, frame):
-        print("\nTerminated", file=sys.stderr)
-        sys.exit(143)
-
-    signal.signal(signal.SIGTERM, handle_sigterm)
+    signal.signal(signal.SIGTERM, handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
 
     try:
         total_start = time.time()
-        result = asyncio.run(run_orchestrator(args.query, args.project, not args.no_implement))
+
+        if args.phase == 'plan':
+            result = run_phase_plan(args.query_or_path, args.project)
+            print_result(result, args.json)
+
+        elif args.phase == 'implement':
+            result = run_phase_implement(args.query_or_path, args.project)
+            print_result(result, args.json)
+
+        elif args.phase == 'cleanup':
+            result = run_phase_cleanup(
+                args.query_or_path,
+                args.research or '',
+                args.review or '',
+                args.project
+            )
+            print_result(result, args.json)
+
+        elif args.phase == 'all':
+            # Run all phases sequentially
+            plan_result = run_phase_plan(args.query_or_path, args.project)
+            print_result(plan_result, args.json)
+
+            implement_result = run_phase_implement(plan_result.plan_path, args.project)
+            print_result(implement_result, args.json)
+
+            cleanup_result = run_phase_cleanup(
+                plan_result.plan_path,
+                plan_result.research_path,
+                implement_result.review_path,
+                args.project
+            )
+            print_result(cleanup_result, args.json)
+
         total_elapsed = time.time() - total_start
+        print(f"\n{Fore.BLUE}Total time:{Style.RESET_ALL} {format_duration(total_elapsed)}", file=sys.stderr)
 
-        if args.json:
-            output = result.model_dump()
-            output['total_time'] = format_duration(total_elapsed)
-            print(json.dumps(output, indent=2))
-        else:
-            print(f"\n{Fore.GREEN}{Style.BRIGHT}Workflow Complete:{Style.RESET_ALL}")
-            print(f"  {Fore.CYAN}Research:{Style.RESET_ALL} {result.research_path}")
-            print(f"  {Fore.MAGENTA}Plan:{Style.RESET_ALL} {result.plan_path}")
-            if result.implemented:
-                print(f"  {Fore.GREEN}Implemented:{Style.RESET_ALL} Yes")
-            if result.implementation_summary:
-                print(f"  {Fore.GREEN}Summary:{Style.RESET_ALL}")
-                for line in result.implementation_summary.split('\n'):
-                    if line.strip():
-                        print(f"    {line}")
-            if result.review_path:
-                print(f"  {Fore.BLUE}Review:{Style.RESET_ALL} {result.review_path}")
-            if result.review_summary:
-                print(f"  {Fore.BLUE}Review Findings:{Style.RESET_ALL}")
-                for line in result.review_summary.split('\n'):
-                    if line.strip():
-                        print(f"    {line}")
-            if result.error:
-                print(f"  {Fore.RED}Error:{Style.RESET_ALL} {result.error}")
-            print(f"  {Fore.BLUE}Total time:{Style.RESET_ALL} {format_duration(total_elapsed)}")
-            print(f"  {Fore.YELLOW}Tokens used:{Style.RESET_ALL} {result.tokens_used:,}")
-
-        return 0 if result.status == 'success' else 1
+        return 0
 
     except KeyboardInterrupt:
         print("\nInterrupted", file=sys.stderr)
         return 130
     except Exception as e:
-        print(f"\nError: {e}", file=sys.stderr)
-        if args.json:
-            print(json.dumps({'error': str(e)}))
+        print(f"\n{Fore.RED}Error: {e}{Style.RESET_ALL}", file=sys.stderr)
         return 1
 
 
