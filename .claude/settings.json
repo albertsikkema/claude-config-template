@@ -43,15 +43,6 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/log-websearch.sh"
           }
         ]
-      },
-      {
-        "matcher": "WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/log-webfetch.sh"
-          }
-        ]
       }
     ],
     "Notification": [

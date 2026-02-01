@@ -1,30 +1,21 @@
 #!/bin/bash
-# Log WebSearch queries and results with timestamp
-# Output: thoughts/shared/web-activity.log
+# Log WebSearch results as JSONL
+# Output: thoughts/shared/web-searches.jsonl
 
 INPUT=$(cat)
 
 QUERY=$(echo "$INPUT" | jq -r '.tool_input.query // empty')
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' | cut -c1-8)
-
-# Extract URLs from tool_response (search results)
-URLS=$(echo "$INPUT" | jq -r '.tool_response // empty | if type == "string" then . else empty end' | grep -oE 'https?://[^)>\s"]+' | head -10)
 
 if [ -n "$QUERY" ]; then
-  LOG_FILE="${CLAUDE_PROJECT_DIR}/thoughts/shared/web-activity.log"
+  LOG_FILE="${CLAUDE_PROJECT_DIR}/thoughts/shared/web-searches.jsonl"
   mkdir -p "$(dirname "$LOG_FILE")"
 
-  {
-    echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] [${SESSION_ID}] SEARCH"
-    echo "  Query: $QUERY"
-    if [ -n "$URLS" ]; then
-      echo "  Results:"
-      echo "$URLS" | while read -r url; do
-        echo "    - $url"
-      done
-    fi
-    echo ""
-  } >> "$LOG_FILE"
+  # Keep it simple: timestamp, query, and full results array
+  echo "$INPUT" | jq -c '{
+    timestamp: now | strftime("%Y-%m-%dT%H:%M:%SZ"),
+    query: .tool_input.query,
+    results: .tool_response.results
+  }' >> "$LOG_FILE"
 fi
 
 exit 0
