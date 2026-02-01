@@ -448,10 +448,12 @@ Start by reading the codebase index, then present your analysis.'''
     print_phase_header("Query Refinement")
     print(f"{Fore.WHITE}Starting interactive query refinement session...{Style.RESET_ALL}", file=sys.stderr)
     print(f"{Fore.YELLOW}Original query:{Style.RESET_ALL} {query}\n", file=sys.stderr)
+    print(f"{Fore.CYAN}You can interact with Claude to refine the query. Type 'exit' or press Ctrl+C when done.{Style.RESET_ALL}\n", file=sys.stderr)
 
-    # Run interactive Claude session
+    # Run truly interactive Claude session (no -p flag)
+    # --system-prompt sets context, initial message starts the conversation
     process = subprocess.run(
-        ['claude', '-p', prompt],
+        ['claude', '--system-prompt', prompt, 'Please start by reading the codebase index and analyzing my query.'],
         cwd=project_path,
     )
 
