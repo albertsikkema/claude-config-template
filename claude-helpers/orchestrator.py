@@ -405,8 +405,10 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
 
     prompt = f'''You are helping quickly refine a development task query. Keep this session SHORT and focused.
 
-## User's Original Query
+## USER'S ORIGINAL QUERY (preserve ALL details and intentions):
+---
 {query}
+---
 
 ## Context Files to Read
 {index_context}
@@ -414,33 +416,33 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
 - README.md (if exists) - project overview
 - thoughts/shared/project/*.md (if exists) - project documentation
 
-## IMPORTANT CONSTRAINTS
+## CRITICAL RULES
+- **PRESERVE all user intentions** from the original query - do not drop any requirements
 - **ONLY read the context files listed above** - do NOT read individual source files
 - Deep research happens in the next phase - this is just query refinement
 - Keep the session brief - aim for 1-2 exchanges with the user
-- Focus on WHAT to do, not HOW (the research phase will figure out the how)
 
 ## Your Task
 
-1. **Read ONLY the codebase index** to understand project structure at a high level
-2. **Quickly propose an improved query** that:
+1. **Read the codebase index** to understand project structure at a high level
+2. **Propose an improved query** that:
+   - **KEEPS all user requirements** from the original (e.g., "no data migration", "no mongodb patterns")
+   - Adds specific file/folder references from the index
    - Clarifies scope and boundaries
-   - Mentions relevant areas from the index (e.g., "modify backend/auth/*")
-   - Is specific enough to guide research
 3. **List technical docs needed** (libraries/frameworks to fetch docs for)
-4. **Ask user to confirm or adjust** - one quick exchange
+4. **Ask user to confirm or adjust**
 5. **Write the result** to: thoughts/shared/refinement/{timestamp}-query-refinement.json
 
 ## Output Format
 ```json
 {{
-  "refined_query": "The improved query (2-4 sentences)",
+  "refined_query": "The improved query - MUST include all original requirements plus codebase context",
   "technical_docs": ["package1", "package2"],
-  "context_notes": "One sentence about relevant codebase areas"
+  "context_notes": "Relevant codebase areas"
 }}
 ```
 
-Be concise. Present your refined query and docs list, ask for confirmation, then write the file.'''
+Present your refined query, ask for confirmation, then write the file.'''
 
     print_phase_header("Query Refinement")
     print(f"{Fore.WHITE}Starting interactive query refinement session...{Style.RESET_ALL}", file=sys.stderr)
