@@ -388,7 +388,8 @@ Ask user to confirm (or ask up to 2 clarifying questions first), then write to: 
 
 # --- Phase implementations ---
 
-def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False) -> PlanPhaseResult:
+def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False,
+                   non_interactive: bool = False) -> PlanPhaseResult:
     """Phase 1: Index → Refine Query → Docs → Research → Plan"""
 
     # Step 1: Index codebase
@@ -406,6 +407,10 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False)
     if skip_refinement:
         refined = QueryRefinementResult(refined_query=query, technical_docs=[], context_notes='')
         stream_progress("Query Refinement", "Skipped (--no-refine)")
+    elif non_interactive:
+        # Skip refinement in non-interactive mode, use query as-is
+        refined = QueryRefinementResult(refined_query=query, technical_docs=[], context_notes='')
+        stream_progress("Query Refinement", "Skipped (non-interactive mode)")
     else:
         refined = run_query_refinement(query, project_path)
 
@@ -454,8 +459,14 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False)
 
 Please proceed with reasonable defaults based on the research."""
 
+    # Use -p flag in non-interactive mode for automated runs
+    if non_interactive:
+        cmd = ['claude', '--dangerously-skip-permissions', '-p', prompt]
+    else:
+        cmd = ['claude', '--dangerously-skip-permissions', prompt]
+
     returncode, output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', prompt],
+        cmd,
         cwd=project_path,
         timeout=600,
         phase='Planning'
@@ -483,7 +494,8 @@ Next step: Review the plan, then run --phase implement"""
     )
 
 
-def run_phase_implement(plan_path: str, project_path: str) -> ImplementPhaseResult:
+def run_phase_implement(plan_path: str, project_path: str,
+                        non_interactive: bool = False) -> ImplementPhaseResult:
     """Phase 2: Implement → Review"""
 
     # Validate plan exists
@@ -503,8 +515,14 @@ def run_phase_implement(plan_path: str, project_path: str) -> ImplementPhaseResu
     stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
 
     # Step 2: Code review (interactive so user can ask questions and suggest improvements)
+    # Use -p flag in non-interactive mode for automated runs
+    if non_interactive:
+        cmd = ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer']
+    else:
+        cmd = ['claude', '--dangerously-skip-permissions', '/code_reviewer']
+
     returncode, review_output, elapsed = run_claude_command(
-        ['claude', '--dangerously-skip-permissions', '/code_reviewer'],
+        cmd,
         cwd=project_path,
         timeout=600,
         phase='Review'
@@ -711,10 +729,14 @@ Examples:
 
         elif args.phase == 'all':
             # Run all phases sequentially
-            plan_result = run_phase_plan(args.query_or_path, args.project, skip_refinement=args.no_refine)
+            # Non-interactive mode for full run - only commit step remains interactive
+            plan_result = run_phase_plan(args.query_or_path, args.project,
+                                         skip_refinement=args.no_refine,
+                                         non_interactive=True)
             print_result(plan_result, args.json)
 
-            implement_result = run_phase_implement(plan_result.plan_path, args.project)
+            implement_result = run_phase_implement(plan_result.plan_path, args.project,
+                                                   non_interactive=True)
             print_result(implement_result, args.json)
 
             cleanup_result = run_phase_cleanup(
