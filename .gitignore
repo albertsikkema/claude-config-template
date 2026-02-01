@@ -81,9 +81,6 @@ logs/
 .env.*.local
 .env.claude
 
-# Monitoring dashboard (cloned by start-monitoring.sh)
-claude-code-hooks-multi-agent-observability/
-
 # Node modules (if you add Node.js tooling)
 node_modules/
 

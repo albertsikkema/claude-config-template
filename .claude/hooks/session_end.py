@@ -1,70 +1,54 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#     "python-dotenv",
-# ]
-# ///
+#!/usr/bin/env python3
+"""
+Session end hook that plays pre-generated audio when the session ends.
+
+Set CLAUDE_AUDIO_ENABLED=1 to enable audio notifications (disabled by default).
+Set CLAUDE_HOOKS_DEBUG=1 to enable debug logging.
+"""
 
 import argparse
-import json
+import os
 import sys
-import subprocess
-from pathlib import Path
 
+# Debug mode for troubleshooting
+DEBUG = os.environ.get('CLAUDE_HOOKS_DEBUG', '').lower() in ('1', 'true')
+
+
+def debug_log(message: str) -> None:
+    """Log debug message if debug mode is enabled."""
+    if DEBUG:
+        print(f"[DEBUG] session_end: {message}", file=sys.stderr)
+
+
+# Import after debug setup so we can catch import errors
 try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass  # dotenv is optional
+    from utils.audio import is_audio_enabled, play_audio
+except ImportError as e:
+    debug_log(f"Import error: {e}")
+    is_audio_enabled = lambda: False
+    play_audio = lambda x: None
 
 
-def main():
+def main() -> None:
     try:
         # Parse command line arguments
         parser = argparse.ArgumentParser()
         parser.add_argument('--announce', action='store_true',
-                          help='Announce session end via TTS')
+                          help='Play audio on session end')
         args = parser.parse_args()
 
-        # Read JSON input from stdin
-        input_data = json.loads(sys.stdin.read())
+        # Consume stdin (required by hook protocol)
+        sys.stdin.read()
 
-        # Extract fields
-        reason = input_data.get('reason', 'other')
+        # Play session end audio if requested and enabled
+        if args.announce and is_audio_enabled():
+            debug_log("Playing session end audio")
+            play_audio("session_end")
 
-        # Announce session end if requested
-        if args.announce:
-            try:
-                # Try to use TTS to announce session end
-                script_dir = Path(__file__).parent
-                tts_script = script_dir / "utils" / "tts" / "pyttsx3_tts.py"
-
-                if tts_script.exists():
-                    messages = {
-                        "clear": "Session cleared",
-                        "logout": "Logging out",
-                        "prompt_input_exit": "Session ended",
-                        "other": "Session ended"
-                    }
-                    message = messages.get(reason, "Session ended")
-
-                    subprocess.run(
-                        ["uv", "run", str(tts_script), message],
-                        capture_output=True,
-                        timeout=5
-                    )
-            except Exception:
-                pass
-
-        # Success
         sys.exit(0)
 
-    except json.JSONDecodeError:
-        # Handle JSON decode errors gracefully
-        sys.exit(0)
-    except Exception:
-        # Handle any other errors gracefully
+    except Exception as e:
+        debug_log(f"Unexpected error: {e}")
         sys.exit(0)
 
 

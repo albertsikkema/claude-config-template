@@ -5,51 +5,26 @@
     "deny": []
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/user_prompt_submit.py --validate",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type PreToolUse --summarize"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type PostToolUse --summarize"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/post_tool_use.py"
-          }
-        ]
-      },
-      {
-        "matcher": "WebSearch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/log-websearch.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "WebFetch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/log-webfetch.sh"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre_tool_use.py",
+            "timeout": 10000
           }
         ]
       }
@@ -60,7 +35,32 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type Notification --summarize"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notification.py --notify",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session_start.py --load-context",
+            "timeout": 15000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session_end.py --announce",
+            "timeout": 15000
           }
         ]
       }
@@ -71,36 +71,30 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type Stop --add-chat --summarize"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "curl -s -X POST http://localhost:9118/api/hooks/stop -H 'Content-Type: application/json' -d '{\"task_id\": \"'\"$CLAUDE_FLOW_TASK_ID\"'\", \"session_id\": \"'\"$CLAUDE_SESSION_ID\"'\"}' > /dev/null 2>&1 || true"
-          }
-        ]
-      },
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "[ -n \"$CLAUDE_SESSION_ID\" ] && curl -s -X POST http://localhost:9118/api/hooks/session-end -H 'Content-Type: application/json' -d '{\"session_id\": \"'\"$CLAUDE_SESSION_ID\"'\", \"exit_code\": '\"${CLAUDE_EXIT_CODE:-0}\"'}' > /dev/null 2>&1 || true"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop.py --filter-simple",
+            "timeout": 10000
           }
         ]
       }
     ],
-    "UserPromptSubmit": [
+    "PostToolUse": [
       {
-        "matcher": "",
+        "matcher": "WebSearch",
         "hooks": [
           {
             "type": "command",
-            "command": "uv run $CLAUDE_PROJECT_DIR/.claude/hooks/send_event.py --source-app orchestrator --event-type UserPromptSubmit"
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/log-websearch.sh",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/log-webfetch.sh",
+            "timeout": 5000
           }
         ]
       }

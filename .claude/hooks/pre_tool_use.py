@@ -1,116 +1,325 @@
-#!/usr/bin/env -S uv run --script
-# /// script
-# requires-python = ">=3.8"
-# ///
+#!/usr/bin/env python3
+"""
+PreToolUse security hook that blocks dangerous operations.
+
+Checks for:
+- Dangerous rm commands
+- Fork bombs
+- Dangerous git commands (push to main/master, force push)
+- Disk write attacks (dd to /dev/)
+- Sensitive file access (.env, .pem, .key, credentials, etc.)
+- Path traversal attacks
+- Project directory escape
+
+Set CLAUDE_HOOKS_DEBUG=1 to enable debug logging.
+"""
+
+from __future__ import annotations
 
 import json
-import sys
+import os
 import re
+import sys
+from pathlib import Path
+from typing import Optional, Tuple
 
-def is_dangerous_rm_command(command):
+# Debug mode for troubleshooting
+DEBUG = os.environ.get('CLAUDE_HOOKS_DEBUG', '').lower() in ('1', 'true')
+
+# Pre-compiled regex patterns for performance
+DANGEROUS_RM_PATTERNS = [
+    re.compile(r'\brm\s+.*-[a-z]*r[a-z]*f'),  # rm -rf, rm -fr, rm -Rf, etc.
+    re.compile(r'\brm\s+.*-[a-z]*f[a-z]*r'),  # rm -fr variations
+    re.compile(r'\brm\s+--recursive\s+--force'),
+    re.compile(r'\brm\s+--force\s+--recursive'),
+    re.compile(r'\brm\s+-r\s+.*-f'),
+    re.compile(r'\brm\s+-f\s+.*-r'),
+]
+
+DANGEROUS_RM_PATH_PATTERNS = [
+    re.compile(r'\s/$'),          # Root directory
+    re.compile(r'\s/\*'),         # Root with wildcard
+    re.compile(r'\s~/?'),         # Home directory
+    re.compile(r'\s\$HOME'),      # Home environment variable
+    re.compile(r'\s\.\./?'),      # Parent directory references
+    re.compile(r'\s\.$'),         # Current directory
+]
+
+RM_RECURSIVE_PATTERN = re.compile(r'\brm\s+.*-[a-z]*r')
+
+FORK_BOMB_PATTERNS = [
+    re.compile(r':\(\)\s*\{\s*:\|:&\s*\}\s*;:'),  # Classic bash fork bomb
+    re.compile(r'\.\/\w+\s*&\s*\.\/\w+'),  # Self-replicating pattern
+    re.compile(r'while\s+true.*fork', re.IGNORECASE),
+    re.compile(r'fork\s*\(\s*\)\s*while', re.IGNORECASE),
+]
+
+DANGEROUS_GIT_PATTERNS = [
+    # Block ALL pushes to main/master (including regular push)
+    re.compile(r'git\s+push\s+.*\b(main|master)\b'),
+    re.compile(r'git\s+push\s+origin\s+(main|master)'),
+    # Block force push without explicit branch (might be on main)
+    re.compile(r'git\s+push\s+.*--force'),
+    re.compile(r'git\s+push\s+.*-f\b'),
+    # Other dangerous commands
+    re.compile(r'git\s+reset\s+--hard\s+origin/'),
+    re.compile(r'git\s+clean\s+-fd'),  # Force delete untracked files
+]
+
+DANGEROUS_DISK_PATTERNS = [
+    re.compile(r'\bdd\s+.*of=/dev/'),  # dd to device
+    re.compile(r'\bmkfs\.'),  # Format filesystem
+    re.compile(r'>\s*/dev/sd'),  # Write to disk device
+]
+
+ENV_ACCESS_PATTERNS = [
+    re.compile(r'\bcat\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\bless\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\bhead\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\btail\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'>\s*[^\s]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\bcp\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\bmv\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\bsource\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),
+    re.compile(r'\.\s+[^\|]*\.env\b(?!\.sample|\.example|\.template)'),  # . .env (source shorthand)
+]
+
+SENSITIVE_FILE_PATTERNS = [
+    (re.compile(r'\.pem$'), 'PEM certificate/key file'),
+    (re.compile(r'\.key$'), 'Key file'),
+    (re.compile(r'\.p12$'), 'PKCS12 certificate'),
+    (re.compile(r'\.pfx$'), 'PFX certificate'),
+    (re.compile(r'credentials\.(json|yaml|yml|xml|ini|conf)$'), 'Credentials file'),
+    (re.compile(r'secrets?\.(json|yaml|yml|xml|ini|conf)$'), 'Secrets file'),
+    (re.compile(r'\.kube/config'), 'Kubernetes config'),
+    (re.compile(r'\.aws/credentials'), 'AWS credentials'),
+    (re.compile(r'\.ssh/'), 'SSH directory'),
+    (re.compile(r'\.gnupg/'), 'GPG directory'),
+    (re.compile(r'\.netrc'), 'Netrc file'),
+    (re.compile(r'\.npmrc'), 'NPM config with tokens'),
+    (re.compile(r'\.pypirc'), 'PyPI config with tokens'),
+]
+
+# Exact filename matches for sensitive files
+SENSITIVE_FILES = {
+    '.env',
+    '.env.local',
+    '.env.production',
+    '.env.development',
+    'id_rsa',
+    'id_ed25519',
+    'id_ecdsa',
+    'id_dsa',
+}
+
+# Allowed .env variants
+ALLOWED_ENV_FILES = {'.env.sample', '.env.example', '.env.template'}
+
+
+def debug_log(message: str) -> None:
+    """Log debug message if debug mode is enabled."""
+    if DEBUG:
+        print(f"[DEBUG] {message}", file=sys.stderr)
+
+
+def is_dangerous_rm_command(command: str) -> bool:
     """
     Comprehensive detection of dangerous rm commands.
     Matches various forms of rm -rf and similar destructive patterns.
     """
-    # Normalize command by removing extra spaces and converting to lowercase
     normalized = ' '.join(command.lower().split())
-    
-    # Pattern 1: Standard rm -rf variations
-    patterns = [
-        r'\brm\s+.*-[a-z]*r[a-z]*f',  # rm -rf, rm -fr, rm -Rf, etc.
-        r'\brm\s+.*-[a-z]*f[a-z]*r',  # rm -fr variations
-        r'\brm\s+--recursive\s+--force',  # rm --recursive --force
-        r'\brm\s+--force\s+--recursive',  # rm --force --recursive
-        r'\brm\s+-r\s+.*-f',  # rm -r ... -f
-        r'\brm\s+-f\s+.*-r',  # rm -f ... -r
-    ]
-    
-    # Check for dangerous patterns
-    for pattern in patterns:
-        if re.search(pattern, normalized):
+
+    # Check standard rm -rf variations
+    for pattern in DANGEROUS_RM_PATTERNS:
+        if pattern.search(normalized):
+            debug_log(f"Matched dangerous rm pattern: {pattern.pattern}")
             return True
-    
-    # Pattern 2: Check for rm with recursive flag targeting dangerous paths
-    dangerous_paths = [
-        r'/',           # Root directory
-        r'/\*',         # Root with wildcard
-        r'~',           # Home directory
-        r'~/',          # Home directory path
-        r'\$HOME',      # Home environment variable
-        r'\.\.',        # Parent directory references
-        r'\*',          # Wildcards in general rm -rf context
-        r'\.',          # Current directory
-        r'\.\s*$',      # Current directory at end of command
-    ]
-    
-    if re.search(r'\brm\s+.*-[a-z]*r', normalized):  # If rm has recursive flag
-        for path in dangerous_paths:
-            if re.search(path, normalized):
+
+    # Check for rm with recursive flag targeting dangerous paths
+    if RM_RECURSIVE_PATTERN.search(normalized):
+        for pattern in DANGEROUS_RM_PATH_PATTERNS:
+            if pattern.search(normalized):
+                debug_log(f"Matched dangerous rm path pattern: {pattern.pattern}")
                 return True
-    
+
     return False
 
-def is_env_file_access(tool_name, tool_input):
-    """
-    Check if any tool is trying to access .env files containing sensitive data.
-    """
-    if tool_name in ['Read', 'Edit', 'MultiEdit', 'Write', 'Bash']:
-        # Check file paths for file-based tools
-        if tool_name in ['Read', 'Edit', 'MultiEdit', 'Write']:
-            file_path = tool_input.get('file_path', '')
-            if '.env' in file_path and not file_path.endswith('.env.sample'):
-                return True
-        
-        # Check bash commands for .env file access
-        elif tool_name == 'Bash':
-            command = tool_input.get('command', '')
-            # Pattern to detect .env file access (but allow .env.sample)
-            env_patterns = [
-                r'\b\.env\b(?!\.sample)',  # .env but not .env.sample
-                r'cat\s+.*\.env\b(?!\.sample)',  # cat .env
-                r'echo\s+.*>\s*\.env\b(?!\.sample)',  # echo > .env
-                r'touch\s+.*\.env\b(?!\.sample)',  # touch .env
-                r'cp\s+.*\.env\b(?!\.sample)',  # cp .env
-                r'mv\s+.*\.env\b(?!\.sample)',  # mv .env
-            ]
-            
-            for pattern in env_patterns:
-                if re.search(pattern, command):
-                    return True
-    
+
+def is_fork_bomb(command: str) -> bool:
+    """Detect fork bomb patterns."""
+    for pattern in FORK_BOMB_PATTERNS:
+        if pattern.search(command):
+            debug_log(f"Matched fork bomb pattern: {pattern.pattern}")
+            return True
     return False
 
-def main():
+
+def is_dangerous_git_command(command: str) -> bool:
+    """Detect dangerous git commands."""
+    normalized = ' '.join(command.lower().split())
+
+    for pattern in DANGEROUS_GIT_PATTERNS:
+        if pattern.search(normalized):
+            debug_log(f"Matched dangerous git pattern: {pattern.pattern}")
+            return True
+    return False
+
+
+def is_dangerous_disk_write(command: str) -> bool:
+    """Detect dangerous disk write operations."""
+    normalized = ' '.join(command.lower().split())
+
+    for pattern in DANGEROUS_DISK_PATTERNS:
+        if pattern.search(normalized):
+            debug_log(f"Matched dangerous disk pattern: {pattern.pattern}")
+            return True
+    return False
+
+
+def is_sensitive_file(file_path: str) -> tuple[bool, str | None]:
+    """Check if file path points to sensitive files."""
+    if not file_path:
+        return False, None
+
+    path_lower = file_path.lower()
+    basename = os.path.basename(path_lower)
+
+    # Allow .env.sample and .env.example
+    if basename in ALLOWED_ENV_FILES:
+        return False, None
+
+    # Check exact filename matches
+    if basename in SENSITIVE_FILES:
+        debug_log(f"Matched sensitive file: {basename}")
+        return True, f"Access to {basename} files is prohibited"
+
+    # Check pattern matches
+    for pattern, description in SENSITIVE_FILE_PATTERNS:
+        if pattern.search(path_lower):
+            debug_log(f"Matched sensitive file pattern: {pattern.pattern}")
+            return True, f"Access to {description} is prohibited"
+
+    return False, None
+
+
+def is_path_escape(file_path: str, project_dir: str) -> tuple[bool, str | None]:
+    """Check if path escapes the project directory."""
+    if not file_path or not project_dir:
+        return False, None
+
     try:
-        # Read JSON input from stdin
+        # Resolve to absolute paths
+        abs_path = Path(file_path).resolve()
+        abs_project = Path(project_dir).resolve()
+
+        # Check if path is within project (using proper prefix check)
+        # CVE-2025-54794: Must check with trailing separator to prevent
+        # /project matching /project_malicious
+        project_str = str(abs_project)
+        path_str = str(abs_path)
+
+        if not (path_str == project_str or path_str.startswith(project_str + os.sep)):
+            debug_log(f"Path escape detected: {path_str} not in {project_str}")
+            return True, "Path is outside project directory"
+
+        # Also check for .. in the original path (before resolution)
+        if '..' in file_path:
+            debug_log(f"Path traversal detected: {file_path}")
+            return True, "Path traversal attempt detected"
+
+    except (ValueError, OSError) as e:
+        debug_log(f"Path resolution error: {e}")
+        return True, "Invalid path"
+
+    return False, None
+
+
+def check_bash_command(command: str) -> str | None:
+    """Check bash command for dangerous patterns."""
+    if is_dangerous_rm_command(command):
+        return "Dangerous rm command detected"
+
+    if is_fork_bomb(command):
+        return "Fork bomb detected"
+
+    if is_dangerous_git_command(command):
+        return "Dangerous git command detected (push to main/master or force push)"
+
+    if is_dangerous_disk_write(command):
+        return "Dangerous disk write operation detected"
+
+    # Check for .env access in bash commands
+    for pattern in ENV_ACCESS_PATTERNS:
+        if pattern.search(command):
+            debug_log(f"Matched env access pattern: {pattern.pattern}")
+            return "Access to .env files is prohibited"
+
+    return None
+
+
+def check_file_operation(tool_name: str, tool_input: dict, project_dir: str) -> str | None:
+    """Check file operations for security issues."""
+    file_path = tool_input.get('file_path', '')
+
+    # For Grep, also check the path parameter
+    if tool_name == 'Grep':
+        file_path = tool_input.get('path', '') or file_path
+
+    # For Glob, check the path parameter
+    if tool_name == 'Glob':
+        file_path = tool_input.get('path', '') or file_path
+
+    if not file_path:
+        return None
+
+    # Check sensitive files
+    is_sensitive, reason = is_sensitive_file(file_path)
+    if is_sensitive:
+        return reason
+
+    # Check path escape (only for absolute paths or paths with ..)
+    if os.path.isabs(file_path) or '..' in file_path:
+        is_escape, reason = is_path_escape(file_path, project_dir)
+        if is_escape:
+            return reason
+
+    return None
+
+
+def main() -> None:
+    try:
         input_data = json.load(sys.stdin)
-        
+
         tool_name = input_data.get('tool_name', '')
         tool_input = input_data.get('tool_input', {})
-        
-        # Check for .env file access (blocks access to sensitive environment files)
-        if is_env_file_access(tool_name, tool_input):
-            print("BLOCKED: Access to .env files containing sensitive data is prohibited", file=sys.stderr)
-            print("Use .env.sample for template files instead", file=sys.stderr)
-            sys.exit(2)  # Exit code 2 blocks tool call and shows error to Claude
-        
-        # Check for dangerous rm -rf commands
+        project_dir = os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())
+
+        debug_log(f"Checking tool: {tool_name}")
+
+        # Check bash commands
         if tool_name == 'Bash':
             command = tool_input.get('command', '')
+            error = check_bash_command(command)
+            if error:
+                print(f"BLOCKED: {error}", file=sys.stderr)
+                sys.exit(2)
 
-            # Block rm -rf commands with comprehensive pattern matching
-            if is_dangerous_rm_command(command):
-                print("BLOCKED: Dangerous rm command detected and prevented", file=sys.stderr)
-                sys.exit(2)  # Exit code 2 blocks tool call and shows error to Claude
+        # Check file operations (including Glob and Grep)
+        if tool_name in ['Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Grep']:
+            error = check_file_operation(tool_name, tool_input, project_dir)
+            if error:
+                print(f"BLOCKED: {error}", file=sys.stderr)
+                sys.exit(2)
 
         sys.exit(0)
-        
-    except json.JSONDecodeError:
-        # Gracefully handle JSON decode errors
+
+    except json.JSONDecodeError as e:
+        debug_log(f"JSON decode error: {e}")
         sys.exit(0)
-    except Exception:
-        # Handle any other errors gracefully
+    except Exception as e:
+        debug_log(f"Unexpected error: {e}")
         sys.exit(0)
+
 
 if __name__ == '__main__':
     main()

@@ -34,12 +34,6 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 > **Note**: Always use `/main/install.sh` in the URL. The `--branch` argument specifies which branch's content to actually install.
 
-**Optional: Start monitoring dashboard** (requires [Bun](https://bun.sh)):
-```bash
-./start-monitoring.sh
-```
-See the [Multi-Agent Observability Dashboard](#-multi-agent-observability-dashboard) section for details.
-
 ## 🗑️ Quick Uninstall
 
 **Remove configuration (preserves thoughts/):**
@@ -62,7 +56,6 @@ This is a **configuration template** that you install into your projects. It pro
 - **12 specialized AI agents** - Automated research, code analysis, and architecture design
 - **14 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
 - **108 security rules** - Language-specific secure coding guidance from [Project Codeguard](https://github.com/project-codeguard/rules)
-- **Multi-agent observability** - Real-time monitoring dashboard with AI-powered event summaries
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
 
@@ -76,10 +69,6 @@ Partly based on/ inspired by:
 
 Security rules integration:
 - https://github.com/project-codeguard/rules (108 OWASP-aligned security rules)
-
-Monitoring dashboard:
-- https://github.com/disler/claude-code-hooks-multi-agent-observability
-
 
 ## 📦 What You Get
 
@@ -133,7 +122,6 @@ your-project/
 ├── .claude/
 │   ├── agents/              # 12 specialized agents
 │   ├── commands/            # 14 slash commands
-│   ├── hooks/               # Observability hooks (if monitoring enabled)
 │   └── settings.json        # Configuration and hooks
 │
 ├── docs/                    # Helper script documentation
@@ -173,92 +161,6 @@ your-project/
         ├── rationalization/ # Ephemeral working docs (deleted after cleanup)
         └── project/         # Project documentation (3-file structure)
 ```
-
-## 🔍 Multi-Agent Observability Dashboard
-
-Gain real-time visibility into Claude Code's decision-making process with the monitoring dashboard. Watch agents spawn, tools execute, and see AI-generated summaries of all activities. Basically uses this repo: [https://github.com/disler/claude-code-hooks-multi-agent-observability](https://github.com/disler/claude-code-hooks-multi-agent-observability)
-
-### What You Get
-
-- **Real-time event streaming** - See every tool use, agent spawn, and notification as it happens
-- **AI-powered summaries** - Automatically generated summaries of complex events
-- **Session tracking** - Follow complete conversation flows and agent orchestration
-- **Event filtering** - Focus on specific event types or sessions
-- **WebSocket updates** - Live dashboard updates with no refresh needed
-
-### Quick Start
-
-**Prerequisites**: [Bun](https://bun.sh) must be installed
-```bash
-# Install Bun (macOS/Linux)
-curl -fsSL https://bun.sh/install | bash
-```
-
-**Option 1: One-Line Setup** (Easiest)
-```bash
-./start-monitoring.sh
-```
-
-This will:
-1. Clone the monitoring dashboard repository
-2. Install all dependencies using Bun
-3. Set up observability hooks in `.claude/hooks/`
-4. Configure hooks in `.claude/settings.json`
-5. Start the monitoring server and dashboard
-
-**Option 2: Skip Hooks Setup** (if you have custom hooks)
-```bash
-./start-monitoring.sh --skip-hooks
-```
-
-**Option 3: Force Clean Reinstall**
-```bash
-./start-monitoring.sh --force-install
-```
-
-### Accessing the Dashboard
-
-Once started, access:
-- **Dashboard UI**: http://localhost:5173
-- **Server API**: http://localhost:4000
-
-### What Gets Tracked
-
-The monitoring system captures:
-- **PreToolUse** - Before any tool executes
-- **PostToolUse** - After tool execution completes
-- **Notification** - User input requests (with optional TTS)
-- **Stop** - Conversation stop events
-- **SubagentStop** - When spawned agents complete
-- **PreCompact** - Before context window compaction
-- **UserPromptSubmit** - User message submissions
-- **SessionStart/End** - Session lifecycle events
-
-### Helper Scripts
-
-After starting, you can:
-```bash
-# Stop the monitoring system
-./claude-code-hooks-multi-agent-observability/scripts/reset-system.sh
-
-# Test the monitoring system
-./claude-code-hooks-multi-agent-observability/scripts/test-system.sh
-```
-
-### How It Works
-
-1. **Hooks** in `.claude/hooks/` intercept Claude Code events
-2. **Events** are sent to the server at `http://localhost:4000`
-3. **AI summaries** are generated for complex events (optional)
-4. **Dashboard** displays everything in real-time via WebSocket
-
-### Customization
-
-The hooks configuration is in `.claude/settings.json`. You can:
-- Disable specific hooks
-- Adjust which events get AI summaries
-- Change the server URL
-- Add custom event processing
 
 ## 🚀 Installation Options
 
@@ -537,6 +439,61 @@ When you run `/security`, it automatically:
 
 **Source**: Curated by Cisco and aligned with OWASP best practices.
 
+### Security Hooks
+
+The template includes pre-configured security hooks that protect against dangerous operations:
+
+**UserPromptSubmit Hook** (`user_prompt_submit.py`)
+Blocks user prompts containing sensitive data:
+- AWS Access Keys (`AKIA...`)
+- OpenAI/Anthropic API keys (`sk-...`)
+- GitHub tokens (`ghp_`, `gho_`, `github_pat_`)
+- Slack tokens (`xoxb-`, `xoxp-`)
+- Private keys (RSA, SSH, PGP)
+
+**PreToolUse Hook** (`pre_tool_use.py`)
+Blocks dangerous tool operations:
+
+| Category | Blocked Patterns |
+|----------|------------------|
+| **Destructive commands** | `rm -rf`, fork bombs, `dd` to devices |
+| **Dangerous git** | All pushes to main (feature branches allowed), force push, `reset --hard`, `clean -fd` |
+| **Sensitive files** | `.env`, `.pem`, `.key`, SSH keys, credentials |
+| **Path traversal** | `..` in paths, escaping project directory |
+
+**How it works:**
+- Hooks run automatically before each operation
+- Exit code `2` blocks the operation and shows error to Claude
+- All paths are properly quoted to handle spaces
+- Timeouts prevent hung operations
+
+**Customizing security rules:**
+Edit `.claude/hooks/pre_tool_use.py` to add/remove patterns:
+```python
+# Add custom sensitive file patterns
+sensitive_patterns = [
+    (r'\.pem$', 'PEM certificate/key file'),
+    (r'my-custom-secrets', 'Custom secrets file'),  # Add your own
+]
+```
+
+**Note**: Security hooks cannot be bypassed by Claude - they run at the system level before any tool executes.
+
+**Environment variables:**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLAUDE_AUDIO_ENABLED` | `0` | Set to `1` to enable audio notifications on session end, task completion, and when Claude needs input |
+| `CLAUDE_HOOKS_DEBUG` | `0` | Set to `1` to enable debug logging for troubleshooting hooks |
+
+```bash
+# Enable audio notifications
+export CLAUDE_AUDIO_ENABLED=1
+
+# Enable debug logging (shows [DEBUG] messages in stderr)
+export CLAUDE_HOOKS_DEBUG=1
+```
+
 ### Research → Plan → Implement → Cleanup Pattern
 
 The core workflow ensures quality and preserves knowledge:
@@ -690,7 +647,6 @@ After installation:
 - [ ] **Restart Claude Code** to load new configuration
 - [ ] Verify installation: Check `.claude/` and `thoughts/` directories exist
 - [ ] Review `.claude/settings.json` permissions
-- [ ] **(Optional)** Start monitoring dashboard: `./start-monitoring.sh`
 - [ ] **Read [WORKFLOW.md](WORKFLOW.md)** to understand the complete process
 - [ ] Run `/index_codebase` to create searchable indexes (optional but recommended)
 - [ ] Run `/project` to document your project (if command not found, see troubleshooting)

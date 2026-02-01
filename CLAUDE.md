@@ -3,6 +3,22 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 
+
+## Codebase Index
+
+**IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the codebase index:
+
+**`thoughts/codebase/codebase_overview_hooks_py.md`**
+
+This index contains:
+- **Most Used Symbols**: Top functions/classes by usage count
+- **Library Files**: All exports with descriptions and "used by" references
+- **API Endpoints**: All REST API routes
+- **Dependency Graph**: Which files are most imported
+
+Reading the index first saves tokens and improves accuracy.
+
+
 ## Repository Purpose
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
@@ -152,6 +168,21 @@ Documented patterns in `thoughts/best_practices/`:
 | Subprocess Timeout | `subprocess-timeout-long-running-operations.md` | Timeout protection for long-running subprocesses |
 | Batch Error Handling | `error-handling-batch-operations.md` | Per-item error handling with continue |
 | Version Endpoints | `api-version-endpoints.md` | Dynamic version endpoints with fallback |
+
+## Hooks Configuration
+
+Security hooks in `.claude/hooks/` protect against dangerous operations. Configure via environment variables:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLAUDE_AUDIO_ENABLED` | `0` | Set to `1` for audio notifications (session end, task completion, input needed) |
+| `CLAUDE_HOOKS_DEBUG` | `0` | Set to `1` for debug logging (`[DEBUG]` messages in stderr) |
+
+```bash
+# Enable in your shell profile or .env
+export CLAUDE_AUDIO_ENABLED=1
+export CLAUDE_HOOKS_DEBUG=1
+```
 
 ## Common Pitfalls
 
