@@ -17,7 +17,6 @@ INSTALL_THOUGHTS=true
 FORCE_INSTALL=false
 DRY_RUN=false
 TARGET_DIR="."
-GLOBAL_APP_MODE=false
 
 # Version (from git commit hash if available)
 VERSION=$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --short HEAD 2>/dev/null || echo "1.0.0")
@@ -34,7 +33,6 @@ OPTIONS:
     --thoughts-only     Install only thoughts/ structure
     --force, -f         Force overwrite existing files without prompting
     --dry-run           Show what would be installed without making changes
-    --global-app        Skip claude-flow/ and .env.claude (for global app installs)
     --help, -h          Show this help message
     --version, -v       Show version information
 
@@ -77,10 +75,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --dry-run)
             DRY_RUN=true
-            shift
-            ;;
-        --global-app)
-            GLOBAL_APP_MODE=true
             shift
             ;;
         --help|-h)
@@ -376,40 +370,13 @@ main() {
             if [ "$DRY_RUN" != true ]; then
                 mkdir -p "$TARGET_DIR/claude-helpers"
                 for item in "$SCRIPT_DIR/claude-helpers"/*; do
-                    local item_name=$(basename "$item")
-                    # Skip claude-flow entirely in global app mode
-                    if [ "$GLOBAL_APP_MODE" = true ] && [ "$item_name" = "claude-flow" ]; then
-                        print_message "$YELLOW" "  ⊘ Skipping claude-flow/ (global app mode)"
-                        continue
-                    fi
-                    # In normal mode, skip claude-flow source (only install the app)
-                    if [ "$item_name" = "claude-flow" ]; then
-                        continue
-                    fi
                     cp -r "$item" "$TARGET_DIR/claude-helpers/"
                 done
             fi
             print_message "$GREEN" "  ✓ Copied helper scripts"
 
-            # Install Claude Flow desktop app only in non-global mode
-            if [ "$GLOBAL_APP_MODE" != true ]; then
-                if [ -d "$SCRIPT_DIR/claude-helpers/claude-flow/dist/Claude Flow.app" ]; then
-                    print_message "$BLUE" "Installing Claude Flow desktop app..."
-                    if [ "$DRY_RUN" != true ]; then
-                        mkdir -p "$TARGET_DIR/claude-helpers/claude-flow/dist"
-                        cp -r "$SCRIPT_DIR/claude-helpers/claude-flow/dist/Claude Flow.app" "$TARGET_DIR/claude-helpers/claude-flow/dist/"
-                    fi
-                    print_message "$GREEN" "  ✓ Installed Claude Flow.app"
-                else
-                    print_message "$YELLOW" "  ⚠ Claude Flow desktop app not found in dist/"
-                    print_message "$YELLOW" "    Build it first: cd claude-helpers/claude-flow && make build-app"
-                fi
-            fi
-
             # Handle .env.claude
-            if [ "$GLOBAL_APP_MODE" = true ]; then
-                print_message "$YELLOW" "  ⊘ Skipping .env.claude (global app mode - use Settings UI)"
-            elif [ -f "$SCRIPT_DIR/claude-helpers/.env.claude.example" ]; then
+            if [ -f "$SCRIPT_DIR/claude-helpers/.env.claude.example" ]; then
                 if [ ! -f "$TARGET_DIR/.env.claude" ]; then
                     if [ "$DRY_RUN" = true ]; then
                         print_message "$GREEN" "  [DRY RUN] Would create .env.claude from example"
@@ -463,21 +430,6 @@ main() {
             echo "  6. Use /project command to create project documentation"
             echo "  7. Start creating plans in thoughts/shared/plans/"
             echo "  8. Document research in thoughts/shared/research/"
-        fi
-
-        # Check if claude-flow was installed
-        if [ -d "$TARGET_DIR/claude-helpers/claude-flow" ]; then
-            echo ""
-            print_message "$BLUE" "Claude Flow (Kanban Board):"
-            if [ -d "$TARGET_DIR/claude-helpers/claude-flow/dist/Claude Flow.app" ]; then
-                echo "  Desktop App: Double-click claude-helpers/claude-flow/dist/Claude Flow.app"
-                echo "  Or run: open 'claude-helpers/claude-flow/dist/Claude Flow.app'"
-            else
-                echo "  Run: cd claude-helpers/claude-flow && make desktop"
-                echo "  Or manually:"
-                echo "    Backend:  cd claude-helpers/claude-flow && make run"
-                echo "    Frontend: cd claude-helpers/claude-flow/claude-flow-board && npm run dev"
-            fi
         fi
 
         echo ""

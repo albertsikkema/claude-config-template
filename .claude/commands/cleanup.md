@@ -302,8 +302,6 @@ Present a short summary of what was done:
 
 Your implementation is now properly documented with clean, permanent knowledge.
 
-**Note**: Ephemeral artifacts (plan, research, reviews) will be automatically deleted when you drag the task to "Done" in claude-flow.
-
 Recommended next step: /pr to create PR description
 ```
 

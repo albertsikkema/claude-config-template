@@ -3,21 +3,6 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 
-## Codebase Index
-
-**IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the codebase index:
-
-**`thoughts/codebase/codebase_overview_claude_flow_board_js_ts.md`**
-
-This index contains:
-- **Most Used Symbols**: Top functions/components by usage count
-- **Library Files**: All exports with descriptions and "used by" references
-- **API Endpoints**: All REST API routes
-- **Dependency Graph**: Which files are most imported
-
-Reading the index first saves tokens and improves accuracy.
-
-
 ## Repository Purpose
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
@@ -52,26 +37,6 @@ uv run claude-helpers/orchestrator.py "Add user authentication"
 uv run claude-helpers/orchestrator.py --no-implement "Refactor database"  # Stop after planning
 ```
 
-### Claude-Flow (subproject)
-
-```bash
-cd claude-helpers/claude-flow
-
-# Desktop app (recommended - single window, no ports to manage)
-make desktop   # Launch desktop app with full HMR
-
-# Build for distribution
-make build     # Build complete app (clean + frontend + backend)
-make install   # Build and install to /Applications
-
-# Development mode (split terminal setup)
-make dev       # Start development server (backend only)
-make test      # Run tests
-make lint      # Run linting
-```
-
-See [claude-helpers/claude-flow/README.md](claude-helpers/claude-flow/README.md) for details.
-
 ## Directory Structure
 
 ```
@@ -87,8 +52,7 @@ claude-helpers/
 ├── index_cpp.py      # C/C++ indexer
 ├── build_c4_diagrams.py  # C4 diagram generator
 ├── fetch-docs.py     # Documentation fetcher
-├── orchestrator.py   # Full workflow automation
-└── claude-flow/      # FastAPI backend for task management (subproject)
+└── orchestrator.py   # Full workflow automation
 
 thoughts/
 ├── templates/        # Documentation templates (project.md, todo.md, done.md)
@@ -174,106 +138,6 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 - Commands: plain markdown with instructions
 - Both read by Claude Code at runtime
 
-## Claude-Flow Architecture
-
-The `claude-helpers/claude-flow/` subproject implements these patterns:
-
-### Desktop App (Per-Repo PyWebView)
-Claude-Flow runs as a **per-repo desktop application** using PyWebView:
-- **Lightweight**: Uses system WebView (~10MB vs Electron's ~100MB)
-- **Per-Repo Isolation**: Each repo gets its own app instance with dedicated port
-- **Dynamic Port Allocation**: Automatically finds available port, saves to `.claude-flow.port`
-- **Integrated Stack**: FastAPI serves both API routes and built React frontend
-- **No Node Runtime**: Frontend pre-built to `claude-flow-board/dist/`, served as static files
-
-**Launch**: `cd claude-helpers/claude-flow && make desktop`
-
-Architecture benefits:
-- Clean hook integration (each instance scoped to one repo)
-- No port conflicts across multiple repos
-- Simpler state management (no global state)
-- Single window UX instead of split terminal setup
-
-### Database Path
-Global location shared across all repos:
-- macOS: `~/Library/Application Support/claude-flow/kanban.db`
-- Windows: `%LOCALAPPDATA%/claude-flow/kanban.db`
-- Linux: `~/.local/share/claude-flow/kanban.db`
-
-To query the database directly:
-```bash
-sqlite3 ~/Library/Application\ Support/claude-flow/kanban.db "SELECT * FROM tasks;"
-sqlite3 ~/Library/Application\ Support/claude-flow/kanban.db "SELECT * FROM settings;"
-```
-
-### Fire-and-Forget API Pattern
-For background operations without progress tracking:
-- Sync HTTP handler spawns daemon thread
-- Thread creates isolated asyncio event loop
-- Returns immediately (<1s) while task runs in background
-- Use for: batch exports, background cleanup, doc fetching, security checks
-
-### Security Check UI Feature
-The Claude-Flow frontend provides a Security Check panel that triggers the `/security` command:
-- Click "Security Check" button in the header
-- Click "Run Security Check" to start comprehensive analysis
-- Reports are saved to `thoughts/shared/reviews/security-analysis-*.md`
-- Previous reports are listed with timestamps and file sizes
-- Click any report to view its markdown content
-
-**API Endpoints**:
-- `POST /api/security/check` - Start new security analysis (fire-and-forget)
-- `GET /api/security/checks` - List all security reports (most recent first)
-- `GET /api/security/report/{filename}` - Get report content
-
-**Security Features**:
-- 30-minute subprocess timeout prevents runaway processes
-- Path traversal protection with defense-in-depth validation
-- Filename pattern validation (only `security-analysis-*.md` allowed)
-
-### Slash Command Integration from Backend
-Read commands from `.claude/commands/`, strip frontmatter, inject context:
-```python
-# Read and strip YAML frontmatter
-cmd_content = read_slash_command("fetch_technical_docs")
-
-# Build prompt with context and constraints
-prompt = f"""{cmd_content}
-
-## Context
-{packages_list}
-
-**Important**: Skip discovery. Begin immediately.
-"""
-
-# Spawn Claude Code
-process = await asyncio.create_subprocess_exec(
-    CLAUDE_PATH, "--dangerously-skip-permissions",
-    "--model", "haiku", "-p", prompt,
-    cwd=str(PROJECT_ROOT)
-)
-```
-
-**Key aspects**:
-- Strip YAML frontmatter (metadata, not prompt content)
-- Add constraints to prevent Claude asking questions
-- Set HOME env var and cwd for path resolution
-- Use `--dangerously-skip-permissions` for automation
-
-Model selection: `haiku` (simple), `sonnet` (moderate), `opus` (complex)
-
-See: `thoughts/best_practices/backend-slash-command-integration.md`
-
-### Defense-in-Depth Validation
-Multiple independent layers for security-sensitive input:
-1. Pydantic constraints (types, bounds)
-2. Character whitelist
-3. Explicit security checks (path traversal)
-4. Downstream sanitization
-
-### Batch Operation Error Handling
-Per-item try/except with logging, continue processing on failure.
-
 ## Best Practices Reference
 
 Documented patterns in `thoughts/best_practices/`:
@@ -307,9 +171,7 @@ Documented patterns in `thoughts/best_practices/`:
 This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
 
 ### Available Index Files
-- `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts (25 Python files)
-- `codebase_overview_claude_flow_py.md` - Claude-Flow FastAPI backend (16 Python files)
-- `codebase_overview_claude_flow_board_js_ts.md` - Claude-Flow React frontend (100 TypeScript files)
+- `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts
 
 These files are automatically generated and kept up-to-date by the `/index_codebase` command.
 
