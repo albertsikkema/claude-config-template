@@ -28,7 +28,7 @@ SKIP_DIRS = {
     # IDE/Editor directories (may contain IDE-specific .py files)
     '.vscode', '.idea', '.vs', '.spyderproject', '.spyproject', '.ropeproject',
     # Claude configuration
-    '.claude', 'claude-helpers',
+    '.claude',
     # Logs and temporary directories
     'logs', 'tmp', 'temp',
     # Memories/documentation (not source code)

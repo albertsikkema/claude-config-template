@@ -2,11 +2,11 @@ You are tasked with indexing a codebase and generating comprehensive Markdown do
 
 ## Available Indexers
 
-The repository has four indexer scripts in `./claude-helpers/`:
-1. **claude-helpers/index_python.py** - For Python codebases
-2. **claude-helpers/index_js_ts.py** - For JavaScript/TypeScript/React codebases
-3. **claude-helpers/index_go.py** - For Go codebases
-4. **claude-helpers/index_cpp.py** - For C/C++ codebases
+The repository has four indexer scripts in `./.claude/helpers/`:
+1. **.claude/helpers/index_python.py** - For Python codebases
+2. **.claude/helpers/index_js_ts.py** - For JavaScript/TypeScript/React codebases
+3. **.claude/helpers/index_go.py** - For Go codebases
+4. **.claude/helpers/index_cpp.py** - For C/C++ codebases
 
 ## Your Task
 
@@ -60,16 +60,16 @@ The repository has four indexer scripts in `./claude-helpers/`:
 4. **Run the appropriate indexer(s)** automatically:
    ```bash
    # For Python
-   python ./claude-helpers/index_python.py <directory> -o memories/codebase/codebase_overview_<dirname>_py.md
+   python ./.claude/helpers/index_python.py <directory> -o memories/codebase/codebase_overview_<dirname>_py.md
 
    # For JavaScript/TypeScript
-   python ./claude-helpers/index_js_ts.py <directory> -o memories/codebase/codebase_overview_<dirname>_js_ts.md
+   python ./.claude/helpers/index_js_ts.py <directory> -o memories/codebase/codebase_overview_<dirname>_js_ts.md
 
    # For Go
-   python ./claude-helpers/index_go.py <directory> -o memories/codebase/codebase_overview_<dirname>_go.md
+   python ./.claude/helpers/index_go.py <directory> -o memories/codebase/codebase_overview_<dirname>_go.md
 
    # For C/C++
-   python ./claude-helpers/index_cpp.py <directory> -o memories/codebase/codebase_overview_<dirname>_cpp.md
+   python ./.claude/helpers/index_cpp.py <directory> -o memories/codebase/codebase_overview_<dirname>_cpp.md
    ```
 
    **Important**: All output files must be saved to `memories/codebase/` directory.
@@ -144,24 +144,24 @@ The repository has four indexer scripts in `./claude-helpers/`:
     - **Note**: The C/C++ indexer automatically skips common library directories like `JUCE`, `tracktion_engine`, `third_party`, `vendor`, `external`, etc.
 11. **FastAPI Detection**: If Python code is detected, check for FastAPI usage:
    - Look for `from fastapi import` or `import fastapi` in Python files
-   - If FastAPI is detected, attempt to fetch OpenAPI schema using `./claude-helpers/fetch_openapi.sh`
+   - If FastAPI is detected, attempt to fetch OpenAPI schema using `./.claude/helpers/fetch_openapi.sh`
    - Only run if a server might be running (non-intrusive check)
 
 ## Examples
 
 ### Auto-detect and index everything (root directory)
 ```bash
-python ./claude-helpers/index_python.py ./ -o memories/codebase/codebase_overview_root_py.md
-python ./claude-helpers/index_js_ts.py ./ -o memories/codebase/codebase_overview_root_js_ts.md
-python ./claude-helpers/index_go.py ./ -o memories/codebase/codebase_overview_root_go.md
-python ./claude-helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
+python ./.claude/helpers/index_python.py ./ -o memories/codebase/codebase_overview_root_py.md
+python ./.claude/helpers/index_js_ts.py ./ -o memories/codebase/codebase_overview_root_js_ts.md
+python ./.claude/helpers/index_go.py ./ -o memories/codebase/codebase_overview_root_go.md
+python ./.claude/helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
 ```
 
 ### Index specific directory (backend)
 ```bash
 # Directory: ./cc_wrapper/backend -> filename includes "backend"
 # Indexes entire backend structure (app/, tests/, pyproject.toml, etc.)
-python ./claude-helpers/index_python.py ./cc_wrapper/backend -o memories/codebase/codebase_overview_backend_py.md
+python ./.claude/helpers/index_python.py ./cc_wrapper/backend -o memories/codebase/codebase_overview_backend_py.md
 ```
 
 ### Index specific directory (frontend)
@@ -169,14 +169,14 @@ python ./claude-helpers/index_python.py ./cc_wrapper/backend -o memories/codebas
 # Directory: ./cc_wrapper/frontend -> filename includes "frontend"
 # Indexes entire frontend structure (src/, public/, config files)
 # Includes both .js and .ts files
-python ./claude-helpers/index_js_ts.py ./cc_wrapper/frontend -o memories/codebase/codebase_overview_frontend_js_ts.md
+python ./.claude/helpers/index_js_ts.py ./cc_wrapper/frontend -o memories/codebase/codebase_overview_frontend_js_ts.md
 ```
 
 ### Index specific directory (Go backend)
 ```bash
 # Directory: ./backend -> filename includes "backend"
 # Indexes entire Go backend structure (cmd/, pkg/, internal/, go.mod)
-python ./claude-helpers/index_go.py ./backend -o memories/codebase/codebase_overview_backend_go.md
+python ./.claude/helpers/index_go.py ./backend -o memories/codebase/codebase_overview_backend_go.md
 ```
 
 ### Index specific directory (C/C++ source)
@@ -184,20 +184,20 @@ python ./claude-helpers/index_go.py ./backend -o memories/codebase/codebase_over
 # Directory: ./Source -> filename includes "Source"
 # Indexes C/C++ source files (classes, structs, functions, enums)
 # Automatically skips library directories (JUCE, tracktion_engine, etc.)
-python ./claude-helpers/index_cpp.py ./Source -o memories/codebase/codebase_overview_Source_cpp.md
+python ./.claude/helpers/index_cpp.py ./Source -o memories/codebase/codebase_overview_Source_cpp.md
 
 # Or index from root (will skip build/, third_party/, etc.)
-python ./claude-helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
+python ./.claude/helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
 ```
 
 ### Fetch FastAPI OpenAPI schema (if FastAPI detected)
 ```bash
 # Check for FastAPI imports in Python files
 # If found, run with auto-detection:
-bash ./claude-helpers/fetch_openapi.sh auto memories/codebase/openapi.json
+bash ./.claude/helpers/fetch_openapi.sh auto memories/codebase/openapi.json
 
 # Or specify port explicitly:
-bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/openapi.json
+bash ./.claude/helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/openapi.json
 ```
 
 ## Notes
@@ -214,9 +214,9 @@ bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/o
 When FastAPI is detected:
 1. Use Grep to search for `from fastapi import|import fastapi` in `.py` files
 2. If found, inform user that FastAPI was detected
-3. Run `bash ./claude-helpers/fetch_openapi.sh auto memories/codebase/openapi.json`
+3. Run `bash ./.claude/helpers/fetch_openapi.sh auto memories/codebase/openapi.json`
    - The script will auto-detect ports 8000-8010 for running FastAPI servers
-   - Or user can specify explicit URL: `bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/openapi.json`
+   - Or user can specify explicit URL: `bash ./.claude/helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/openapi.json`
 4. The script will:
    - Auto-detect running FastAPI server on common ports (8000-8010) if "auto" is specified
    - Check if server is running at `/health` or `/docs` endpoint

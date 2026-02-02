@@ -14,13 +14,13 @@ Collect comprehensive metadata about your development environment, git repositor
 
 ```bash
 # Generate metadata
-bash claude-helpers/spec_metadata.sh
+bash .claude/helpers/spec_metadata.sh
 
 # Capture to file
-bash claude-helpers/spec_metadata.sh > metadata.txt
+bash .claude/helpers/spec_metadata.sh > metadata.txt
 
 # Include in document
-bash claude-helpers/spec_metadata.sh >> memories/shared/plans/my-plan.md
+bash .claude/helpers/spec_metadata.sh >> memories/shared/plans/my-plan.md
 ```
 
 ## Output
@@ -108,7 +108,7 @@ cat > memories/shared/plans/2025-10-18-oauth-support.md << 'EOF'
 ## Metadata
 EOF
 
-bash claude-helpers/spec_metadata.sh >> memories/shared/plans/2025-10-18-oauth-support.md
+bash .claude/helpers/spec_metadata.sh >> memories/shared/plans/2025-10-18-oauth-support.md
 
 cat >> memories/shared/plans/2025-10-18-oauth-support.md << 'EOF'
 
@@ -123,7 +123,7 @@ Use the filename timestamp for versioning:
 
 ```bash
 # Get timestamp for filename
-TIMESTAMP=$(bash claude-helpers/spec_metadata.sh | grep "Timestamp For Filename" | cut -d: -f2 | xargs)
+TIMESTAMP=$(bash .claude/helpers/spec_metadata.sh | grep "Timestamp For Filename" | cut -d: -f2 | xargs)
 
 # Create timestamped file
 cp my-plan.md "my-plan-${TIMESTAMP}.md"
@@ -135,11 +135,11 @@ Capture git context in commit messages or PRs:
 
 ```bash
 # Add to commit message
-bash claude-helpers/spec_metadata.sh > /tmp/metadata.txt
+bash .claude/helpers/spec_metadata.sh > /tmp/metadata.txt
 git commit -F /tmp/metadata.txt
 
 # Include in PR description
-bash claude-helpers/spec_metadata.sh > pr-metadata.txt
+bash .claude/helpers/spec_metadata.sh > pr-metadata.txt
 ```
 
 ### 4. Session Tracking
@@ -149,7 +149,7 @@ Link documentation to specific Claude Code sessions:
 ```bash
 # In your plan or research document
 echo "## Session Metadata" >> my-research.md
-bash claude-helpers/spec_metadata.sh >> my-research.md
+bash .claude/helpers/spec_metadata.sh >> my-research.md
 ```
 
 ### 5. Audit Trail
@@ -159,7 +159,7 @@ Create audit log for important changes:
 ```bash
 # Log metadata for significant events
 echo "=== Deployment to Production ===" >> audit.log
-bash claude-helpers/spec_metadata.sh >> audit.log
+bash .claude/helpers/spec_metadata.sh >> audit.log
 echo "" >> audit.log
 ```
 
@@ -190,7 +190,7 @@ Track research session context:
 ```bash
 # Start research
 echo "# Authentication Research" > memories/shared/research/2025-10-18-auth.md
-bash claude-helpers/spec_metadata.sh >> memories/shared/research/2025-10-18-auth.md
+bash .claude/helpers/spec_metadata.sh >> memories/shared/research/2025-10-18-auth.md
 ```
 
 ### With ADRs
@@ -202,7 +202,7 @@ Record decision context:
 echo "# ADR 001: Use PostgreSQL for User Data" > memories/shared/adrs/001-postgresql.md
 echo "" >> memories/shared/adrs/001-postgresql.md
 echo "## Context" >> memories/shared/adrs/001-postgresql.md
-bash claude-helpers/spec_metadata.sh >> memories/shared/adrs/001-postgresql.md
+bash .claude/helpers/spec_metadata.sh >> memories/shared/adrs/001-postgresql.md
 ```
 
 ## Environment Detection
@@ -317,7 +317,7 @@ Track who made changes and when:
 
 ```bash
 # Regulatory documentation
-bash claude-helpers/spec_metadata.sh >> compliance/change-log.md
+bash .claude/helpers/spec_metadata.sh >> compliance/change-log.md
 ```
 
 ### 2. Team Collaboration
@@ -326,7 +326,7 @@ Identify work ownership:
 
 ```bash
 # Research by multiple team members
-bash claude-helpers/spec_metadata.sh > research/team-member-context.txt
+bash .claude/helpers/spec_metadata.sh > research/team-member-context.txt
 ```
 
 ### 3. Time Tracking
@@ -335,7 +335,7 @@ Correlate work with time periods:
 
 ```bash
 # Weekly reports
-bash claude-helpers/spec_metadata.sh >> reports/week-42-2025.md
+bash .claude/helpers/spec_metadata.sh >> reports/week-42-2025.md
 ```
 
 ### 4. Debugging
@@ -344,7 +344,7 @@ Trace when issues were introduced:
 
 ```bash
 # Bug investigation
-bash claude-helpers/spec_metadata.sh > debug/issue-123-context.txt
+bash .claude/helpers/spec_metadata.sh > debug/issue-123-context.txt
 ```
 
 ### 5. Documentation
@@ -353,7 +353,7 @@ Maintain documentation freshness:
 
 ```bash
 # Last updated metadata
-bash claude-helpers/spec_metadata.sh > docs/last-updated.txt
+bash .claude/helpers/spec_metadata.sh > docs/last-updated.txt
 ```
 
 ## Advanced Usage
@@ -364,13 +364,13 @@ Extract specific fields:
 
 ```bash
 # Get just the UUID
-bash claude-helpers/spec_metadata.sh | grep "UUID:" | cut -d' ' -f2
+bash .claude/helpers/spec_metadata.sh | grep "UUID:" | cut -d' ' -f2
 
 # Get just the timestamp
-bash claude-helpers/spec_metadata.sh | grep "Timestamp For Filename" | cut -d: -f2 | xargs
+bash .claude/helpers/spec_metadata.sh | grep "Timestamp For Filename" | cut -d: -f2 | xargs
 
 # Get just the branch
-bash claude-helpers/spec_metadata.sh | grep "Current Branch Name" | cut -d: -f2 | xargs
+bash .claude/helpers/spec_metadata.sh | grep "Current Branch Name" | cut -d: -f2 | xargs
 ```
 
 ### JSON Output
@@ -379,7 +379,7 @@ Convert to JSON for programmatic use:
 
 ```bash
 # Parse and convert to JSON
-bash claude-helpers/spec_metadata.sh | awk -F': ' '{print "\""$1"\": \""$2"\","}' | sed '$ s/,$//'
+bash .claude/helpers/spec_metadata.sh | awk -F': ' '{print "\""$1"\": \""$2"\","}' | sed '$ s/,$//'
 ```
 
 ### Integration with Scripts
@@ -396,7 +396,7 @@ cat > "$PLAN_FILE" << 'EOF'
 ## Metadata
 EOF
 
-bash claude-helpers/spec_metadata.sh >> "$PLAN_FILE"
+bash .claude/helpers/spec_metadata.sh >> "$PLAN_FILE"
 
 cat >> "$PLAN_FILE" << 'EOF'
 
@@ -443,7 +443,7 @@ Add to document templates:
 # [Document Title]
 
 ## Metadata
-[RUN: claude-helpers/spec_metadata.sh]
+[RUN: .claude/helpers/spec_metadata.sh]
 
 ## Content
 ...
@@ -456,7 +456,7 @@ Automatically capture metadata on commits:
 ```bash
 # .git/hooks/pre-commit
 #!/bin/bash
-bash claude-helpers/spec_metadata.sh > .git/commit-metadata.txt
+bash .claude/helpers/spec_metadata.sh > .git/commit-metadata.txt
 ```
 
 ### 3. Consistent Placement

@@ -171,7 +171,6 @@ update_gitignore() {
     # Determine which entries to add based on what was installed
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
-        entries_to_add+=("claude-helpers/")
         entries_to_add+=(".env.claude")
     fi
 
@@ -360,28 +359,28 @@ main() {
         fi
     fi
 
-    # Install claude-helpers
+    # Install .claude/helpers
     if [ "$INSTALL_CLAUDE" = true ]; then
-        if [ -d "$SCRIPT_DIR/claude-helpers" ]; then
-            print_header "Installing claude-helpers/"
+        if [ -d "$SCRIPT_DIR/.claude/helpers" ]; then
+            print_header "Installing .claude/helpers/"
 
-            # Copy claude-helpers directory
-            print_message "$BLUE" "Copying claude-helpers/ scripts..."
+            # Copy .claude/helpers directory
+            print_message "$BLUE" "Copying .claude/helpers/ scripts..."
             if [ "$DRY_RUN" != true ]; then
-                mkdir -p "$TARGET_DIR/claude-helpers"
-                for item in "$SCRIPT_DIR/claude-helpers"/*; do
-                    cp -r "$item" "$TARGET_DIR/claude-helpers/"
+                mkdir -p "$TARGET_DIR/.claude/helpers"
+                for item in "$SCRIPT_DIR/.claude/helpers"/*; do
+                    cp -r "$item" "$TARGET_DIR/.claude/helpers/"
                 done
             fi
             print_message "$GREEN" "  ✓ Copied helper scripts"
 
             # Handle .env.claude
-            if [ -f "$SCRIPT_DIR/claude-helpers/.env.claude.example" ]; then
+            if [ -f "$SCRIPT_DIR/.claude/helpers/.env.claude.example" ]; then
                 if [ ! -f "$TARGET_DIR/.env.claude" ]; then
                     if [ "$DRY_RUN" = true ]; then
                         print_message "$GREEN" "  [DRY RUN] Would create .env.claude from example"
                     else
-                        cp "$SCRIPT_DIR/claude-helpers/.env.claude.example" "$TARGET_DIR/.env.claude"
+                        cp "$SCRIPT_DIR/.claude/helpers/.env.claude.example" "$TARGET_DIR/.env.claude"
                         print_message "$GREEN" "  ✓ Created .env.claude (configure your API keys)"
                     fi
                 else

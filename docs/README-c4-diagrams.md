@@ -36,30 +36,30 @@ For direct script invocation or automation:
 
 ```bash
 # Build all diagrams in default directory to SVG
-python claude-helpers/build_c4_diagrams.py
+python .claude/helpers/build_c4_diagrams.py
 
 # Build to PNG format
-python claude-helpers/build_c4_diagrams.py --format png
+python .claude/helpers/build_c4_diagrams.py --format png
 
 # Build to both PNG and SVG
-python claude-helpers/build_c4_diagrams.py --format both
+python .claude/helpers/build_c4_diagrams.py --format both
 ```
 
 ### Custom Directory
 
 ```bash
 # Build diagrams from a specific directory
-python claude-helpers/build_c4_diagrams.py --dir path/to/diagrams
+python .claude/helpers/build_c4_diagrams.py --dir path/to/diagrams
 
 # Example: Custom architecture docs location
-python claude-helpers/build_c4_diagrams.py --dir docs/architecture
+python .claude/helpers/build_c4_diagrams.py --dir docs/architecture
 ```
 
 ### Force Docker Usage
 
 ```bash
 # Use Docker even if plantuml is installed locally
-python claude-helpers/build_c4_diagrams.py --docker
+python .claude/helpers/build_c4_diagrams.py --docker
 ```
 
 ## How It Works
@@ -91,7 +91,7 @@ memories/shared/research/c4-diagrams-plantuml/
 ## Command-Line Options
 
 ```bash
-python claude-helpers/build_c4_diagrams.py [OPTIONS]
+python .claude/helpers/build_c4_diagrams.py [OPTIONS]
 
 Options:
   --format FORMAT    Output format: png, svg, or both
@@ -158,7 +158,7 @@ docker --version
 
 ```bash
 # Build all diagrams
-python claude-helpers/build_c4_diagrams.py
+python .claude/helpers/build_c4_diagrams.py
 
 # Or via slash command
 /build_c4_docs
@@ -227,7 +227,7 @@ Add to GitHub Actions:
 
 **Example:**
 ```bash
-python claude-helpers/build_c4_diagrams.py --format png
+python .claude/helpers/build_c4_diagrams.py --format png
 ```
 
 ### SVG (Vector)
@@ -245,7 +245,7 @@ python claude-helpers/build_c4_diagrams.py --format png
 
 **Example:**
 ```bash
-python claude-helpers/build_c4_diagrams.py --format svg
+python .claude/helpers/build_c4_diagrams.py --format svg
 ```
 
 ### PDF
@@ -269,7 +269,7 @@ plantuml -tpdf *.puml
 
 **Example:**
 ```bash
-python claude-helpers/build_c4_diagrams.py --format both
+python .claude/helpers/build_c4_diagrams.py --format both
 ```
 
 ## PlantUML Layout and Styling
@@ -385,7 +385,7 @@ Always include at the end of your diagram for automatic documentation of element
 
 ```bash
 # Build all diagrams in memories/shared/research/c4-diagrams-plantuml/
-python claude-helpers/build_c4_diagrams.py
+python .claude/helpers/build_c4_diagrams.py
 ```
 
 **Output:**
@@ -411,7 +411,7 @@ Output directory: /path/to/memories/shared/research/c4-diagrams-plantuml
 
 ```bash
 # Build diagrams from docs/architecture/
-python claude-helpers/build_c4_diagrams.py \
+python .claude/helpers/build_c4_diagrams.py \
   --dir docs/architecture \
   --format both
 ```
@@ -420,7 +420,7 @@ python claude-helpers/build_c4_diagrams.py \
 
 ```bash
 # Force Docker usage (useful for CI/CD or containerized environments)
-python claude-helpers/build_c4_diagrams.py --docker --format png
+python .claude/helpers/build_c4_diagrams.py --docker --format png
 ```
 
 **Output:**
@@ -465,7 +465,7 @@ Claude will create files like:
 
 **Or manually:**
 ```bash
-python claude-helpers/build_c4_diagrams.py
+python .claude/helpers/build_c4_diagrams.py
 ```
 
 ### 3. Include in Documentation
@@ -566,7 +566,7 @@ brew install plantuml
 ls memories/shared/research/c4-diagrams-plantuml/*.puml
 
 # Specify correct directory
-python claude-helpers/build_c4_diagrams.py --dir /path/to/diagrams
+python .claude/helpers/build_c4_diagrams.py --dir /path/to/diagrams
 ```
 
 ### "Error building diagrams"
@@ -663,13 +663,13 @@ memories/shared/research/
 **Choose based on use case:**
 ```bash
 # Documentation only → SVG (smaller, scalable)
-python claude-helpers/build_c4_diagrams.py --format svg
+python .claude/helpers/build_c4_diagrams.py --format svg
 
 # Presentations only → PNG (universal compatibility)
-python claude-helpers/build_c4_diagrams.py --format png
+python .claude/helpers/build_c4_diagrams.py --format png
 
 # Mixed usage → Both formats
-python claude-helpers/build_c4_diagrams.py --format both
+python .claude/helpers/build_c4_diagrams.py --format both
 
 # Printing → PDF
 plantuml -tpdf *.puml
@@ -697,11 +697,11 @@ LAYOUT_LEFT_RIGHT()   ' Show layer progression: API → Business → Data
 **Rebuild when diagrams change:**
 ```bash
 # After updating .puml files
-python claude-helpers/build_c4_diagrams.py
+python .claude/helpers/build_c4_diagrams.py
 
 # Automate with file watcher (optional)
 # fswatch -o memories/shared/research/c4-diagrams-plantuml/*.puml | \
-#   xargs -n1 -I{} python claude-helpers/build_c4_diagrams.py
+#   xargs -n1 -I{} python .claude/helpers/build_c4_diagrams.py
 ```
 
 ## Performance

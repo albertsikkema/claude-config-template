@@ -196,7 +196,7 @@ Examine architectural and coding security:
 
 #### **Step 1: Gather Metadata**
 
-Before creating the report, run `claude-helpers/spec_metadata.sh` to generate all relevant metadata:
+Before creating the report, run `.claude/helpers/spec_metadata.sh` to generate all relevant metadata:
 
 This provides:
 - Current date and time with timezone (ISO format)

@@ -122,6 +122,15 @@ your-project/
 ├── .claude/
 │   ├── agents/              # 12 specialized agents
 │   ├── commands/            # 14 slash commands
+│   ├── helpers/             # Utility scripts
+│   │   ├── README.md            # Scripts overview
+│   │   ├── index_python.py      # Python codebase indexer
+│   │   ├── index_js_ts.py       # JavaScript/TypeScript codebase indexer
+│   │   ├── index_go.py          # Go codebase indexer
+│   │   ├── build_c4_diagrams.py # C4 PlantUML diagram builder
+│   │   ├── fetch-docs.py        # Documentation fetcher
+│   │   ├── fetch_openapi.sh     # OpenAPI schema fetcher
+│   │   └── spec_metadata.sh     # Metadata generator
 │   └── settings.json        # Configuration and hooks
 │
 ├── docs/                    # Helper script documentation
@@ -130,16 +139,6 @@ your-project/
 │   ├── README-c4-diagrams.md    # C4 architecture diagrams guide
 │   ├── README-fetch-openapi.md  # OpenAPI fetcher guide
 │   └── README-spec-metadata.md  # Metadata generator guide
-│
-├── claude-helpers/          # Utility scripts
-│   ├── README.md            # Scripts overview
-│   ├── index_python.py      # Python codebase indexer
-│   ├── index_js_ts.py       # JavaScript/TypeScript codebase indexer
-│   ├── index_go.py          # Go codebase indexer
-│   ├── build_c4_diagrams.py # C4 PlantUML diagram builder
-│   ├── fetch-docs.py        # Documentation fetcher
-│   ├── fetch_openapi.sh     # OpenAPI schema fetcher
-│   └── spec_metadata.sh     # Metadata generator
 │
 └── memories/
     ├── templates/           # Documentation templates
@@ -234,13 +233,13 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 **Note**:
 - The remote installer (`install.sh`) downloads the repository, installs to your current directory, and cleans up automatically
 - For manual installation from a cloned repository, use `install-helper.sh`
-- The installer automatically updates your project's `.gitignore` to exclude `.claude/`, `memories/`, and `claude-helpers/`
+- The installer automatically updates your project's `.gitignore` to exclude `.claude/` and `memories/`
 - **Default behavior**: `.claude/` is always updated, `memories/` preserves existing content and adds missing directories
 - **With `--force`**: Completely replaces `memories/` directory, removing all plans, research, and project docs
 
 ## 📚 Helper Scripts & Documentation
 
-This template includes several utility scripts in the `claude-helpers/` directory:
+This template includes several utility scripts in the `.claude/helpers/` directory:
 
 - **Codebase Indexers**: Generate searchable markdown documentation
   - `index_python.py` - Index Python codebases (functions, classes, models)
@@ -272,32 +271,32 @@ This template includes several utility scripts in the `claude-helpers/` director
   **Commands:**
   ```bash
   # Full automated flow (non-interactive except commit)
-  uv run claude-helpers/orchestrator.py "Add user authentication"
+  uv run .claude/helpers/orchestrator.py "Add user authentication"
 
   # Plan phase only (interactive planning session)
-  uv run claude-helpers/orchestrator.py --phase plan "Add user authentication"
+  uv run .claude/helpers/orchestrator.py --phase plan "Add user authentication"
 
   # Plan phase, skip query refinement (interactive planning only)
-  uv run claude-helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
+  uv run .claude/helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
 
   # Implement phase (interactive code review)
-  uv run claude-helpers/orchestrator.py --phase implement memories/shared/plans/2026-02-01-feature.md
+  uv run .claude/helpers/orchestrator.py --phase implement memories/shared/plans/2026-02-01-feature.md
 
   # Cleanup phase (interactive commit)
-  uv run claude-helpers/orchestrator.py --phase cleanup memories/shared/plans/2026-02-01-feature.md
+  uv run .claude/helpers/orchestrator.py --phase cleanup memories/shared/plans/2026-02-01-feature.md
 
   # Cleanup with research/review files
-  uv run claude-helpers/orchestrator.py --phase cleanup memories/shared/plans/2026-02-01-feature.md \
+  uv run .claude/helpers/orchestrator.py --phase cleanup memories/shared/plans/2026-02-01-feature.md \
     --research memories/shared/research/2026-02-01-research.md \
     --review memories/shared/reviews/2026-02-01-review.md
   ```
 
   **Aliases (add to ~/.zshrc or ~/.bashrc):**
   ```bash
-  alias orch='uv run claude-helpers/orchestrator.py'
-  alias orch-plan='uv run claude-helpers/orchestrator.py --phase plan'
-  alias orch-impl='uv run claude-helpers/orchestrator.py --phase implement'
-  alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
+  alias orch='uv run .claude/helpers/orchestrator.py'
+  alias orch-plan='uv run .claude/helpers/orchestrator.py --phase plan'
+  alias orch-impl='uv run .claude/helpers/orchestrator.py --phase implement'
+  alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
   ```
 
   Then use:
@@ -308,7 +307,7 @@ This template includes several utility scripts in the `claude-helpers/` director
   orch-clean memories/shared/plans/xxx.md  # Cleanup (interactive commit)
   ```
 
-**📖 Full scripts overview: [claude-helpers/README.md](claude-helpers/README.md)**
+**📖 Full scripts overview: [.claude/helpers/README.md](.claude/helpers/README.md)**
 
 ## 📚 Complete Development Workflow
 
@@ -437,10 +436,40 @@ Edit `.claude/settings.json`:
 ./uninstall.sh --force
 ```
 
-**Default behavior**: Removes `.claude/` and `claude-helpers/` but **preserves** `memories/` directory with your plans, research, and project docs.
+**Default behavior**: Removes `.claude/` but **preserves** `memories/` directory with your plans, research, and project docs.
 
 **With `--force`**: Removes **everything** including all your work in `memories/`.
 
+## 🔄 Migration Notes
+
+### Upgrading from versions with `claude-helpers/`
+
+**What changed**: The `claude-helpers/` directory has been moved to `.claude/helpers/`.
+
+**Why**: This change consolidates all Claude Code configuration into a single `.claude/` directory, creating a cleaner and more logical project structure. Previously, helper scripts lived in a separate top-level directory, but now everything related to Claude Code (agents, commands, helpers, and settings) is unified under `.claude/`.
+
+**If you're upgrading from an older installation**:
+
+1. **Remove the old directory** (if it still exists):
+   ```bash
+   rm -rf claude-helpers/
+   ```
+
+2. **Update your `.gitignore`** - remove the `claude-helpers/` entry if present (it's no longer needed since `.claude/` covers everything)
+
+3. **Update any shell aliases** you may have created:
+   ```bash
+   # Old aliases (update these)
+   alias orch='uv run claude-helpers/orchestrator.py'
+
+   # New aliases
+   alias orch='uv run .claude/helpers/orchestrator.py'
+   ```
+
+4. **Re-run the installer** to get the new structure:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash
+   ```
 
 ## 🌟 Key Features Explained
 
@@ -639,7 +668,7 @@ If agents aren't being recognized:
 
 **Git tracking configuration files**
 
-The installer automatically adds `.claude/`, `memories/`, and `claude-helpers/` to your `.gitignore`. If you want to track these:
+The installer automatically adds `.claude/`, `memories/`, and `.claude/helpers/` to your `.gitignore`. If you want to track these:
 - Edit `.gitignore` and remove the entries you want to track
 - Or use `git add -f` to force-add specific files
 

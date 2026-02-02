@@ -189,7 +189,7 @@ Once aligned on approach:
 After structure approval:
 
 1. **Gather metadata for the research document:**
-   - Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
+   - Run the `.claude/helpers/spec_metadata.sh` script to generate all relevant metadata
    - Filename: `memories/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date

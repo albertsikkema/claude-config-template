@@ -276,13 +276,13 @@ Create directory: `memories/shared/research/c4-diagrams-plantuml/`
    ### Option 2: Command Line
    ```bash
    # Generate SVG (default - all diagrams)
-   python claude-helpers/build_c4_diagrams.py
+   python .claude/helpers/build_c4_diagrams.py
 
    # Generate PNG instead
-   python claude-helpers/build_c4_diagrams.py --format png
+   python .claude/helpers/build_c4_diagrams.py --format png
 
    # Generate both PNG and SVG
-   python claude-helpers/build_c4_diagrams.py --format both
+   python .claude/helpers/build_c4_diagrams.py --format both
 
    # Or use plantuml directly
    plantuml -tsvg *.puml
@@ -309,7 +309,7 @@ Create directory: `memories/shared/research/c4-diagrams-plantuml/`
 
 Run the build script to generate SVG images:
 ```bash
-python claude-helpers/build_c4_diagrams.py
+python .claude/helpers/build_c4_diagrams.py
 ```
 
 This will:
@@ -319,8 +319,8 @@ This will:
 
 To generate PNG or both formats:
 ```bash
-python claude-helpers/build_c4_diagrams.py --format png
-python claude-helpers/build_c4_diagrams.py --format both
+python .claude/helpers/build_c4_diagrams.py --format png
+python .claude/helpers/build_c4_diagrams.py --format both
 ```
 
 ### 7. Update Main Document with Image Links
@@ -381,8 +381,8 @@ Present to the user:
 
 **Next Steps:**
 - View diagrams in VS Code with PlantUML extension (Option+D)
-- Rebuild diagrams: `python claude-helpers/build_c4_diagrams.py`
-- Generate PNG instead: `python claude-helpers/build_c4_diagrams.py --format png`
+- Rebuild diagrams: `python .claude/helpers/build_c4_diagrams.py`
+- Generate PNG instead: `python .claude/helpers/build_c4_diagrams.py --format png`
 - Update diagrams as the architecture evolves
 ```
 

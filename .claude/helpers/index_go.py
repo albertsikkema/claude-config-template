@@ -19,7 +19,7 @@ SKIP_DIRS = {
     # IDE/Editor directories
     '.vscode', '.idea', '.vs',
     # Claude configuration
-    '.claude', 'claude-helpers',
+    '.claude',
     # Logs and temporary directories
     'logs', 'tmp', 'temp',
     # Memories/documentation (not source code)

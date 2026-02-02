@@ -9,7 +9,7 @@ This script:
 4. Supports both local plantuml installation and Docker fallback
 
 Usage:
-    python claude-helpers/build_c4_diagrams.py [OPTIONS]
+    python .claude/helpers/build_c4_diagrams.py [OPTIONS]
 
 Options:
     --format FORMAT    Output format: png, svg, or both (default: both)

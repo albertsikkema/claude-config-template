@@ -49,27 +49,27 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 ```bash
 # Full automated flow (non-interactive except commit)
-uv run claude-helpers/orchestrator.py "Add user authentication"
+uv run .claude/helpers/orchestrator.py "Add user authentication"
 
 # Plan phase only (interactive)
-uv run claude-helpers/orchestrator.py --phase plan "Add user authentication"
+uv run .claude/helpers/orchestrator.py --phase plan "Add user authentication"
 
 # Plan phase, skip query refinement
-uv run claude-helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
+uv run .claude/helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
 
 # Implement phase (interactive review)
-uv run claude-helpers/orchestrator.py --phase implement memories/shared/plans/YYYY-MM-DD-feature.md
+uv run .claude/helpers/orchestrator.py --phase implement memories/shared/plans/YYYY-MM-DD-feature.md
 
 # Cleanup phase (interactive commit)
-uv run claude-helpers/orchestrator.py --phase cleanup memories/shared/plans/YYYY-MM-DD-feature.md
+uv run .claude/helpers/orchestrator.py --phase cleanup memories/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **Aliases (add to ~/.zshrc):**
 ```bash
-alias orch='uv run claude-helpers/orchestrator.py'
-alias orch-plan='uv run claude-helpers/orchestrator.py --phase plan'
-alias orch-impl='uv run claude-helpers/orchestrator.py --phase implement'
-alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
+alias orch='uv run .claude/helpers/orchestrator.py'
+alias orch-plan='uv run .claude/helpers/orchestrator.py --phase plan'
+alias orch-impl='uv run .claude/helpers/orchestrator.py --phase implement'
+alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
 ```
 
 ## Directory Structure
@@ -78,16 +78,15 @@ alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
 .claude/
 ├── agents/           # 12 specialized agents
 ├── commands/         # 14 slash commands
+├── helpers/          # Utility scripts
+│   ├── index_python.py   # Python codebase indexer
+│   ├── index_js_ts.py    # JavaScript/TypeScript indexer
+│   ├── index_go.py       # Go indexer
+│   ├── index_cpp.py      # C/C++ indexer
+│   ├── build_c4_diagrams.py  # C4 diagram generator
+│   ├── fetch-docs.py     # Documentation fetcher
+│   └── orchestrator.py   # Full workflow automation
 └── settings.json     # Permissions and hooks
-
-claude-helpers/
-├── index_python.py   # Python codebase indexer
-├── index_js_ts.py    # JavaScript/TypeScript indexer
-├── index_go.py       # Go indexer
-├── index_cpp.py      # C/C++ indexer
-├── build_c4_diagrams.py  # C4 diagram generator
-├── fetch-docs.py     # Documentation fetcher
-└── orchestrator.py   # Full workflow automation
 
 memories/
 ├── templates/        # Documentation templates (project.md, todo.md, done.md)

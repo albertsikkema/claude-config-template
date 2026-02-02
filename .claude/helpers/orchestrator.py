@@ -16,19 +16,19 @@ Plan Phase Flow:
     5. Create implementation plan
 
 Usage:
-    uv run claude-helpers/orchestrator.py "Add user authentication"              # Run all phases
-    uv run claude-helpers/orchestrator.py --phase plan "Add user authentication" # Plan phase only
-    uv run claude-helpers/orchestrator.py --phase implement path/to/plan.md      # Implement phase
-    uv run claude-helpers/orchestrator.py --phase cleanup path/to/plan.md        # Cleanup phase
-    uv run claude-helpers/orchestrator.py --no-refine "Quick fix"                # Skip query refinement
+    uv run .claude/helpers/orchestrator.py "Add user authentication"              # Run all phases
+    uv run .claude/helpers/orchestrator.py --phase plan "Add user authentication" # Plan phase only
+    uv run .claude/helpers/orchestrator.py --phase implement path/to/plan.md      # Implement phase
+    uv run .claude/helpers/orchestrator.py --phase cleanup path/to/plan.md        # Cleanup phase
+    uv run .claude/helpers/orchestrator.py --no-refine "Quick fix"                # Skip query refinement
 
 Aliases: Add to ~/.zshrc or ~/.bashrc:
 
     # Orchestrator aliases
-    alias orch='uv run claude-helpers/orchestrator.py'
-    alias orch-plan='uv run claude-helpers/orchestrator.py --phase plan'
-    alias orch-impl='uv run claude-helpers/orchestrator.py --phase implement'
-    alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
+    alias orch='uv run .claude/helpers/orchestrator.py'
+    alias orch-plan='uv run .claude/helpers/orchestrator.py --phase plan'
+    alias orch-impl='uv run .claude/helpers/orchestrator.py --phase implement'
+    alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
 
 Then use:
     orch "Add user authentication"           # All phases (with interactive refinement)

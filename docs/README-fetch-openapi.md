@@ -16,17 +16,17 @@ Automatically fetch OpenAPI/Swagger schemas from running FastAPI servers.
 
 ```bash
 # Auto-detect running server on ports 8000-8010 (RECOMMENDED)
-bash claude-helpers/fetch_openapi.sh auto
+bash .claude/helpers/fetch_openapi.sh auto
 
 # Fetch from default localhost:8000
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # Fetch from custom URL
-bash claude-helpers/fetch_openapi.sh http://localhost:5000
+bash .claude/helpers/fetch_openapi.sh http://localhost:5000
 
 # Custom output file
-bash claude-helpers/fetch_openapi.sh auto my-api-schema.json
-bash claude-helpers/fetch_openapi.sh http://localhost:8000 my-api-schema.json
+bash .claude/helpers/fetch_openapi.sh auto my-api-schema.json
+bash .claude/helpers/fetch_openapi.sh http://localhost:8000 my-api-schema.json
 ```
 
 ### Via `/index_codebase` Command
@@ -46,7 +46,7 @@ Claude will:
 ## Usage
 
 ```bash
-bash claude-helpers/fetch_openapi.sh [BASE_URL] [OUTPUT_FILE]
+bash .claude/helpers/fetch_openapi.sh [BASE_URL] [OUTPUT_FILE]
 
 Arguments:
   BASE_URL      Base URL of FastAPI server or "auto" to auto-detect (default: auto)
@@ -60,18 +60,18 @@ Arguments:
 
 ```bash
 # Auto-detect (RECOMMENDED - works with any port 8000-8010)
-bash claude-helpers/fetch_openapi.sh auto
+bash .claude/helpers/fetch_openapi.sh auto
 # → Scans ports 8000-8010
 # → Automatically finds running server
 # → Saves to openapi.json
 
 # Default settings (assumes port 8000)
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 # → Fetches from http://localhost:8000
 # → Saves to openapi.json
 
 # Custom port
-bash claude-helpers/fetch_openapi.sh http://localhost:5000
+bash .claude/helpers/fetch_openapi.sh http://localhost:5000
 # → Fetches from http://localhost:5000
 # → Saves to openapi.json
 ```
@@ -80,17 +80,17 @@ bash claude-helpers/fetch_openapi.sh http://localhost:5000
 
 ```bash
 # Staging environment
-bash claude-helpers/fetch_openapi.sh https://staging-api.example.com staging-api.json
+bash .claude/helpers/fetch_openapi.sh https://staging-api.example.com staging-api.json
 
 # Production environment
-bash claude-helpers/fetch_openapi.sh https://api.example.com production-api.json
+bash .claude/helpers/fetch_openapi.sh https://api.example.com production-api.json
 ```
 
 ### Save to Thoughts Directory
 
 ```bash
 # Organized storage
-bash claude-helpers/fetch_openapi.sh http://localhost:8000 memories/codebase/openapi.json
+bash .claude/helpers/fetch_openapi.sh http://localhost:8000 memories/codebase/openapi.json
 ```
 
 ## How It Works
@@ -131,7 +131,7 @@ curl -s -f -o /dev/null --connect-timeout 2 "${BASE_URL}/health"
 Please either:
    1. Start your FastAPI server, or
    2. Specify the URL explicitly:
-      bash ./claude-helpers/fetch_openapi.sh http://localhost:YOUR_PORT
+      bash ./.claude/helpers/fetch_openapi.sh http://localhost:YOUR_PORT
 ```
 
 ### 3. Fetch OpenAPI Schema
@@ -257,7 +257,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 # Fetch latest schema
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # Generate client SDK
 openapi-generator-cli generate -i openapi.json -g python -o ./sdk
@@ -270,7 +270,7 @@ redoc-cli bundle openapi.json -o api-docs.html
 
 ```bash
 # Fetch schema
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # Import into Postman
 # File → Import → openapi.json
@@ -283,10 +283,10 @@ bash claude-helpers/fetch_openapi.sh
 
 ```bash
 # Fetch current version
-bash claude-helpers/fetch_openapi.sh http://localhost:8000 current.json
+bash .claude/helpers/fetch_openapi.sh http://localhost:8000 current.json
 
 # Fetch production version
-bash claude-helpers/fetch_openapi.sh https://api.example.com production.json
+bash .claude/helpers/fetch_openapi.sh https://api.example.com production.json
 
 # Compare
 diff current.json production.json
@@ -296,7 +296,7 @@ diff current.json production.json
 
 ```bash
 # In your CI pipeline
-bash claude-helpers/fetch_openapi.sh http://test-server:8000 openapi.json
+bash .claude/helpers/fetch_openapi.sh http://test-server:8000 openapi.json
 
 # Validate schema
 openapi-spec-validator openapi.json
@@ -359,10 +359,10 @@ open http://localhost:8000/docs
 **Solution:**
 ```bash
 # Use auto-detection (EASIEST)
-bash claude-helpers/fetch_openapi.sh auto
+bash .claude/helpers/fetch_openapi.sh auto
 
 # Or specify correct URL
-bash claude-helpers/fetch_openapi.sh http://localhost:5000
+bash .claude/helpers/fetch_openapi.sh http://localhost:5000
 
 # Check if server is on different port
 lsof -i :8000
@@ -380,7 +380,7 @@ lsof -i -P | grep LISTEN
 ls -la
 
 # Use writable directory
-bash claude-helpers/fetch_openapi.sh http://localhost:8000 /tmp/openapi.json
+bash .claude/helpers/fetch_openapi.sh http://localhost:8000 /tmp/openapi.json
 
 # Or fix permissions
 chmod +w .
@@ -399,7 +399,7 @@ When using `/index_codebase`, Claude:
 
 2. **Runs script with auto-detection:**
    ```bash
-   bash claude-helpers/fetch_openapi.sh auto memories/codebase/openapi.json
+   bash .claude/helpers/fetch_openapi.sh auto memories/codebase/openapi.json
    ```
 
 3. **Reports results:**
@@ -423,9 +423,9 @@ Claude: I'll fetch the OpenAPI schema using the fetch_openapi.sh script.
 
 ```bash
 # Create environment-specific schemas
-bash claude-helpers/fetch_openapi.sh http://localhost:8000 dev-openapi.json
-bash claude-helpers/fetch_openapi.sh https://staging.example.com staging-openapi.json
-bash claude-helpers/fetch_openapi.sh https://api.example.com prod-openapi.json
+bash .claude/helpers/fetch_openapi.sh http://localhost:8000 dev-openapi.json
+bash .claude/helpers/fetch_openapi.sh https://staging.example.com staging-openapi.json
+bash .claude/helpers/fetch_openapi.sh https://api.example.com prod-openapi.json
 ```
 
 ### Custom FastAPI Configuration
@@ -452,7 +452,7 @@ curl http://localhost:8000/api/v1/openapi.json -o openapi.json
 
 ```bash
 # Fetch schema
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # Validate with openapi-spec-validator
 pip install openapi-spec-validator
@@ -471,10 +471,10 @@ If your FastAPI server runs on a port outside 8000-8010, you can:
 
 **Option 1: Specify URL explicitly**
 ```bash
-bash claude-helpers/fetch_openapi.sh http://localhost:9000
+bash .claude/helpers/fetch_openapi.sh http://localhost:9000
 ```
 
-**Option 2: Edit the script** (edit `claude-helpers/fetch_openapi.sh:26`)
+**Option 2: Edit the script** (edit `.claude/helpers/fetch_openapi.sh:26`)
 ```bash
 # Change from:
 for port in {8000..8010}; do
@@ -498,10 +498,10 @@ If your app uses a different health endpoint, add it to the script at line 31-33
 
 ```bash
 # Before making API changes
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # After making API changes
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # Compare
 diff openapi-before.json openapi-after.json
@@ -522,7 +522,7 @@ git commit -m "docs: Update OpenAPI schema"
 
 ```bash
 # Fetch schema
-bash claude-helpers/fetch_openapi.sh
+bash .claude/helpers/fetch_openapi.sh
 
 # Use with API changelog tools
 npx openapi-diff openapi-old.json openapi.json

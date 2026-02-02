@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+**Directory Structure:**
+- Moved `claude-helpers/` to `.claude/helpers/` for unified configuration structure
+- All helper scripts now live inside `.claude/` directory alongside agents and commands
+- Updated all references in documentation, slash commands, and scripts
+- Installation/uninstall scripts updated to use new path
+
 ---
 
 ## [1.4.0] - 2025-11-05
@@ -69,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced interactive prompts for better PR descriptions
 
 **JavaScript/TypeScript Indexing:**
-- JavaScript indexing support: JavaScript/TypeScript indexer (`claude-helpers/index_js_ts.py`) now processes `.js` and `.jsx` files in addition to `.ts` and `.tsx` files
+- JavaScript indexing support: JavaScript/TypeScript indexer (`.claude/helpers/index_js_ts.py`) now processes `.js` and `.jsx` files in addition to `.ts` and `.tsx` files
 - Unified JavaScript/TypeScript documentation output with clear labeling
 - Better support for FastAPI static file directories and hybrid codebases
 - Documentation in `docs/README-indexers.md` explaining JavaScript support and showing comparison examples

@@ -11,7 +11,6 @@ NC='\033[0m' # No Color
 # Default options
 REMOVE_CLAUDE=true
 REMOVE_MEMORIES=true
-REMOVE_HELPERS=true
 FORCE_REMOVE=false
 DRY_RUN=false
 TARGET_DIR="."
@@ -185,9 +184,6 @@ main() {
         fi
     fi
 
-    if [ "$REMOVE_HELPERS" = true ] && check_exists "claude-helpers"; then
-        items_to_remove+=("claude-helpers/")
-    fi
 
     # Check if anything to remove
     if [ ${#items_to_remove[@]} -eq 0 ]; then
@@ -229,11 +225,6 @@ main() {
         fi
     fi
 
-    # Remove claude-helpers
-    if [ "$REMOVE_HELPERS" = true ]; then
-        print_header "Removing claude-helpers/"
-        remove_item "$TARGET_DIR/claude-helpers" "claude-helpers/ directory"
-    fi
 
     # Uninstallation complete
     print_header "Uninstallation Complete!"

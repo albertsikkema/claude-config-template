@@ -29,16 +29,16 @@ Claude will:
 
 ```bash
 # Python
-python claude-helpers/index_python.py ./backend -o codebase_overview_backend_py.md
+python .claude/helpers/index_python.py ./backend -o codebase_overview_backend_py.md
 
 # JavaScript/TypeScript
-python claude-helpers/index_js_ts.py ./frontend -o codebase_overview_frontend_js_ts.md
+python .claude/helpers/index_js_ts.py ./frontend -o codebase_overview_frontend_js_ts.md
 
 # Go
-python claude-helpers/index_go.py ./server -o codebase_overview_server_go.md
+python .claude/helpers/index_go.py ./server -o codebase_overview_server_go.md
 
 # C/C++
-python claude-helpers/index_cpp.py ./src -o codebase_overview_src_cpp.md
+python .claude/helpers/index_cpp.py ./src -o codebase_overview_src_cpp.md
 ```
 
 ## Features
@@ -139,7 +139,7 @@ The TypeScript indexer **also indexes JavaScript files** (`.js`, `.jsx`):
 **Example:**
 ```bash
 # Index both .js and .ts files in static directory
-python claude-helpers/index_js_ts.py ./static -o codebase_overview_static_js_ts.md
+python .claude/helpers/index_js_ts.py ./static -o codebase_overview_static_js_ts.md
 ```
 
 **What you'll see in output:**
@@ -299,7 +299,7 @@ All indexers generate markdown files with:
 All indexers support the same command-line interface:
 
 ```bash
-python claude-helpers/index_[python|ts|go].py [OPTIONS] [DIRECTORY]
+python .claude/helpers/index_[python|ts|go].py [OPTIONS] [DIRECTORY]
 
 Arguments:
   DIRECTORY         Directory to scan (default: ./)
@@ -317,16 +317,16 @@ Options:
 
 ```bash
 # Auto-detect and use defaults
-python claude-helpers/index_python.py
+python .claude/helpers/index_python.py
 # → Output: codebase_overview.md
 
-python claude-helpers/index_js_ts.py
+python .claude/helpers/index_js_ts.py
 # → Output: codebase_overview_js_ts.md
 
-python claude-helpers/index_go.py
+python .claude/helpers/index_go.py
 # → Output: codebase_overview_go.md
 
-python claude-helpers/index_cpp.py
+python .claude/helpers/index_cpp.py
 # → Output: codebase_overview_cpp.md
 ```
 
@@ -334,26 +334,26 @@ python claude-helpers/index_cpp.py
 
 ```bash
 # Backend Python code
-python claude-helpers/index_python.py ./backend -o backend_docs.md
+python .claude/helpers/index_python.py ./backend -o backend_docs.md
 
 # Frontend JavaScript/TypeScript code
-python claude-helpers/index_js_ts.py ./frontend/src -o frontend_docs.md
+python .claude/helpers/index_js_ts.py ./frontend/src -o frontend_docs.md
 
 # Go microservice
-python claude-helpers/index_go.py ./services/api -o api_docs.md
+python .claude/helpers/index_go.py ./services/api -o api_docs.md
 
 # C++ audio plugin
-python claude-helpers/index_cpp.py ./Source -o plugin_docs.md
+python .claude/helpers/index_cpp.py ./Source -o plugin_docs.md
 ```
 
 ### Nested Project Structure
 
 ```bash
 # Full-stack project
-python claude-helpers/index_python.py ./myapp/backend -o memories/codebase/backend_py.md
-python claude-helpers/index_js_ts.py ./myapp/frontend -o memories/codebase/frontend_js_ts.md
-python claude-helpers/index_go.py ./myapp/services -o memories/codebase/services_go.md
-python claude-helpers/index_cpp.py ./myapp/native -o memories/codebase/native_cpp.md
+python .claude/helpers/index_python.py ./myapp/backend -o memories/codebase/backend_py.md
+python .claude/helpers/index_js_ts.py ./myapp/frontend -o memories/codebase/frontend_js_ts.md
+python .claude/helpers/index_go.py ./myapp/services -o memories/codebase/services_go.md
+python .claude/helpers/index_cpp.py ./myapp/native -o memories/codebase/native_cpp.md
 ```
 
 ## Integration with `/index_codebase`
@@ -400,13 +400,13 @@ The `/index_codebase` slash command uses these scripts intelligently:
 **Index at the right level:**
 ```bash
 # ✅ Good - captures whole structure
-python claude-helpers/index_python.py ./backend
+python .claude/helpers/index_python.py ./backend
 
 # ❌ Too narrow - misses context
-python claude-helpers/index_python.py ./backend/app/services
+python .claude/helpers/index_python.py ./backend/app/services
 
 # ✅ Good - specific bounded context
-python claude-helpers/index_go.py ./services/payment
+python .claude/helpers/index_go.py ./services/payment
 ```
 
 ### Output Organization
@@ -414,10 +414,10 @@ python claude-helpers/index_go.py ./services/payment
 **Keep it organized:**
 ```bash
 # ✅ Recommended - save to memories/codebase/
-python claude-helpers/index_python.py ./backend -o memories/codebase/backend_py.md
+python .claude/helpers/index_python.py ./backend -o memories/codebase/backend_py.md
 
 # ❌ Avoid - clutters project root
-python claude-helpers/index_python.py ./backend -o backend_docs.md
+python .claude/helpers/index_python.py ./backend -o backend_docs.md
 ```
 
 ## Troubleshooting
@@ -432,7 +432,7 @@ python claude-helpers/index_python.py ./backend -o backend_docs.md
 ls **/*.py
 
 # Try parent directory
-python claude-helpers/index_python.py ../
+python .claude/helpers/index_python.py ../
 ```
 
 ### "Permission denied"
