@@ -163,7 +163,6 @@ Structure your analysis like this:
 - Use **Read** to examine specific files in detail
 - Use **Grep** to find function definitions, imports, or specific patterns
 - Use **Glob** to discover related files (e.g., all files in a directory)
-- Use **LS** to understand directory structure and file organization
 
 ### Recommended Workflow
 1. **🚨 MOST IMPORTANT**: `Glob` pattern `thoughts/codebase/**` to find codebase overview documentation files

@@ -39,7 +39,6 @@ Use your available tools strategically:
 1. **Codebase overview files first** (if they exist) - Quick Grep search for instant results
 2. **Grep tool** - Search for keywords, function names, class names in source code
 3. **Glob patterns** - Find files by extension or naming pattern
-4. **LS commands** - Explore directory structures
 5. **Combine approaches** - Use multiple methods to ensure thoroughness
 
 Search in this order:
