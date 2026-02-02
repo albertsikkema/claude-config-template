@@ -266,23 +266,46 @@ This template includes several utility scripts in the `claude-helpers/` director
   - **📖 See [docs/README-spec-metadata.md](docs/README-spec-metadata.md) for detailed guide**
 
 - **Orchestrator Agent**: Automate the full Claude Code workflow
-  - `orchestrator.py` - Runs index → research → plan → implement → review
-  - Supports both OpenAI and Azure OpenAI (auto-detected from `.env.claude`)
+  - `orchestrator.py` - Runs index → refine → docs → research → plan → implement → review → cleanup
   - Single-file script with `uv run` support
-  ```bash
-  # Create .env.claude with API key
-  echo "OPENAI_API_KEY=sk-..." > .env.claude
 
-  # Run full workflow
+  **Commands:**
+  ```bash
+  # Full automated flow (non-interactive except commit)
   uv run claude-helpers/orchestrator.py "Add user authentication"
 
-  # Stop after planning (no implementation)
-  uv run claude-helpers/orchestrator.py --no-implement "Refactor database"
+  # Plan phase only (interactive planning session)
+  uv run claude-helpers/orchestrator.py --phase plan "Add user authentication"
+
+  # Plan phase, skip query refinement (interactive planning only)
+  uv run claude-helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
+
+  # Implement phase (interactive code review)
+  uv run claude-helpers/orchestrator.py --phase implement thoughts/shared/plans/2026-02-01-feature.md
+
+  # Cleanup phase (interactive commit)
+  uv run claude-helpers/orchestrator.py --phase cleanup thoughts/shared/plans/2026-02-01-feature.md
+
+  # Cleanup with research/review files
+  uv run claude-helpers/orchestrator.py --phase cleanup thoughts/shared/plans/2026-02-01-feature.md \
+    --research thoughts/shared/research/2026-02-01-research.md \
+    --review thoughts/shared/reviews/2026-02-01-review.md
   ```
-  **Tip**: Add an alias for easy access:
+
+  **Aliases (add to ~/.zshrc or ~/.bashrc):**
   ```bash
-  # Add to ~/.zshrc or ~/.bashrc
-  alias orchestrate='uv run /path/to/claude-helpers/orchestrator.py'
+  alias orch='uv run claude-helpers/orchestrator.py'
+  alias orch-plan='uv run claude-helpers/orchestrator.py --phase plan'
+  alias orch-impl='uv run claude-helpers/orchestrator.py --phase implement'
+  alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
+  ```
+
+  Then use:
+  ```bash
+  orch "Add user authentication"           # Full flow (automated)
+  orch-plan "Add user authentication"      # Plan only (interactive)
+  orch-impl thoughts/shared/plans/xxx.md   # Implement (interactive review)
+  orch-clean thoughts/shared/plans/xxx.md  # Cleanup (interactive commit)
   ```
 
 **📖 Full scripts overview: [claude-helpers/README.md](claude-helpers/README.md)**

@@ -48,9 +48,28 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 ### Orchestrator (automated workflow)
 
 ```bash
-# Requires .env.claude with OPENAI_API_KEY
+# Full automated flow (non-interactive except commit)
 uv run claude-helpers/orchestrator.py "Add user authentication"
-uv run claude-helpers/orchestrator.py --no-implement "Refactor database"  # Stop after planning
+
+# Plan phase only (interactive)
+uv run claude-helpers/orchestrator.py --phase plan "Add user authentication"
+
+# Plan phase, skip query refinement
+uv run claude-helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
+
+# Implement phase (interactive review)
+uv run claude-helpers/orchestrator.py --phase implement thoughts/shared/plans/YYYY-MM-DD-feature.md
+
+# Cleanup phase (interactive commit)
+uv run claude-helpers/orchestrator.py --phase cleanup thoughts/shared/plans/YYYY-MM-DD-feature.md
+```
+
+**Aliases (add to ~/.zshrc):**
+```bash
+alias orch='uv run claude-helpers/orchestrator.py'
+alias orch-plan='uv run claude-helpers/orchestrator.py --phase plan'
+alias orch-impl='uv run claude-helpers/orchestrator.py --phase implement'
+alias orch-clean='uv run claude-helpers/orchestrator.py --phase cleanup'
 ```
 
 ## Directory Structure

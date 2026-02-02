@@ -258,6 +258,27 @@ def run_claude_interactive(prompt: str, cwd: str) -> int:
     return process.returncode
 
 
+def run_claude_interactive_command(initial_message: str, cwd: str, phase: str = '') -> tuple[int, float]:
+    """Run Claude interactively with an initial message (no output capture).
+
+    This is for interactive sessions where the user needs to interact with Claude.
+    Output goes directly to the terminal.
+
+    Returns:
+        Tuple of (return_code, elapsed_seconds)
+    """
+    if phase:
+        print_phase_header(phase)
+
+    start_time = time.time()
+    process = subprocess.run(
+        ['claude', '--dangerously-skip-permissions', initial_message],
+        cwd=cwd,
+    )
+    elapsed = time.time() - start_time
+    return process.returncode, elapsed
+
+
 def extract_file_path(output: str, path_type: str = 'research') -> str | None:
     """Extract file path from Claude Code output.
 
@@ -459,25 +480,42 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False,
 
 Please proceed with reasonable defaults based on the research."""
 
-    # Use -p flag in non-interactive mode for automated runs
     if non_interactive:
-        cmd = ['claude', '--dangerously-skip-permissions', '-p', prompt]
+        # Non-interactive: use -p flag and capture output
+        returncode, output, elapsed = run_claude_command(
+            ['claude', '--dangerously-skip-permissions', '-p', prompt],
+            cwd=project_path,
+            timeout=600,
+            phase='Planning'
+        )
+        if returncode != 0:
+            raise RuntimeError(f"Planning failed with code {returncode}")
+
+        plan_path = extract_file_path(output, 'plans')
+        if not plan_path:
+            raise RuntimeError("Could not extract plan file path from output")
+        stream_progress("Planning", f"Complete: {plan_path} ({format_duration(elapsed)})")
     else:
-        cmd = ['claude', '--dangerously-skip-permissions', prompt]
+        # Interactive: let user interact with Claude, no output capture
+        returncode, elapsed = run_claude_interactive_command(
+            prompt,
+            cwd=project_path,
+            phase='Planning'
+        )
+        if returncode != 0:
+            raise RuntimeError(f"Planning failed with code {returncode}")
 
-    returncode, output, elapsed = run_claude_command(
-        cmd,
-        cwd=project_path,
-        timeout=600,
-        phase='Planning'
-    )
-    if returncode != 0:
-        raise RuntimeError(f"Planning failed with code {returncode}")
+        # Find the most recent plan file (we can't extract from output in interactive mode)
+        plans_dir = Path(project_path) / 'thoughts' / 'shared' / 'plans'
+        if plans_dir.exists():
+            plan_files = sorted(plans_dir.glob('*.md'), key=lambda f: f.stat().st_mtime, reverse=True)
+            plan_path = str(plan_files[0].relative_to(project_path)) if plan_files else None
+        else:
+            plan_path = None
 
-    plan_path = extract_file_path(output, 'plans')
-    if not plan_path:
-        raise RuntimeError("Could not extract plan file path from output")
-    stream_progress("Planning", f"Complete: {plan_path} ({format_duration(elapsed)})")
+        if not plan_path:
+            raise RuntimeError("Could not find plan file after interactive session")
+        stream_progress("Planning", f"Complete: {plan_path} ({format_duration(elapsed)})")
 
     # Generate summary
     summary = f"""Plan Phase Complete
@@ -515,37 +553,53 @@ def run_phase_implement(plan_path: str, project_path: str,
     stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
 
     # Step 2: Code review (interactive so user can ask questions and suggest improvements)
-    # Use -p flag in non-interactive mode for automated runs
     if non_interactive:
-        cmd = ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer']
+        # Non-interactive: use -p flag and capture output
+        returncode, review_output, elapsed = run_claude_command(
+            ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer'],
+            cwd=project_path,
+            timeout=600,
+            phase='Review'
+        )
+        if returncode != 0:
+            raise RuntimeError(f"Code review failed with code {returncode}")
+
+        review_path = extract_file_path(review_output, 'reviews')
+        stream_progress("Review", f"Complete: {review_path or 'no file created'} ({format_duration(elapsed)})")
+
+        # Extract issues from review output (simple heuristic)
+        issues = []
+        skip_patterns = ['no critical', 'no issues', 'no problems', 'no bugs', 'no errors',
+                         'without issue', 'without error', 'none found', '0 issues', '0 errors']
+        for line in review_output.split('\n'):
+            line_lower = line.lower()
+            # Skip lines that indicate absence of issues
+            if any(skip in line_lower for skip in skip_patterns):
+                continue
+            if any(marker in line_lower for marker in ['critical', 'issue', 'problem', 'bug', 'error']):
+                cleaned = line.strip()
+                if cleaned and len(cleaned) > 10:  # Skip short/empty lines
+                    issues.append(cleaned)
     else:
-        cmd = ['claude', '--dangerously-skip-permissions', '/code_reviewer']
+        # Interactive: let user interact with Claude for review feedback
+        returncode, elapsed = run_claude_interactive_command(
+            '/code_reviewer',
+            cwd=project_path,
+            phase='Review'
+        )
+        if returncode != 0:
+            raise RuntimeError(f"Code review failed with code {returncode}")
 
-    returncode, review_output, elapsed = run_claude_command(
-        cmd,
-        cwd=project_path,
-        timeout=600,
-        phase='Review'
-    )
-    if returncode != 0:
-        raise RuntimeError(f"Code review failed with code {returncode}")
+        # Find the most recent review file
+        reviews_dir = Path(project_path) / 'thoughts' / 'shared' / 'reviews'
+        if reviews_dir.exists():
+            review_files = sorted(reviews_dir.glob('*.md'), key=lambda f: f.stat().st_mtime, reverse=True)
+            review_path = str(review_files[0].relative_to(project_path)) if review_files else None
+        else:
+            review_path = None
 
-    review_path = extract_file_path(review_output, 'reviews')
-    stream_progress("Review", f"Complete: {review_path or 'no file created'} ({format_duration(elapsed)})")
-
-    # Extract issues from review output (simple heuristic)
-    issues = []
-    skip_patterns = ['no critical', 'no issues', 'no problems', 'no bugs', 'no errors',
-                     'without issue', 'without error', 'none found', '0 issues', '0 errors']
-    for line in review_output.split('\n'):
-        line_lower = line.lower()
-        # Skip lines that indicate absence of issues
-        if any(skip in line_lower for skip in skip_patterns):
-            continue
-        if any(marker in line_lower for marker in ['critical', 'issue', 'problem', 'bug', 'error']):
-            cleaned = line.strip()
-            if cleaned and len(cleaned) > 10:  # Skip short/empty lines
-                issues.append(cleaned)
+        stream_progress("Review", f"Complete: {review_path or 'no file created'} ({format_duration(elapsed)})")
+        issues = []  # Can't extract issues from interactive session
 
     summary = f"""Implement Phase Complete
 
