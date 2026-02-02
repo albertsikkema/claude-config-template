@@ -79,7 +79,6 @@ logs/
 .env
 .env.local
 .env.*.local
-.env.claude
 
 # Node modules (if you add Node.js tooling)
 node_modules/

@@ -171,7 +171,6 @@ update_gitignore() {
     # Determine which entries to add based on what was installed
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
-        entries_to_add+=(".env.claude")
     fi
 
     if [ "$INSTALL_MEMORIES" = true ]; then
@@ -373,20 +372,6 @@ main() {
                 done
             fi
             print_message "$GREEN" "  ✓ Copied helper scripts"
-
-            # Handle .env.claude
-            if [ -f "$SCRIPT_DIR/.claude/helpers/.env.claude.example" ]; then
-                if [ ! -f "$TARGET_DIR/.env.claude" ]; then
-                    if [ "$DRY_RUN" = true ]; then
-                        print_message "$GREEN" "  [DRY RUN] Would create .env.claude from example"
-                    else
-                        cp "$SCRIPT_DIR/.claude/helpers/.env.claude.example" "$TARGET_DIR/.env.claude"
-                        print_message "$GREEN" "  ✓ Created .env.claude (configure your API keys)"
-                    fi
-                else
-                    print_message "$YELLOW" "  ⊘ .env.claude already exists, skipping"
-                fi
-            fi
         fi
     fi
 
@@ -418,10 +403,9 @@ main() {
         print_message "$BLUE" "Next steps:"
 
         if [ "$INSTALL_CLAUDE" = true ]; then
-            echo "  1. Configure .env.claude with your OpenAI or Azure OpenAI API keys"
-            echo "  2. Review .claude/settings.local.json and adjust permissions as needed"
-            echo "  3. Explore available agents in .claude/agents/"
-            echo "  4. Check out slash commands in .claude/commands/"
+            echo "  1. Review .claude/settings.local.json and adjust permissions as needed"
+            echo "  2. Explore available agents in .claude/agents/"
+            echo "  3. Check out slash commands in .claude/commands/"
         fi
 
         if [ "$INSTALL_MEMORIES" = true ]; then
