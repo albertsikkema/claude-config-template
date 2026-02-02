@@ -5,8 +5,8 @@ You are tasked with generating a comprehensive pull request description followin
 ## Steps to follow:
 
 1. **Read the PR description template:**
-   - First, check if `thoughts/templates/pr_description.md` exists
-   - If it doesn't exist, inform the user that their template setup is incomplete and they need to create a PR description template at `thoughts/templates/pr_description.md`
+   - First, check if `memories/templates/pr_description.md` exists
+   - If it doesn't exist, inform the user that their template setup is incomplete and they need to create a PR description template at `memories/templates/pr_description.md`
    - Read the template carefully to understand all sections and requirements
 
 2. **Identify the PR to describe:**
@@ -67,7 +67,7 @@ You are tasked with generating a comprehensive pull request description followin
      - Use `gh pr edit {number} --body-file [temp_file]`
      - Clean up the temporary file
      - Confirm the update was successful
-   - Optionally save the description to `thoughts/shared/prs/{number}_description.md` for reference
+   - Optionally save the description to `memories/shared/prs/{number}_description.md` for reference
    - If any verification steps remain unchecked, remind the user to complete them before merging
 
 ## Important notes:

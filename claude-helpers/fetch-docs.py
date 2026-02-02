@@ -21,7 +21,7 @@ from urllib.error import HTTPError, URLError
 
 # Configuration
 CONTEXT7_API = "https://context7.com/api/search"
-DOCS_DIR = "thoughts/technical_docs"
+DOCS_DIR = "memories/technical_docs"
 
 
 def http_get(url: str, timeout: int = 10) -> Optional[str]:

@@ -71,7 +71,7 @@ python claude-helpers/build_c4_diagrams.py --docker
 
 **Example Directory Before:**
 ```
-thoughts/shared/research/c4-diagrams-plantuml/
+memories/shared/research/c4-diagrams-plantuml/
 ├── context-diagram.puml
 ├── container-diagram.puml
 └── component-diagram.puml
@@ -79,7 +79,7 @@ thoughts/shared/research/c4-diagrams-plantuml/
 
 **Example Directory After:**
 ```
-thoughts/shared/research/c4-diagrams-plantuml/
+memories/shared/research/c4-diagrams-plantuml/
 ├── context-diagram.puml
 ├── context-diagram.svg        ← Generated
 ├── container-diagram.puml
@@ -98,7 +98,7 @@ Options:
                     Default: svg
 
   --dir PATH        Directory containing .puml files
-                    Default: thoughts/shared/research/c4-diagrams-plantuml
+                    Default: memories/shared/research/c4-diagrams-plantuml
 
   --docker          Force use of Docker instead of local plantuml
                     Useful if local installation has issues
@@ -207,7 +207,7 @@ Add to GitHub Actions:
 - name: Generate C4 Diagrams
   uses: cloudbees/plantuml-github-action@master
   with:
-    args: -tsvg -o output thoughts/shared/research/c4-diagrams-plantuml/*.puml
+    args: -tsvg -o output memories/shared/research/c4-diagrams-plantuml/*.puml
 ```
 
 ## Output Formats
@@ -384,7 +384,7 @@ Always include at the end of your diagram for automatic documentation of element
 ### Build Default Location
 
 ```bash
-# Build all diagrams in thoughts/shared/research/c4-diagrams-plantuml/
+# Build all diagrams in memories/shared/research/c4-diagrams-plantuml/
 python claude-helpers/build_c4_diagrams.py
 ```
 
@@ -404,7 +404,7 @@ Building component-diagram.puml to SVG...
 
 ✅ Successfully built 3 diagram(s) to SVG
 
-Output directory: /path/to/thoughts/shared/research/c4-diagrams-plantuml
+Output directory: /path/to/memories/shared/research/c4-diagrams-plantuml
 ```
 
 ### Custom Architecture Documentation
@@ -476,10 +476,10 @@ Reference the generated images in your documentation:
 ## System Architecture
 
 ### Context Diagram
-![Context Diagram](./thoughts/shared/research/c4-diagrams-plantuml/context-diagram.svg)
+![Context Diagram](./memories/shared/research/c4-diagrams-plantuml/context-diagram.svg)
 
 ### Container Diagram
-![Container Diagram](./thoughts/shared/research/c4-diagrams-plantuml/container-diagram.svg)
+![Container Diagram](./memories/shared/research/c4-diagrams-plantuml/container-diagram.svg)
 ```
 
 ### 4. Version Control
@@ -563,7 +563,7 @@ brew install plantuml
 **Solution:**
 ```bash
 # Check for .puml files
-ls thoughts/shared/research/c4-diagrams-plantuml/*.puml
+ls memories/shared/research/c4-diagrams-plantuml/*.puml
 
 # Specify correct directory
 python claude-helpers/build_c4_diagrams.py --dir /path/to/diagrams
@@ -631,7 +631,7 @@ sudo usermod -aG docker $USER
 
 **Recommended structure:**
 ```
-thoughts/shared/research/
+memories/shared/research/
 ├── c4-diagrams-plantuml/      # Source .puml files
 │   ├── system-context-diagram.puml
 │   ├── container-diagram.puml
@@ -700,7 +700,7 @@ LAYOUT_LEFT_RIGHT()   ' Show layer progression: API → Business → Data
 python claude-helpers/build_c4_diagrams.py
 
 # Automate with file watcher (optional)
-# fswatch -o thoughts/shared/research/c4-diagrams-plantuml/*.puml | \
+# fswatch -o memories/shared/research/c4-diagrams-plantuml/*.puml | \
 #   xargs -n1 -I{} python claude-helpers/build_c4_diagrams.py
 ```
 

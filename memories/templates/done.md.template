@@ -10,8 +10,8 @@
 
 ### Features
 - [x] [Feature description] (YYYY-MM-DD)
-  - Plan: `thoughts/shared/plans/YYYY-MM-DD-feature-name.md`
-  - Research: `thoughts/shared/research/YYYY-MM-DD-topic.md` (if applicable)
+  - Plan: `memories/shared/plans/YYYY-MM-DD-feature-name.md`
+  - Research: `memories/shared/research/YYYY-MM-DD-topic.md` (if applicable)
   - PR: #XXX
   - Notes: [Any key outcomes, metrics improved, lessons learned]
 
@@ -23,13 +23,13 @@
 
 ### Improvements
 - [x] [Improvement description] (YYYY-MM-DD)
-  - Plan: `thoughts/shared/plans/...` (if applicable)
+  - Plan: `memories/shared/plans/...` (if applicable)
   - PR: #XXX
 
 ### Technical & Infrastructure
 - [x] [Technical work description] (YYYY-MM-DD)
-  - Plan: `thoughts/shared/plans/...` (if applicable)
-  - ADR: `thoughts/shared/adrs/NNN-decision-title.md` (if decision was made)
+  - Plan: `memories/shared/plans/...` (if applicable)
+  - ADR: `memories/shared/adrs/NNN-decision-title.md` (if decision was made)
   - PR: #XXX
 
 ---

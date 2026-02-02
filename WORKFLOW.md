@@ -92,8 +92,8 @@ _Important but not blocking launch._
 
 ### Features
 - [x] Feature description (2025-10-20)
-  - Plan: `thoughts/shared/plans/2025-10-20-feature.md`
-  - Research: `thoughts/shared/research/2025-10-15-topic.md`
+  - Plan: `memories/shared/plans/2025-10-20-feature.md`
+  - Research: `memories/shared/research/2025-10-15-topic.md`
   - PR: #123
   - Notes: Key outcomes, metrics improved, lessons learned
 
@@ -214,7 +214,7 @@ Phase 8: Commit & PR
 
 **Output:**
 ```
-thoughts/codebase/
+memories/codebase/
 ├── codebase_overview_backend_py.md     # Python index
 ├── codebase_overview_frontend_ts.md    # TypeScript index
 └── openapi.json                        # FastAPI schema (if applicable)
@@ -235,9 +235,9 @@ Found TypeScript project in: frontend/
 Detected FastAPI - fetching OpenAPI schema...
 
 Indexing complete:
-- thoughts/codebase/codebase_overview_backend_py.md (2,453 lines)
-- thoughts/codebase/codebase_overview_frontend_ts.md (1,892 lines)
-- thoughts/codebase/openapi.json (FastAPI endpoints)
+- memories/codebase/codebase_overview_backend_py.md (2,453 lines)
+- memories/codebase/codebase_overview_frontend_ts.md (1,892 lines)
+- memories/codebase/openapi.json (FastAPI endpoints)
 
 Future research and planning will be much faster!
 ```
@@ -262,11 +262,11 @@ Future research and planning will be much faster!
 - Creates customized project documentation from templates
 - Interactive process with targeted questions
 - Ensures consistency with existing documentation
-- Saves to `thoughts/shared/project/`
+- Saves to `memories/shared/project/`
 
 **Typical Documents Created:**
 ```
-thoughts/shared/project/
+memories/shared/project/
 ├── project.md                   # Project context (what/why/stack/constraints)
 ├── todo.md                      # Active work (Must Haves/Should Haves)
 └── done.md                      # Completed work history with traceability
@@ -284,17 +284,17 @@ What are the must-have features for MVP?
 [Claude asks targeted questions based on context]
 
 Creating documentation...
-✓ thoughts/shared/project/project.md
-✓ thoughts/shared/project/todo.md
-✓ thoughts/shared/project/done.md
+✓ memories/shared/project/project.md
+✓ memories/shared/project/todo.md
+✓ memories/shared/project/done.md
 
 Your project documentation is ready!
 ```
 
 **Templates Used:**
-- `thoughts/templates/project.md.template` - Project context
-- `thoughts/templates/todo.md.template` - Active work tracking
-- `thoughts/templates/done.md.template` - Completed work history
+- `memories/templates/project.md.template` - Project context
+- `memories/templates/todo.md.template` - Active work tracking
+- `memories/templates/done.md.template` - Completed work history
 
 ---
 
@@ -320,13 +320,13 @@ Your project documentation is ready!
    - `codebase-analyzer` - How code works (with file:line references)
    - `codebase-locator` - Where files/features exist
    - `codebase-pattern-finder` - Similar implementations
-   - `thoughts-locator` - Historical context from thoughts/
+   - `memories-locator` - Historical context from memories/
 3. Synthesizes findings into comprehensive research document
 4. Saves with full metadata and lineage tracking
 
 **Output:**
 ```
-thoughts/shared/research/YYYY-MM-DD-topic.md
+memories/shared/research/YYYY-MM-DD-topic.md
 ```
 
 **Example:**
@@ -345,7 +345,7 @@ Research complete! Here's what I found:
 - Transaction tracking in `PaymentTransaction` model
 - Missing: retry logic for failed payments
 
-Full research: thoughts/shared/research/2025-10-18-payment-processing.md
+Full research: memories/shared/research/2025-10-18-payment-processing.md
 ```
 
 **Research Document Structure:**
@@ -423,7 +423,7 @@ How does payment processing work in our application?
 
 **Output:**
 ```
-thoughts/shared/plans/YYYY-MM-DD-feature.md
+memories/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **Example:**
@@ -447,7 +447,7 @@ Questions before I proceed:
 [Interactive back-and-forth continues]
 
 Creating implementation plan...
-✓ thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+✓ memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Plan is ready for review!
 ```
@@ -533,7 +533,7 @@ class PaymentTransaction(Base):
 [Data migration strategy]
 
 ## References
-- Research: `thoughts/shared/research/2025-10-18-payment-processing.md`
+- Research: `memories/shared/research/2025-10-18-payment-processing.md`
 - Stripe Docs: [URL]
 ```
 
@@ -557,7 +557,7 @@ class PaymentTransaction(Base):
 
 **Command:**
 ```bash
-/implement_plan thoughts/shared/plans/YYYY-MM-DD-feature.md
+/implement_plan memories/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **What it does:**
@@ -571,7 +571,7 @@ class PaymentTransaction(Base):
 
 **Example:**
 ```bash
-You: /implement_plan thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /implement_plan memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: Reading plan and gathering context...
 
@@ -620,7 +620,7 @@ Next: /validate_plan to verify correctness
 
 **Command:**
 ```bash
-/validate_plan thoughts/shared/plans/YYYY-MM-DD-feature.md
+/validate_plan memories/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **What it does:**
@@ -636,7 +636,7 @@ Next: /validate_plan to verify correctness
 
 **Example:**
 ```bash
-You: /validate_plan thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /validate_plan memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: Validating implementation against plan...
 
@@ -761,7 +761,7 @@ All critical issues should be addressed before proceeding to cleanup.
 
 **Command:**
 ```bash
-/cleanup thoughts/shared/plans/YYYY-MM-DD-feature.md
+/cleanup memories/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **What it does:**
@@ -771,7 +771,7 @@ All critical issues should be addressed before proceeding to cleanup.
    - Spawns parallel agents:
      - `codebase-analyzer` - How implementation actually works
      - `codebase-pattern-finder` - Patterns that emerged
-     - `thoughts-analyzer` - Historical context
+     - `memories-analyzer` - Historical context
      - `project-context-analyzer` - Project documentation review
 
 2. **Creates Working Rationalization Document** (ephemeral):
@@ -796,7 +796,7 @@ All critical issues should be addressed before proceeding to cleanup.
 
 **Example:**
 ```bash
-You: /cleanup thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /cleanup memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: Analyzing implementation vs plan...
 
@@ -848,10 +848,10 @@ You: Create both ADRs and add both patterns to CLAUDE.md. Update plan.
 Claude: Creating permanent documentation...
 
 ✓ Created ADR-001: Use Celery for Payment Retry Queue
-  → thoughts/shared/adrs/001-celery-payment-retry.md
+  → memories/shared/adrs/001-celery-payment-retry.md
 
 ✓ Created ADR-002: Three-Retry Strategy with Exponential Backoff
-  → thoughts/shared/adrs/002-three-retry-strategy.md
+  → memories/shared/adrs/002-three-retry-strategy.md
 
 ✓ Updated CLAUDE.md:
   - Added "Retry Pattern" to Architecture Patterns section
@@ -933,7 +933,7 @@ status: in_progress
 **Date**: 2025-10-18
 **Status**: Accepted
 **Deciders**: albert
-**Related**: thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+**Related**: memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 ## Context
 We needed a reliable background task system for retrying failed payments...
@@ -1079,7 +1079,7 @@ References: ENG-1234
 3. Analyzes changes thoroughly for impact
 4. Runs verification commands when possible
 5. Generates comprehensive PR description
-6. Saves to `thoughts/shared/prs/{number}_description.md`
+6. Saves to `memories/shared/prs/{number}_description.md`
 7. Updates PR description directly via `gh pr edit`
 
 **Example:**
@@ -1119,13 +1119,13 @@ Implements automatic retry logic for failed payment processing with exponential 
 - ADR-002: Three-retry strategy with exponential backoff
 
 ### References
-- Plan: thoughts/shared/plans/2025-10-18-payment-retry-logic.md
-- Research: thoughts/shared/research/2025-10-18-payment-processing.md
+- Plan: memories/shared/plans/2025-10-18-payment-retry-logic.md
+- Research: memories/shared/research/2025-10-18-payment-processing.md
 - Ticket: ENG-1234
 
 ---
 
-PR description saved to: thoughts/shared/prs/123_description.md
+PR description saved to: memories/shared/prs/123_description.md
 Updated PR #123 on GitHub
 
 Your PR is ready for review!
@@ -1144,9 +1144,9 @@ Here's how the entire workflow looks in practice:
 You: /index_codebase
 
 Claude: Indexing codebase...
-✓ Python index: thoughts/codebase/codebase_overview_backend_py.md
-✓ TypeScript index: thoughts/codebase/codebase_overview_frontend_ts.md
-✓ FastAPI schema: thoughts/codebase/openapi.json
+✓ Python index: memories/codebase/codebase_overview_backend_py.md
+✓ TypeScript index: memories/codebase/codebase_overview_frontend_ts.md
+✓ FastAPI schema: memories/codebase/openapi.json
 
 Future research will be much faster!
 
@@ -1157,9 +1157,9 @@ You: /project Create full documentation for e-commerce platform
 
 Claude: [Interactive questions about project...]
 
-✓ thoughts/shared/project/project.md
-✓ thoughts/shared/project/todo.md
-✓ thoughts/shared/project/done.md
+✓ memories/shared/project/project.md
+✓ memories/shared/project/todo.md
+✓ memories/shared/project/done.md
 
 Your project documentation is ready!
 
@@ -1175,7 +1175,7 @@ Research complete!
 - Missing: retry logic for failures
 - Pattern: webhook validation in all payment endpoints
 
-Full research: thoughts/shared/research/2025-10-18-payment-processing.md
+Full research: memories/shared/research/2025-10-18-payment-processing.md
 
 # ============================================================
 # Phase 3: Plan
@@ -1190,7 +1190,7 @@ Questions:
 3. Monitoring needed? → You: Yes, with alerts
 
 Creating plan...
-✓ thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+✓ memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Plan ready! Includes 3 phases:
 1. Add retry queue
@@ -1200,7 +1200,7 @@ Plan ready! Includes 3 phases:
 # ============================================================
 # Phase 4: Implement
 # ============================================================
-You: /implement_plan thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /implement_plan memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: [Implements all phases, updates checkboxes...]
 
@@ -1213,7 +1213,7 @@ Implementation complete! All tests passing.
 # ============================================================
 # Phase 5: Validate
 # ============================================================
-You: /validate_plan thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /validate_plan memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: [Analyzes implementation, runs verifications...]
 
@@ -1263,7 +1263,7 @@ All issues are minor - safe to proceed to cleanup.
 # ============================================================
 # Phase 7: Cleanup (MANDATORY)
 # ============================================================
-You: /cleanup thoughts/shared/plans/2025-10-18-payment-retry-logic.md
+You: /cleanup memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: [Analyzes what actually happened vs plan...]
 
@@ -1309,7 +1309,7 @@ You: /pr
 Claude: [Analyzes diff, runs tests, generates description...]
 
 ✓ PR description created and updated on GitHub
-✓ Saved to: thoughts/shared/prs/123_description.md
+✓ Saved to: memories/shared/prs/123_description.md
 
 Your PR is ready for review! 🎉
 ```
@@ -1366,8 +1366,8 @@ YYYY-MM-DD-description.md
 YYYY-MM-DD-TICKET-123-description.md
 
 Examples:
-thoughts/shared/research/2025-10-18-payment-processing.md
-thoughts/shared/plans/2025-10-18-ENG-1234-payment-retry.md
+memories/shared/research/2025-10-18-payment-processing.md
+memories/shared/plans/2025-10-18-ENG-1234-payment-retry.md
 ```
 
 **ADRs:**
@@ -1375,8 +1375,8 @@ thoughts/shared/plans/2025-10-18-ENG-1234-payment-retry.md
 NNN-decision-title.md
 
 Examples:
-thoughts/shared/adrs/001-use-celery-for-retry.md
-thoughts/shared/adrs/002-three-retry-strategy.md
+memories/shared/adrs/001-use-celery-for-retry.md
+memories/shared/adrs/002-three-retry-strategy.md
 ```
 
 **Project Documentation:**
@@ -1384,9 +1384,9 @@ thoughts/shared/adrs/002-three-retry-strategy.md
 Ultra-lean 3-file structure
 
 Examples:
-thoughts/shared/project/project.md    # Project context
-thoughts/shared/project/todo.md       # Active work
-thoughts/shared/project/done.md       # Completed work history
+memories/shared/project/project.md    # Project context
+memories/shared/project/todo.md       # Active work
+memories/shared/project/done.md       # Completed work history
 ```
 
 ---

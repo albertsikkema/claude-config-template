@@ -41,7 +41,7 @@ Claude will:
 1. Scan for FastAPI imports
 2. Auto-detect running server on ports 8000-8010
 3. Automatically fetch OpenAPI schema
-4. Save to `thoughts/codebase/openapi.json`
+4. Save to `memories/codebase/openapi.json`
 
 ## Usage
 
@@ -90,7 +90,7 @@ bash claude-helpers/fetch_openapi.sh https://api.example.com production-api.json
 
 ```bash
 # Organized storage
-bash claude-helpers/fetch_openapi.sh http://localhost:8000 thoughts/codebase/openapi.json
+bash claude-helpers/fetch_openapi.sh http://localhost:8000 memories/codebase/openapi.json
 ```
 
 ## How It Works
@@ -399,7 +399,7 @@ When using `/index_codebase`, Claude:
 
 2. **Runs script with auto-detection:**
    ```bash
-   bash claude-helpers/fetch_openapi.sh auto thoughts/codebase/openapi.json
+   bash claude-helpers/fetch_openapi.sh auto memories/codebase/openapi.json
    ```
 
 3. **Reports results:**

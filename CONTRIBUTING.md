@@ -129,7 +129,7 @@ When creating or modifying commands:
 - **Document any dependencies** (e.g., specific tools or files needed)
 - **Test the command** in multiple scenarios
 
-### Documentation Templates (thoughts/templates/*.template)
+### Documentation Templates (memories/templates/*.template)
 
 When creating templates:
 

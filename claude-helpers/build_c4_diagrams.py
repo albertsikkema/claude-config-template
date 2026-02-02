@@ -13,7 +13,7 @@ Usage:
 
 Options:
     --format FORMAT    Output format: png, svg, or both (default: both)
-    --dir PATH         Directory containing .puml files (default: thoughts/shared/research/c4-diagrams-plantuml)
+    --dir PATH         Directory containing .puml files (default: memories/shared/research/c4-diagrams-plantuml)
     --docker           Force use of Docker instead of local plantuml
     --help             Show this help message
 """
@@ -111,7 +111,7 @@ def main():
     parser.add_argument(
         "--dir",
         type=Path,
-        default=Path("thoughts/shared/research/c4-diagrams-plantuml"),
+        default=Path("memories/shared/research/c4-diagrams-plantuml"),
         help="Directory containing .puml files",
     )
     parser.add_argument(

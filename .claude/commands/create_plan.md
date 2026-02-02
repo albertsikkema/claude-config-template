@@ -22,8 +22,8 @@ Please provide:
 
 I'll analyze this information and work with you to create a comprehensive plan.
 
-Tip: You can also invoke this command with a ticket file directly: `/create_plan thoughts/allison/tickets/eng_1234.md`
-For deeper analysis, try: `/create_plan think deeply about thoughts/allison/tickets/eng_1234.md`
+Tip: You can also invoke this command with a ticket file directly: `/create_plan memories/allison/tickets/eng_1234.md`
+For deeper analysis, try: `/create_plan think deeply about memories/allison/tickets/eng_1234.md`
 ```
 
 Then wait for the user's input.
@@ -40,7 +40,7 @@ Then wait for the user's input.
    - **NEVER** read files partially - if a file is mentioned, read it completely
 
 2. **Check for codebase indexes and scan them:**
-   - Check if `thoughts/codebase/` directory exists and contains index files
+   - Check if `memories/codebase/` directory exists and contains index files
    - Look for index files:
      - `codebase_overview_*_py.md` - Python codebase indexes
      - `codebase_overview_*_ts.md` - TypeScript codebase indexes
@@ -51,8 +51,8 @@ Then wait for the user's input.
    - Search for: function names, class names, component names, relevant terms
    - Examples:
    ```bash
-   grep -i "authentication\|login\|auth" thoughts/codebase/*.md
-   grep -i "class UserService\|def authenticate" thoughts/codebase/*.md
+   grep -i "authentication\|login\|auth" memories/codebase/*.md
+   grep -i "class UserService\|def authenticate" memories/codebase/*.md
    ```
    - Extract specific file paths and line numbers from matches
    - Note promising starting points: functions, classes, components
@@ -129,8 +129,8 @@ After getting initial clarifications:
    - **codebase-pattern-finder** - To find similar features we can model after
 
    **For historical context:**
-   - **thoughts-locator** - To find any research, plans, or decisions about this area
-   - **thoughts-analyzer** - To extract key insights from the most relevant documents
+   - **memories-locator** - To find any research, plans, or decisions about this area
+   - **memories-analyzer** - To extract key insights from the most relevant documents
 
    **For related tickets:**
    - **linear-searcher** - To find similar issues or past implementations
@@ -190,7 +190,7 @@ After structure approval:
 
 1. **Gather metadata for the research document:**
    - Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
-   - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
+   - Filename: `memories/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
        - ENG-XXXX is the ticket number (omit if no ticket)
@@ -199,7 +199,7 @@ After structure approval:
        - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
        - Without ticket: `2025-01-08-authentication-flow.md`
 
-2. **Write the plan** to `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
+2. **Write the plan** to `memories/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
    - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
      - YYYY-MM-DD is today's date
      - ENG-XXXX is the ticket number (omit if no ticket)
@@ -216,7 +216,7 @@ After structure approval:
    file-id: [UUID from step 2]
    parentfile-id: [file-id from frontmatter research file]
    claude-sessionid: [claude-sessionid from step 2]
-   researcher: [Researcher name from thoughts status]
+   researcher: [Researcher name from memories status]
    git_commit: [Current commit hash from step 2]
    branch: [Current branch name from step 2]
    repository: [Repository name from step 2]
@@ -317,8 +317,8 @@ After structure approval:
 
    ## References
 
-   - Original ticket: `thoughts/allison/tickets/eng_XXXX.md`
-   - Related research: `thoughts/shared/research/[relevant].md`
+   - Original ticket: `memories/allison/tickets/eng_XXXX.md`
+   - Related research: `memories/shared/research/[relevant].md`
    - Similar implementation: `[file:line]`
    ````
 
@@ -327,7 +327,7 @@ After structure approval:
     1. **Present the draft plan location**:
       ```
       I've created the initial implementation plan at:
-      `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
+      `memories/shared/plans/YYYY-MM-DD-ENG-XXXX-description.md`
 
       Please review it and let me know:
       - Are the phases properly scoped?
@@ -479,7 +479,7 @@ After structure approval:
 User: /implementation_plan
 Assistant: I'll help you create a detailed implementation plan...
 
-User: We need to add parent-child tracking for Claude sub-tasks. See thoughts/allison/tickets/eng_1478.md
+User: We need to add parent-child tracking for Claude sub-tasks. See memories/allison/tickets/eng_1478.md
 Assistant: Let me read that ticket file completely first...
 
 [Reads file fully]

@@ -36,12 +36,12 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 
 ## 🗑️ Quick Uninstall
 
-**Remove configuration (preserves thoughts/):**
+**Remove configuration (preserves memories/):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash
 ```
 
-**Remove everything including thoughts/ (⚠️ overwrites important stuff):**
+**Remove everything including memories/ (⚠️ overwrites important stuff):**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/uninstall.sh | bash -s -- --force
 ```
@@ -88,8 +88,8 @@ Security rules integration:
 - `project-context-analyzer` - Extract and synthesize project documentation context
 - `best-practices-researcher` - Search documented best practices from previous implementations
 - `technical-docs-researcher` - Search technical documentation for libraries and frameworks
-- `thoughts-analyzer` - Deep dive into your thoughts directory
-- `thoughts-locator` - Find relevant documents
+- `memories-analyzer` - Deep dive into your memories directory
+- `memories-locator` - Find relevant documents
 
 **External Research:**
 - `web-search-researcher` - Research from the web
@@ -141,7 +141,7 @@ your-project/
 │   ├── fetch_openapi.sh     # OpenAPI schema fetcher
 │   └── spec_metadata.sh     # Metadata generator
 │
-└── thoughts/
+└── memories/
     ├── templates/           # Documentation templates
     │   ├── project.md.template  # Project context template
     │   ├── todo.md.template     # Active work tracking template
@@ -194,8 +194,8 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 # Install only Claude configuration
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --claude-only
 
-# Install only thoughts structure
-curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --thoughts-only
+# Install only memories structure
+curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --memories-only
 
 # Preview what will be installed (dry run)
 curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-template/main/install.sh | bash -s -- --dry-run
@@ -218,13 +218,13 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 # Install only Claude configuration
 ./install-helper.sh --claude-only
 
-# Install only thoughts structure
-./install-helper.sh --thoughts-only
+# Install only memories structure
+./install-helper.sh --memories-only
 
 # Preview what will be installed
 ./install-helper.sh --dry-run
 
-# Clean reinstall (⚠️ removes all thoughts/ content)
+# Clean reinstall (⚠️ removes all memories/ content)
 ./install-helper.sh --force
 
 # Install to specific directory
@@ -234,9 +234,9 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 **Note**:
 - The remote installer (`install.sh`) downloads the repository, installs to your current directory, and cleans up automatically
 - For manual installation from a cloned repository, use `install-helper.sh`
-- The installer automatically updates your project's `.gitignore` to exclude `.claude/`, `thoughts/`, and `claude-helpers/`
-- **Default behavior**: `.claude/` is always updated, `thoughts/` preserves existing content and adds missing directories
-- **With `--force`**: Completely replaces `thoughts/` directory, removing all plans, research, and project docs
+- The installer automatically updates your project's `.gitignore` to exclude `.claude/`, `memories/`, and `claude-helpers/`
+- **Default behavior**: `.claude/` is always updated, `memories/` preserves existing content and adds missing directories
+- **With `--force`**: Completely replaces `memories/` directory, removing all plans, research, and project docs
 
 ## 📚 Helper Scripts & Documentation
 
@@ -281,15 +281,15 @@ This template includes several utility scripts in the `claude-helpers/` director
   uv run claude-helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
 
   # Implement phase (interactive code review)
-  uv run claude-helpers/orchestrator.py --phase implement thoughts/shared/plans/2026-02-01-feature.md
+  uv run claude-helpers/orchestrator.py --phase implement memories/shared/plans/2026-02-01-feature.md
 
   # Cleanup phase (interactive commit)
-  uv run claude-helpers/orchestrator.py --phase cleanup thoughts/shared/plans/2026-02-01-feature.md
+  uv run claude-helpers/orchestrator.py --phase cleanup memories/shared/plans/2026-02-01-feature.md
 
   # Cleanup with research/review files
-  uv run claude-helpers/orchestrator.py --phase cleanup thoughts/shared/plans/2026-02-01-feature.md \
-    --research thoughts/shared/research/2026-02-01-research.md \
-    --review thoughts/shared/reviews/2026-02-01-review.md
+  uv run claude-helpers/orchestrator.py --phase cleanup memories/shared/plans/2026-02-01-feature.md \
+    --research memories/shared/research/2026-02-01-research.md \
+    --review memories/shared/reviews/2026-02-01-review.md
   ```
 
   **Aliases (add to ~/.zshrc or ~/.bashrc):**
@@ -304,8 +304,8 @@ This template includes several utility scripts in the `claude-helpers/` director
   ```bash
   orch "Add user authentication"           # Full flow (automated)
   orch-plan "Add user authentication"      # Plan only (interactive)
-  orch-impl thoughts/shared/plans/xxx.md   # Implement (interactive review)
-  orch-clean thoughts/shared/plans/xxx.md  # Cleanup (interactive commit)
+  orch-impl memories/shared/plans/xxx.md   # Implement (interactive review)
+  orch-clean memories/shared/plans/xxx.md  # Cleanup (interactive commit)
   ```
 
 **📖 Full scripts overview: [claude-helpers/README.md](claude-helpers/README.md)**
@@ -341,13 +341,13 @@ You: /research_codebase payment processing flow
 You: /create_plan add Stripe payment integration
 
 # 5. Implement the plan
-You: /implement_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
+You: /implement_plan memories/shared/plans/2025-10-14-stripe-integration.md
 
 # 6. Validate implementation
-You: /validate_plan thoughts/shared/plans/2025-10-14-stripe-integration.md
+You: /validate_plan memories/shared/plans/2025-10-14-stripe-integration.md
 
 # 7. Cleanup (MANDATORY - documents best practices, removes artifacts)
-You: /cleanup thoughts/shared/plans/2025-10-14-stripe-integration.md
+You: /cleanup memories/shared/plans/2025-10-14-stripe-integration.md
 
 # 8. Commit and create PR
 You: /commit
@@ -366,16 +366,16 @@ You: /pr
 
 **Project Documentation**: Ultra-lean 3-file structure
 ```
-thoughts/shared/project/project.md    # Project context (what/why/stack)
-thoughts/shared/project/todo.md       # Active work (Must Haves/Should Haves)
-thoughts/shared/project/done.md       # Completed work history
+memories/shared/project/project.md    # Project context (what/why/stack)
+memories/shared/project/todo.md       # Active work (Must Haves/Should Haves)
+memories/shared/project/done.md       # Completed work history
 ```
 
 **Best Practices**: Category-based naming as `[category]-[topic].md`
 ```
-thoughts/best_practices/authentication-oauth-patterns.md
-thoughts/best_practices/database-transaction-handling.md
-thoughts/best_practices/api-error-handling.md
+memories/best_practices/authentication-oauth-patterns.md
+memories/best_practices/database-transaction-handling.md
+memories/best_practices/api-error-handling.md
 ```
 
 ## 🎨 Customization
@@ -424,7 +424,7 @@ Edit `.claude/settings.json`:
 ## 🗑️ Uninstallation
 
 ```bash
-# Remove configuration (preserves thoughts/)
+# Remove configuration (preserves memories/)
 ./uninstall.sh
 
 # Remove only Claude config
@@ -433,13 +433,13 @@ Edit `.claude/settings.json`:
 # Preview what will be removed
 ./uninstall.sh --dry-run
 
-# Remove everything including thoughts/ (⚠️ deletes your work)
+# Remove everything including memories/ (⚠️ deletes your work)
 ./uninstall.sh --force
 ```
 
-**Default behavior**: Removes `.claude/` and `claude-helpers/` but **preserves** `thoughts/` directory with your plans, research, and project docs.
+**Default behavior**: Removes `.claude/` and `claude-helpers/` but **preserves** `memories/` directory with your plans, research, and project docs.
 
-**With `--force`**: Removes **everything** including all your work in `thoughts/`.
+**With `--force`**: Removes **everything** including all your work in `memories/`.
 
 
 ## 🌟 Key Features Explained
@@ -456,7 +456,7 @@ The `/security` command integrates **108 comprehensive security rules** from [Pr
 
 When you run `/security`, it automatically:
 1. Detects your languages and frameworks
-2. Loads relevant Codeguard rules from `thoughts/security_rules/`
+2. Loads relevant Codeguard rules from `memories/security_rules/`
 3. Analyzes your code against 18 security areas + Codeguard patterns
 4. Generates reports with rule references and recommendations
 
@@ -639,7 +639,7 @@ If agents aren't being recognized:
 
 **Git tracking configuration files**
 
-The installer automatically adds `.claude/`, `thoughts/`, and `claude-helpers/` to your `.gitignore`. If you want to track these:
+The installer automatically adds `.claude/`, `memories/`, and `claude-helpers/` to your `.gitignore`. If you want to track these:
 - Edit `.gitignore` and remove the entries you want to track
 - Or use `git add -f` to force-add specific files
 
@@ -647,7 +647,7 @@ The installer automatically adds `.claude/`, `thoughts/`, and `claude-helpers/` 
 
 - **Issues**: [GitHub Issues](https://github.com/albertsikkema/claude-config-template/issues)
 - **Documentation**: [Claude Code Docs](https://docs.claude.com)
-- **Template Updates**: Re-run the installer to update `.claude/` and add any new `thoughts/` directories
+- **Template Updates**: Re-run the installer to update `.claude/` and add any new `memories/` directories
 
 ## 📄 License
 
@@ -668,7 +668,7 @@ Unlike basic Claude Code configurations, this template provides:
 After installation:
 
 - [ ] **Restart Claude Code** to load new configuration
-- [ ] Verify installation: Check `.claude/` and `thoughts/` directories exist
+- [ ] Verify installation: Check `.claude/` and `memories/` directories exist
 - [ ] Review `.claude/settings.json` permissions
 - [ ] **Read [WORKFLOW.md](WORKFLOW.md)** to understand the complete process
 - [ ] Run `/index_codebase` to create searchable indexes (optional but recommended)

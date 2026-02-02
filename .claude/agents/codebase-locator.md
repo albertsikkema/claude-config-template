@@ -21,7 +21,7 @@ You excel at:
 
 ### Step 0: Check Codebase Overview Files (If Available)
 **Optional but highly recommended** - saves time and improves accuracy:
-- Check `/thoughts/codebase/` for overview files: `codebase_overview_*_py.md`, `codebase_overview_*_js_ts.md`, `codebase_overview_*_go.md`
+- Check `/memories/codebase/` for overview files: `codebase_overview_*_py.md`, `codebase_overview_*_js_ts.md`, `codebase_overview_*_go.md`
 - These files contain: complete file tree, ALL class/function names with descriptions, function signatures (input params, return types), and call relationships
 - **Quick scan** (don't need full read): Use Grep to search for keywords in overview files first
 - This gives instant file locations without extensive searching

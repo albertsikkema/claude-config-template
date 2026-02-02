@@ -20,7 +20,7 @@ bash claude-helpers/spec_metadata.sh
 bash claude-helpers/spec_metadata.sh > metadata.txt
 
 # Include in document
-bash claude-helpers/spec_metadata.sh >> thoughts/shared/plans/my-plan.md
+bash claude-helpers/spec_metadata.sh >> memories/shared/plans/my-plan.md
 ```
 
 ## Output
@@ -102,15 +102,15 @@ Add metadata to plan or research documents:
 
 ```bash
 # Create plan with metadata header
-cat > thoughts/shared/plans/2025-10-18-oauth-support.md << 'EOF'
+cat > memories/shared/plans/2025-10-18-oauth-support.md << 'EOF'
 # OAuth Support Implementation Plan
 
 ## Metadata
 EOF
 
-bash claude-helpers/spec_metadata.sh >> thoughts/shared/plans/2025-10-18-oauth-support.md
+bash claude-helpers/spec_metadata.sh >> memories/shared/plans/2025-10-18-oauth-support.md
 
-cat >> thoughts/shared/plans/2025-10-18-oauth-support.md << 'EOF'
+cat >> memories/shared/plans/2025-10-18-oauth-support.md << 'EOF'
 
 ## Overview
 ...
@@ -189,8 +189,8 @@ Track research session context:
 
 ```bash
 # Start research
-echo "# Authentication Research" > thoughts/shared/research/2025-10-18-auth.md
-bash claude-helpers/spec_metadata.sh >> thoughts/shared/research/2025-10-18-auth.md
+echo "# Authentication Research" > memories/shared/research/2025-10-18-auth.md
+bash claude-helpers/spec_metadata.sh >> memories/shared/research/2025-10-18-auth.md
 ```
 
 ### With ADRs
@@ -199,10 +199,10 @@ Record decision context:
 
 ```bash
 # Create ADR with metadata
-echo "# ADR 001: Use PostgreSQL for User Data" > thoughts/shared/adrs/001-postgresql.md
-echo "" >> thoughts/shared/adrs/001-postgresql.md
-echo "## Context" >> thoughts/shared/adrs/001-postgresql.md
-bash claude-helpers/spec_metadata.sh >> thoughts/shared/adrs/001-postgresql.md
+echo "# ADR 001: Use PostgreSQL for User Data" > memories/shared/adrs/001-postgresql.md
+echo "" >> memories/shared/adrs/001-postgresql.md
+echo "## Context" >> memories/shared/adrs/001-postgresql.md
+bash claude-helpers/spec_metadata.sh >> memories/shared/adrs/001-postgresql.md
 ```
 
 ## Environment Detection
@@ -388,7 +388,7 @@ bash claude-helpers/spec_metadata.sh | awk -F': ' '{print "\""$1"\": \""$2"\","}
 #!/bin/bash
 # Example: Automated plan creation with metadata
 
-PLAN_FILE="thoughts/shared/plans/$(date +%Y-%m-%d)-my-feature.md"
+PLAN_FILE="memories/shared/plans/$(date +%Y-%m-%d)-my-feature.md"
 
 cat > "$PLAN_FILE" << 'EOF'
 # Feature Implementation Plan
@@ -485,4 +485,4 @@ Use metadata when it adds value:
 
 - [WORKFLOW.md](../WORKFLOW.md) - Complete development workflow
 - [File naming conventions](../CLAUDE.md#file-naming-conventions)
-- [Plans directory](../thoughts/shared/plans/)
+- [Plans directory](../memories/shared/plans/)

@@ -16,7 +16,7 @@ You are an AI assistant helping to automate the application deployment process. 
    ```
 
 2. **If CHANGELOG.md does NOT exist**:
-   - Read the template from `thoughts/templates/changelog.md.template`
+   - Read the template from `memories/templates/changelog.md.template`
    - Create CHANGELOG.md in the project root
    - Customize the template:
      - Update repository URLs with actual GitHub/GitLab repository

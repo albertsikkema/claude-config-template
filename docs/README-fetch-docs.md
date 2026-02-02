@@ -21,7 +21,7 @@ Claude will:
 2. Identify core frameworks
 3. Search context7 for each package
 4. Intelligently select the best documentation
-5. Download and save to `thoughts/technical_docs/`
+5. Download and save to `memories/technical_docs/`
 
 ### Script Commands
 
@@ -131,7 +131,7 @@ python3 scripts/fetch-docs.py get /sveltejs/kit sveltekit --overwrite
   "success": true,
   "project": "/sveltejs/svelte",
   "package": "svelte",
-  "file": "thoughts/technical_docs/svelte.md"
+  "file": "memories/technical_docs/svelte.md"
 }
 ```
 
@@ -146,7 +146,7 @@ python3 scripts/fetch-docs.py get /sveltejs/kit sveltekit --overwrite
 
 ### Output Format
 
-Documentation is saved to `thoughts/technical_docs/{package-name}.md`:
+Documentation is saved to `memories/technical_docs/{package-name}.md`:
 
 ```markdown
 # {package-name}

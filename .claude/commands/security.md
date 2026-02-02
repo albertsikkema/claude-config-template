@@ -63,9 +63,9 @@ Conduct a thorough security assessment using a **4-phase approach** informed by 
 - Examine project structure to understand architectural patterns (MVC, microservices, monolith, etc.)
 - Research security best practices for identified frameworks and languages
 - **Load relevant security rules from Project Codeguard**:
-  - Use Glob to list all rules: `thoughts/security_rules/core/*.md` and `thoughts/security_rules/owasp/*.md`
+  - Use Glob to list all rules: `memories/security_rules/core/*.md` and `memories/security_rules/owasp/*.md`
   - Use Grep to filter by detected languages (search YAML frontmatter for `languages:` field)
-  - Example: `grep -l "languages:" thoughts/security_rules/core/*.md | xargs grep -l "python"`
+  - Example: `grep -l "languages:" memories/security_rules/core/*.md | xargs grep -l "python"`
   - Use Read to load 3-5 most relevant rule files based on:
     1. Exact language match in frontmatter
     2. Security topic relevance (authentication, injection, authorization, etc.)
@@ -188,7 +188,7 @@ Examine architectural and coding security:
 - Identify vulnerabilities and risk levels (CRITICAL | HIGH | MEDIUM | LOW)
 - Include evidence with code examples and file locations (file:line format)
 - Provide actionable recommendations aligned with framework, language best practices, and Codeguard guidance
-- Reference relevant security standards (OWASP Top 10, CWE, language-specific guidelines, **Codeguard rules from thoughts/security_rules/**)
+- Reference relevant security standards (OWASP Top 10, CWE, language-specific guidelines, **Codeguard rules from memories/security_rules/**)
 
 ---
 
@@ -208,7 +208,7 @@ This provides:
 
 #### **Step 2: Comprehensive Review Report**:
 
-Save consolidated findings to `thoughts/shared/reviews/security-analysis-YYYY-MM-DD.md` (or `security-analysis-YYYY-MM-DD-ENG-XXXX.md` with ticket).
+Save consolidated findings to `memories/shared/reviews/security-analysis-YYYY-MM-DD.md` (or `security-analysis-YYYY-MM-DD-ENG-XXXX.md` with ticket).
 
 **Document Structure** - Include YAML frontmatter followed by report content:
 
@@ -217,7 +217,7 @@ Save consolidated findings to `thoughts/shared/reviews/security-analysis-YYYY-MM
 date: [Current date and time with timezone in ISO format from step 1]
 file-id: [UUID from step 1]
 claude-sessionid: [claude-sessionid from step 1]
-reviewer: [Reviewer name from thoughts status]
+reviewer: [Reviewer name from memories status]
 git_commit: [Current commit hash from step 1]
 branch: [Current branch name from step 1]
 repository: [Repository name from step 1]
@@ -232,7 +232,7 @@ last_updated_by: [Reviewer name]
 # Security Analysis Report
 
 **Date**: [Current date and time with timezone from step 1]
-**Reviewer**: [Reviewer name from thoughts status]
+**Reviewer**: [Reviewer name from memories status]
 **Git Commit**: [Current commit hash from step 1]
 **Branch**: [Current branch name from step 1]
 **Repository**: [Repository name]
@@ -260,7 +260,7 @@ last_updated_by: [Reviewer name]
      - Built-in security features detected
      - Security tools and configurations in use
    - **Codeguard Rules Applied** (NEW):
-     - List of Codeguard rule files referenced (from thoughts/security_rules/)
+     - List of Codeguard rule files referenced (from memories/security_rules/)
      - Language-specific secure coding patterns identified
      - Key security guidance extracted from rules
    - **Detailed Phase 1-3 Findings**:
@@ -352,7 +352,7 @@ The task is complete when:
 - **Documentation**: README.md, CLAUDE.md, and API docs reviewed for completeness
 - **Security Analysis**: All 18 security areas analyzed with evidence and risk levels
 - **Technology Alignment**: Recommendations specific to detected framework and language
-- **Deliverable**: Comprehensive report saved to `thoughts/shared/reviews/security-analysis-YYYY-MM-DD.md`
+- **Deliverable**: Comprehensive report saved to `memories/shared/reviews/security-analysis-YYYY-MM-DD.md`
 - **Actionability**: Prioritized recommendations with implementation guidance
 - **Production Readiness**: Clear determination with supporting evidence
 
@@ -370,7 +370,7 @@ The task is complete when:
 
 3. **Consolidation**:
    - Merge all subagent outputs into structured report
-   - Ensure `thoughts/shared/reviews/` directory exists (create if needed)
+   - Ensure `memories/shared/reviews/` directory exists (create if needed)
    - Save report with current date: `security-analysis-YYYY-MM-DD.md`
 
 4. **Review & Feedback**:

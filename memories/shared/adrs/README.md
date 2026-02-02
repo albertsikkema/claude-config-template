@@ -12,7 +12,7 @@ ADRs document significant decisions about:
 
 ## Format
 
-Each ADR follows the template in `thoughts/templates/adr.md.template` and includes:
+Each ADR follows the template in `memories/templates/adr.md.template` and includes:
 - **Context**: What problem led to this decision
 - **Decision**: What was chosen
 - **Rationale**: Why this approach
@@ -39,7 +39,7 @@ ADRs can have the following statuses:
 
 ADRs are typically created during the `/cleanup` workflow after implementation, when the rationale and trade-offs are clearly understood.
 
-You can also create them manually using the template at `thoughts/templates/adr.md.template`.
+You can also create them manually using the template at `memories/templates/adr.md.template`.
 
 ## Index
 

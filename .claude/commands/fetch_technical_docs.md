@@ -112,7 +112,7 @@ python3 claude-helpers/fetch-docs.py get /sveltejs/svelte svelte
 
 This will:
 - Download the llms.txt documentation
-- Save to `thoughts/technical_docs/<package-name>.md`
+- Save to `memories/technical_docs/<package-name>.md`
 - Return JSON confirming success
 
 **If file already exists**: Use `--overwrite` flag to replace:
@@ -181,7 +181,7 @@ Downloaded:
 - wails (/wailsapp/wails)
 - zod (/colinhacks/zod)
 
-All documentation saved to: thoughts/technical_docs/
+All documentation saved to: memories/technical_docs/
 ```
 
 ## Tips for Making Good Decisions

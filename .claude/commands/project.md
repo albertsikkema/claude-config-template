@@ -9,7 +9,7 @@ You are tasked with helping users create and manage their project documentation 
 2. **todo.md** - Active work (Must Haves / Should Haves)
 3. **done.md** - Completed work (initially empty)
 
-Templates are in `thoughts/templates/`, documentation goes to `thoughts/shared/project/`.
+Templates are in `memories/templates/`, documentation goes to `memories/shared/project/`.
 
 ## Initial Response
 
@@ -75,7 +75,7 @@ Use Task tool with:
 
 ### Step 3: Read the Appropriate Template(s)
 
-Templates in `thoughts/templates/`:
+Templates in `memories/templates/`:
 - `project.md.template` - Project context
 - `todo.md.template` - Active work tracking
 - `done.md.template` - Completed work history
@@ -117,7 +117,7 @@ Ask questions based on:
 
 ### Step 5: Create Customized Documentation
 
-1. **Read the template** from `thoughts/templates/`
+1. **Read the template** from `memories/templates/`
 2. **Fill in with user's information**:
    - Replace all `[placeholder]` text with actual content
    - Use information from their initial request
@@ -127,7 +127,7 @@ Ask questions based on:
    - Remove irrelevant sections
    - Add project-specific details
 
-3. **Save to `thoughts/shared/project/`**:
+3. **Save to `memories/shared/project/`**:
    - `project.md` - Project context
    - `todo.md` - Active work
    - `done.md` - Completed work (initially just headers/structure)
@@ -167,9 +167,9 @@ Claude: I didn't find existing project documentation. Let me ask a few questions
 
 Claude: Perfect! I'm creating your project documentation now...
 
-✅ Created thoughts/shared/project/project.md
-✅ Created thoughts/shared/project/todo.md (with Must Haves and Should Haves)
-✅ Created thoughts/shared/project/done.md (ready for tracking completed work)
+✅ Created memories/shared/project/project.md
+✅ Created memories/shared/project/todo.md (with Must Haves and Should Haves)
+✅ Created memories/shared/project/done.md (ready for tracking completed work)
 
 Your project documentation is ready!
 
@@ -198,7 +198,7 @@ Claude: No existing documentation found. Tell me about your project:
 
 [User provides answers]
 
-Claude: ✅ Created thoughts/shared/project/project.md
+Claude: ✅ Created memories/shared/project/project.md
 
 You can create todo.md later when you're ready to start tracking work items.
 ```
@@ -224,9 +224,9 @@ For todo.md, what are your current Must Have items (critical for MVP)?
 
 [User provides current work items]
 
-Claude: ✅ Updated thoughts/shared/project/project.md (refreshed dates)
-✅ Created thoughts/shared/project/todo.md
-✅ Created thoughts/shared/project/done.md
+Claude: ✅ Updated memories/shared/project/project.md (refreshed dates)
+✅ Created memories/shared/project/todo.md
+✅ Created memories/shared/project/done.md
 
 Your documentation structure is complete!
 ```
@@ -245,7 +245,7 @@ Claude: Found your existing documentation. What updates do you need?
 
 User: Add these new features to the Must Haves: [features]
 
-Claude: ✅ Updated thoughts/shared/project/todo.md (added new Must Haves)
+Claude: ✅ Updated memories/shared/project/todo.md (added new Must Haves)
 
 Your todo.md has been updated with the new features.
 ```
@@ -258,7 +258,7 @@ Your todo.md has been updated with the new features.
 - **Use existing context** - Build on what's already documented
 - **Fill in placeholders** - no [brackets] in final output
 - **Ensure consistency** - Match tone and style of existing docs
-- **Save to thoughts/shared/project/** - correct location
+- **Save to memories/shared/project/** - correct location
 - **Update dates** in "Last Updated" fields
 - **Remove irrelevant sections** from templates
 - **Add project-specific content** beyond just filling blanks
@@ -267,15 +267,15 @@ Your todo.md has been updated with the new features.
 ## Important Notes
 
 - **CRITICAL**: Always use `project-context-analyzer` agent at the start to gather existing context
-- Templates are in `thoughts/templates/`
-- Documentation goes to `thoughts/shared/project/`
+- Templates are in `memories/templates/`
+- Documentation goes to `memories/shared/project/`
 - The 3-file structure is: project.md (context), todo.md (active work), done.md (completed work)
 - done.md starts empty with just the template structure - it will be populated as work is completed
 - todo.md uses Must Haves (critical) and Should Haves (important but not blocking)
 - Items can be marked `[BLOCKED]` inline when they can't proceed
 - Dependencies noted with `(requires: other-item)` in descriptions
 - Never delete or modify the original templates
-- Always create new files in `thoughts/shared/project/`
+- Always create new files in `memories/shared/project/`
 - Keep documentation updated as the project evolves
 - Use existing documentation context to maintain consistency
 

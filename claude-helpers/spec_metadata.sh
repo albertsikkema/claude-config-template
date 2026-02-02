@@ -64,11 +64,11 @@ if [ -d "$PROJECTS_DIR" ]; then
   shopt -u nullglob 2>/dev/null || true
 fi
 
-# Optional: thoughts system status (may be long). Limit lines to avoid noise.
-THOUGHTS_STATUS=""
+# Optional: memories system status (may be long). Limit lines to avoid noise.
+MEMORIES_STATUS=""
 if command -v humanlayer >/dev/null 2>&1; then
   # Capture first 40 lines; adjust as needed.
-  THOUGHTS_STATUS=$(humanlayer thoughts status 2>/dev/null | head -n 40)
+  MEMORIES_STATUS=$(humanlayer memories status 2>/dev/null | head -n 40)
 fi
 
 # Print similar to the individual command outputs
@@ -81,6 +81,6 @@ echo "Current Working Directory: $CURRENT_PWD"
 [ -n "$REPO_NAME" ] && echo "Repository Name: $REPO_NAME"
 [ -n "$CLAUDE_SESSION_ID" ] && echo "claude-sessionid: $CLAUDE_SESSION_ID"
 echo "Timestamp For Filename: $FILENAME_TS"
-[ -n "$THOUGHTS_STATUS" ] && {
-  echo "$THOUGHTS_STATUS"
+[ -n "$MEMORIES_STATUS" ] && {
+  echo "$MEMORIES_STATUS"
 }

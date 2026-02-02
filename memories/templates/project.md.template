@@ -103,9 +103,9 @@
 
 - **Work tracking**: See [todo.md](todo.md)
 - **Completed work**: See [done.md](done.md)
-- **Architecture decisions**: See `thoughts/shared/adrs/`
-- **Research**: See `thoughts/shared/research/`
-- **Implementation plans**: See `thoughts/shared/plans/`
+- **Architecture decisions**: See `memories/shared/adrs/`
+- **Research**: See `memories/shared/research/`
+- **Implementation plans**: See `memories/shared/plans/`
 
 ---
 

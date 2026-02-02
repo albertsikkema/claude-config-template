@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Default options
 INSTALL_CLAUDE=true
-INSTALL_THOUGHTS=true
+INSTALL_MEMORIES=true
 FORCE_INSTALL=false
 DRY_RUN=false
 TARGET_DIR="."
@@ -30,7 +30,7 @@ Usage: $0 [OPTIONS] [TARGET_DIR]
 
 OPTIONS:
     --claude-only       Install only .claude/ configuration
-    --thoughts-only     Install only thoughts/ structure
+    --memories-only     Install only memories/ structure
     --force, -f         Force overwrite existing files without prompting
     --dry-run           Show what would be installed without making changes
     --help, -h          Show this help message
@@ -44,7 +44,7 @@ EXAMPLES:
     $0 --claude-only            # Install only Claude configs
     $0 --dry-run                # Preview what will be installed
     $0 /path/to/project         # Install in specific directory
-    $0 --force --thoughts-only  # Force install thoughts structure
+    $0 --force --memories-only  # Force install memories structure
 
 EOF
     exit 0
@@ -61,12 +61,12 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --claude-only)
             INSTALL_CLAUDE=true
-            INSTALL_THOUGHTS=false
+            INSTALL_MEMORIES=false
             shift
             ;;
-        --thoughts-only)
+        --memories-only)
             INSTALL_CLAUDE=false
-            INSTALL_THOUGHTS=true
+            INSTALL_MEMORIES=true
             shift
             ;;
         --force|-f)
@@ -175,8 +175,8 @@ update_gitignore() {
         entries_to_add+=(".env.claude")
     fi
 
-    if [ "$INSTALL_THOUGHTS" = true ]; then
-        entries_to_add+=("thoughts/")
+    if [ "$INSTALL_MEMORIES" = true ]; then
+        entries_to_add+=("memories/")
     fi
 
     # If no entries to add, skip
@@ -240,8 +240,8 @@ main() {
         exit 1
     fi
 
-    if [ ! -d "$SCRIPT_DIR/thoughts" ] && [ "$INSTALL_THOUGHTS" = true ]; then
-        print_message "$RED" "Error: thoughts/ directory not found in script directory"
+    if [ ! -d "$SCRIPT_DIR/memories" ] && [ "$INSTALL_MEMORIES" = true ]; then
+        print_message "$RED" "Error: memories/ directory not found in script directory"
         exit 1
     fi
 
@@ -259,10 +259,10 @@ main() {
         print_message "$BLUE" "Existing .claude/ will be overwritten"
     fi
 
-    # thoughts preserves content by default - just inform the user
-    if [ "$INSTALL_THOUGHTS" = true ] && check_exists "thoughts"; then
+    # memories preserves content by default - just inform the user
+    if [ "$INSTALL_MEMORIES" = true ] && check_exists "memories"; then
         if [ "$FORCE_INSTALL" != true ]; then
-            print_message "$BLUE" "Existing thoughts/ found - missing folders will be added, content preserved"
+            print_message "$BLUE" "Existing memories/ found - missing folders will be added, content preserved"
         fi
     fi
 
@@ -325,24 +325,24 @@ main() {
         print_message "$GREEN" "  ✓ Created .gitkeep files"
     fi
 
-    # Install thoughts structure
-    if [ "$INSTALL_THOUGHTS" = true ]; then
-        print_header "Installing thoughts/ Structure"
+    # Install memories structure
+    if [ "$INSTALL_MEMORIES" = true ]; then
+        print_header "Installing memories/ Structure"
 
-        # Copy entire thoughts directory structure
+        # Copy entire memories directory structure
         if [ "$FORCE_INSTALL" = true ]; then
-            print_message "$BLUE" "Replacing thoughts/ directory structure (overwrite mode)..."
+            print_message "$BLUE" "Replacing memories/ directory structure (overwrite mode)..."
             if [ "$DRY_RUN" != true ]; then
                 # Remove existing directory and replace completely
-                rm -rf "$TARGET_DIR/thoughts"
-                cp -r "$SCRIPT_DIR/thoughts" "$TARGET_DIR/"
+                rm -rf "$TARGET_DIR/memories"
+                cp -r "$SCRIPT_DIR/memories" "$TARGET_DIR/"
             fi
-            print_message "$GREEN" "  ✓ Replaced thoughts/ directory structure"
+            print_message "$GREEN" "  ✓ Replaced memories/ directory structure"
         else
             print_message "$BLUE" "Adding missing directories and files..."
             if [ "$DRY_RUN" != true ]; then
                 # Use rsync to copy only missing files and directories
-                rsync -a --ignore-existing "$SCRIPT_DIR/thoughts/" "$TARGET_DIR/thoughts/"
+                rsync -a --ignore-existing "$SCRIPT_DIR/memories/" "$TARGET_DIR/memories/"
             fi
             print_message "$GREEN" "  ✓ Added missing directories and files"
         fi
@@ -350,7 +350,7 @@ main() {
         # Remove .template extensions from template files
         if [ "$DRY_RUN" != true ]; then
             print_message "$BLUE" "Processing template files..."
-            for template in "$TARGET_DIR/thoughts/templates"/*.template; do
+            for template in "$TARGET_DIR/memories/templates"/*.template; do
                 if [ -f "$template" ]; then
                     local target_name="${template%.template}"
                     mv "$template" "$target_name"
@@ -425,11 +425,11 @@ main() {
             echo "  4. Check out slash commands in .claude/commands/"
         fi
 
-        if [ "$INSTALL_THOUGHTS" = true ]; then
+        if [ "$INSTALL_MEMORIES" = true ]; then
             echo "  5. Review .gitignore for Claude Code entries"
             echo "  6. Use /project command to create project documentation"
-            echo "  7. Start creating plans in thoughts/shared/plans/"
-            echo "  8. Document research in thoughts/shared/research/"
+            echo "  7. Start creating plans in memories/shared/plans/"
+            echo "  8. Document research in memories/shared/research/"
         fi
 
         echo ""

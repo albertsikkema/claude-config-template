@@ -6,7 +6,7 @@ You are tasked with validating that an implementation plan was correctly execute
 
 1. **Determine the plan path**:
    - If plan path provided by user, use it
-   - If not provided, search `thoughts/shared/plans/` for recent files or ask user
+   - If not provided, search `memories/shared/plans/` for recent files or ask user
    - Check git commit messages for plan references
 
 2. **Invoke the plan-validator agent**:
@@ -39,7 +39,7 @@ Based on the agent's findings, guide the user on next steps:
 ## Troubleshooting
 
 **If plan path not found**:
-- Search `thoughts/shared/plans/` for recent files
+- Search `memories/shared/plans/` for recent files
 - Check git commit messages for plan references
 - Ask user to provide the correct path
 

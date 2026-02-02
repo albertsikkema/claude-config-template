@@ -19,13 +19,13 @@ Then wait for the user's input or proceed with default comprehensive documentati
 
 ### 1. Fetch C4 Model Documentation (if needed)
 
-- Check if `thoughts/technical_docs/c4-model.md` exists
+- Check if `memories/technical_docs/c4-model.md` exists
 - If not, run: `/fetch_technical_docs c4-model`
 - This provides the C4 reference for creating proper diagrams
 
 ### 2. Index the Codebase
 
-- Check if `thoughts/codebase/codebase_overview_root_py.md` and `thoughts/codebase/openapi.json` exist
+- Check if `memories/codebase/codebase_overview_root_py.md` and `memories/codebase/openapi.json` exist
 - If not, run: `/index_codebase`
 - This generates:
   - Python codebase index with file structure and function signatures
@@ -40,7 +40,7 @@ Create a comprehensive C4 architecture overview with three levels:
 2. Container - showing applications, databases, and services
 3. Component - showing internal code structure (routers, services, managers, models)
 
-Use the C4 model documentation (thoughts/technical_docs/c4-model.md) and codebase analysis (openapi.json + codebase index) as references.
+Use the C4 model documentation (memories/technical_docs/c4-model.md) and codebase analysis (openapi.json + codebase index) as references.
 ```
 
 This will spawn parallel research agents to analyze:
@@ -53,7 +53,7 @@ This will spawn parallel research agents to analyze:
 ### 4. Structure the Research Document
 
 The research document should be created at:
-`thoughts/shared/research/YYYY-MM-DD-c4-model-architecture-overview.md`
+`memories/shared/research/YYYY-MM-DD-c4-model-architecture-overview.md`
 
 With the following structure:
 
@@ -88,7 +88,7 @@ Each diagram level includes **two versions**:
 1. **Mermaid** - Native GitHub rendering
 2. **C4-PlantUML** - Enhanced visual aesthetics
 
-**Standalone PlantUML files** in [`thoughts/shared/research/c4-diagrams-plantuml/`](c4-diagrams-plantuml/)
+**Standalone PlantUML files** in [`memories/shared/research/c4-diagrams-plantuml/`](c4-diagrams-plantuml/)
 
 ---
 
@@ -165,7 +165,7 @@ Each diagram level includes **two versions**:
 
 ### 5. Create Standalone PlantUML Files
 
-Create directory: `thoughts/shared/research/c4-diagrams-plantuml/`
+Create directory: `memories/shared/research/c4-diagrams-plantuml/`
 
 **Create these files:**
 
@@ -313,7 +313,7 @@ python claude-helpers/build_c4_diagrams.py
 ```
 
 This will:
-- Find all .puml files in `thoughts/shared/research/c4-diagrams-plantuml/`
+- Find all .puml files in `memories/shared/research/c4-diagrams-plantuml/`
 - Render them to SVG format (default)
 - Place output files in the same directory
 
@@ -363,8 +363,8 @@ Present to the user:
 ✅ C4 Architecture Documentation Complete!
 
 **Created:**
-- Main documentation: `thoughts/shared/research/YYYY-MM-DD-c4-model-architecture-overview.md`
-- PlantUML diagrams: `thoughts/shared/research/c4-diagrams-plantuml/`
+- Main documentation: `memories/shared/research/YYYY-MM-DD-c4-model-architecture-overview.md`
+- PlantUML diagrams: `memories/shared/research/c4-diagrams-plantuml/`
   - system-context-diagram.puml (with SVG)
   - container-diagram.puml (with SVG)
   - component-diagram.puml (with SVG)

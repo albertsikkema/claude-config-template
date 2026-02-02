@@ -22,8 +22,8 @@ SKIP_DIRS = {
     '.claude', 'claude-helpers',
     # Logs and temporary directories
     'logs', 'tmp', 'temp',
-    # Thoughts/documentation (not source code)
-    'thoughts',
+    # Memories/documentation (not source code)
+    'memories',
     # Database migrations
     'migrations'
 }

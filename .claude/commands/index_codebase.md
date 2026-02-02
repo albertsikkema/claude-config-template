@@ -60,19 +60,19 @@ The repository has four indexer scripts in `./claude-helpers/`:
 4. **Run the appropriate indexer(s)** automatically:
    ```bash
    # For Python
-   python ./claude-helpers/index_python.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_py.md
+   python ./claude-helpers/index_python.py <directory> -o memories/codebase/codebase_overview_<dirname>_py.md
 
    # For JavaScript/TypeScript
-   python ./claude-helpers/index_js_ts.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_js_ts.md
+   python ./claude-helpers/index_js_ts.py <directory> -o memories/codebase/codebase_overview_<dirname>_js_ts.md
 
    # For Go
-   python ./claude-helpers/index_go.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_go.md
+   python ./claude-helpers/index_go.py <directory> -o memories/codebase/codebase_overview_<dirname>_go.md
 
    # For C/C++
-   python ./claude-helpers/index_cpp.py <directory> -o thoughts/codebase/codebase_overview_<dirname>_cpp.md
+   python ./claude-helpers/index_cpp.py <directory> -o memories/codebase/codebase_overview_<dirname>_cpp.md
    ```
 
-   **Important**: All output files must be saved to `thoughts/codebase/` directory.
+   **Important**: All output files must be saved to `memories/codebase/` directory.
 
 5. **Update CLAUDE.md** with codebase overview documentation:
    - Check if CLAUDE.md exists and search for existing codebase section
@@ -151,17 +151,17 @@ The repository has four indexer scripts in `./claude-helpers/`:
 
 ### Auto-detect and index everything (root directory)
 ```bash
-python ./claude-helpers/index_python.py ./ -o thoughts/codebase/codebase_overview_root_py.md
-python ./claude-helpers/index_js_ts.py ./ -o thoughts/codebase/codebase_overview_root_js_ts.md
-python ./claude-helpers/index_go.py ./ -o thoughts/codebase/codebase_overview_root_go.md
-python ./claude-helpers/index_cpp.py ./ -o thoughts/codebase/codebase_overview_root_cpp.md
+python ./claude-helpers/index_python.py ./ -o memories/codebase/codebase_overview_root_py.md
+python ./claude-helpers/index_js_ts.py ./ -o memories/codebase/codebase_overview_root_js_ts.md
+python ./claude-helpers/index_go.py ./ -o memories/codebase/codebase_overview_root_go.md
+python ./claude-helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
 ```
 
 ### Index specific directory (backend)
 ```bash
 # Directory: ./cc_wrapper/backend -> filename includes "backend"
 # Indexes entire backend structure (app/, tests/, pyproject.toml, etc.)
-python ./claude-helpers/index_python.py ./cc_wrapper/backend -o thoughts/codebase/codebase_overview_backend_py.md
+python ./claude-helpers/index_python.py ./cc_wrapper/backend -o memories/codebase/codebase_overview_backend_py.md
 ```
 
 ### Index specific directory (frontend)
@@ -169,14 +169,14 @@ python ./claude-helpers/index_python.py ./cc_wrapper/backend -o thoughts/codebas
 # Directory: ./cc_wrapper/frontend -> filename includes "frontend"
 # Indexes entire frontend structure (src/, public/, config files)
 # Includes both .js and .ts files
-python ./claude-helpers/index_js_ts.py ./cc_wrapper/frontend -o thoughts/codebase/codebase_overview_frontend_js_ts.md
+python ./claude-helpers/index_js_ts.py ./cc_wrapper/frontend -o memories/codebase/codebase_overview_frontend_js_ts.md
 ```
 
 ### Index specific directory (Go backend)
 ```bash
 # Directory: ./backend -> filename includes "backend"
 # Indexes entire Go backend structure (cmd/, pkg/, internal/, go.mod)
-python ./claude-helpers/index_go.py ./backend -o thoughts/codebase/codebase_overview_backend_go.md
+python ./claude-helpers/index_go.py ./backend -o memories/codebase/codebase_overview_backend_go.md
 ```
 
 ### Index specific directory (C/C++ source)
@@ -184,20 +184,20 @@ python ./claude-helpers/index_go.py ./backend -o thoughts/codebase/codebase_over
 # Directory: ./Source -> filename includes "Source"
 # Indexes C/C++ source files (classes, structs, functions, enums)
 # Automatically skips library directories (JUCE, tracktion_engine, etc.)
-python ./claude-helpers/index_cpp.py ./Source -o thoughts/codebase/codebase_overview_Source_cpp.md
+python ./claude-helpers/index_cpp.py ./Source -o memories/codebase/codebase_overview_Source_cpp.md
 
 # Or index from root (will skip build/, third_party/, etc.)
-python ./claude-helpers/index_cpp.py ./ -o thoughts/codebase/codebase_overview_root_cpp.md
+python ./claude-helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
 ```
 
 ### Fetch FastAPI OpenAPI schema (if FastAPI detected)
 ```bash
 # Check for FastAPI imports in Python files
 # If found, run with auto-detection:
-bash ./claude-helpers/fetch_openapi.sh auto thoughts/codebase/openapi.json
+bash ./claude-helpers/fetch_openapi.sh auto memories/codebase/openapi.json
 
 # Or specify port explicitly:
-bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/openapi.json
+bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/openapi.json
 ```
 
 ## Notes
@@ -205,7 +205,7 @@ bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/o
 - DO NOT use AskUserQuestion tool
 - Be autonomous and intelligent about detection
 - Both scripts automatically skip `node_modules`, `.venv`, `.git`, etc.
-- Output files are created in `thoughts/codebase/` directory
+- Output files are created in `memories/codebase/` directory
 - After indexing, always update CLAUDE.md to document the codebase overview files
 - Work silently and efficiently
 
@@ -214,14 +214,14 @@ bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/o
 When FastAPI is detected:
 1. Use Grep to search for `from fastapi import|import fastapi` in `.py` files
 2. If found, inform user that FastAPI was detected
-3. Run `bash ./claude-helpers/fetch_openapi.sh auto thoughts/codebase/openapi.json`
+3. Run `bash ./claude-helpers/fetch_openapi.sh auto memories/codebase/openapi.json`
    - The script will auto-detect ports 8000-8010 for running FastAPI servers
-   - Or user can specify explicit URL: `bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 thoughts/codebase/openapi.json`
+   - Or user can specify explicit URL: `bash ./claude-helpers/fetch_openapi.sh http://localhost:8001 memories/codebase/openapi.json`
 4. The script will:
    - Auto-detect running FastAPI server on common ports (8000-8010) if "auto" is specified
    - Check if server is running at `/health` or `/docs` endpoint
    - Fetch OpenAPI schema from `/openapi.json`
-   - Save to `thoughts/codebase/openapi.json`
+   - Save to `memories/codebase/openapi.json`
    - Display schema information if available
 5. **IMPORTANT - User Feedback**:
    - If the script succeeds, inform user: "✅ OpenAPI schema fetched successfully from [URL]"
@@ -231,9 +231,9 @@ When FastAPI is detected:
 
 ## Output Directory
 
-**IMPORTANT**: Before running any indexer, ensure `thoughts/codebase/` directory exists:
-- If it doesn't exist, create it with `mkdir -p thoughts/codebase/`
-- All output files go to `thoughts/codebase/` with directory-based naming:
+**IMPORTANT**: Before running any indexer, ensure `memories/codebase/` directory exists:
+- If it doesn't exist, create it with `mkdir -p memories/codebase/`
+- All output files go to `memories/codebase/` with directory-based naming:
   - `codebase_overview_<dirname>_py.md` - Python documentation
   - `codebase_overview_<dirname>_js_ts.md` - JavaScript/TypeScript documentation
   - `codebase_overview_<dirname>_go.md` - Go documentation
@@ -268,13 +268,13 @@ When FastAPI is detected:
 
 1. **Check if CLAUDE.md exists** in the project root
 2. **Search for existing codebase documentation section**:
-   - Look for mentions of `thoughts/codebase/` or "codebase overview files" or "index files"
+   - Look for mentions of `memories/codebase/` or "codebase overview files" or "index files"
 3. **If no mention exists, add a new section** after the main documentation sections:
 
 ```markdown
 ## Codebase Overview Files
 
-This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
+This project maintains automatically generated codebase overview files in `memories/codebase/`:
 
 ### Available Index Files
 - `codebase_overview_*_py.md` - Python codebase overview
@@ -307,7 +307,7 @@ The indexer will automatically detect your project type and generate appropriate
 ```
 
 4. **If a mention already exists, update it** to match the format above, ensuring:
-   - The location `thoughts/codebase/` is correct
+   - The location `memories/codebase/` is correct
    - All file types are mentioned (Python, JS/TS, Go, C/C++)
    - The content description includes: file tree, classes/functions, signatures (input params, return types), and call relationships
    - The regeneration command `/index_codebase` is documented

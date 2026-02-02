@@ -20,19 +20,19 @@ Then wait for the user's research query.
    - This ensures you have full context before decomposing the research
 
 2. **Check for codebase indexes and scan them:**
-   - Check if `thoughts/codebase/` directory exists and contains index files
+   - Check if `memories/codebase/` directory exists and contains index files
    - Look for index files:
      - `codebase_overview_*_py.md` - Python codebase indexes
      - `codebase_overview_*_ts.md` - TypeScript codebase indexes
-     - `thoughts/codebase/openapi.json` - FastAPI OpenAPI schema (if applicable)
+     - `memories/codebase/openapi.json` - FastAPI OpenAPI schema (if applicable)
 
    **If indexes exist:**
    - Use Grep to search index files for keywords from the research query
    - Search for: function names, class names, component names, relevant terms
    - Examples:
      ```bash
-     grep -i "authentication\|login\|auth" thoughts/codebase/*.md
-     grep -i "class UserService\|def authenticate" thoughts/codebase/*.md
+     grep -i "authentication\|login\|auth" memories/codebase/*.md
+     grep -i "class UserService\|def authenticate" memories/codebase/*.md
      ```
    - Extract specific file paths and line numbers from matches
    - Note promising starting points: functions, classes, components
@@ -69,12 +69,12 @@ Then wait for the user's research query.
    - Use the **codebase-locator** agent to find WHERE files and components live
    - Use the **codebase-analyzer** agent to understand HOW specific code works (without specific starting points)
    - Use the **codebase-pattern-finder** agent if you need examples of similar implementations
-   - Use the **best-practices-researcher** agent to search `thoughts/best_practices/` for documented patterns, lessons learned, trade-offs, and proven approaches from previous implementations (provides actionable insights with exact file paths and code references)
-   - Use the **technical-docs-researcher** agent to search `thoughts/technical_docs/` for library documentation, package recommendations, implementation patterns, and use case guidance (extracts best practices, version requirements, and configuration examples)
+   - Use the **best-practices-researcher** agent to search `memories/best_practices/` for documented patterns, lessons learned, trade-offs, and proven approaches from previous implementations (provides actionable insights with exact file paths and code references)
+   - Use the **technical-docs-researcher** agent to search `memories/technical_docs/` for library documentation, package recommendations, implementation patterns, and use case guidance (extracts best practices, version requirements, and configuration examples)
 
-   **For thoughts directory:**
-   - Use the **thoughts-locator** agent to discover what documents exist about the topic
-   - Use the **thoughts-analyzer** agent to extract key insights from specific documents (only the most relevant ones)
+   **For memories directory:**
+   - Use the **memories-locator** agent to discover what documents exist about the topic
+   - Use the **memories-analyzer** agent to extract key insights from specific documents (only the most relevant ones)
 
    **For web research (only if user explicitly asks):**
    - Use the **web-search-researcher** agent for external documentation and resources
@@ -101,9 +101,9 @@ Then wait for the user's research query.
    **Information Source Priority (highest to lowest):**
    1. **Project context** - Frames the why/what/goals (always start here)
    2. **Live codebase** - Primary source of truth about current implementation
-   3. **Best practices** (`thoughts/best_practices/`) - Lessons learned from THIS project's implementations
-   4. **Technical docs** (`thoughts/technical_docs/`) - External library/framework documentation
-   5. **Historical thoughts** - Supplementary historical context from thoughts/ directory
+   3. **Best practices** (`memories/best_practices/`) - Lessons learned from THIS project's implementations
+   4. **Technical docs** (`memories/technical_docs/`) - External library/framework documentation
+   5. **Historical memories** - Supplementary historical context from memories/ directory
    6. **Web research** - General information (only when explicitly requested, lowest priority)
 
    **Synthesis Guidelines:**
@@ -115,13 +115,13 @@ Then wait for the user's research query.
    - Connect findings back to project goals and requirements
    - Connect findings across different components
    - Include specific file paths and line numbers for reference
-   - Verify all thoughts/ paths are correct (e.g., thoughts/allison/ not thoughts/shared/ for personal files)
+   - Verify all memories/ paths are correct (e.g., memories/allison/ not memories/shared/ for personal files)
    - Highlight patterns, connections, and architectural decisions
    - Answer the user's specific questions with concrete evidence
 
 6. **Gather metadata for the research document:**
    - Run the `claude-helpers/spec_metadata.sh` script to generate all relevant metadata
-   - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
+   - Filename: `memories/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
        - ENG-XXXX is the ticket number (omit if no ticket)
@@ -138,7 +138,7 @@ Then wait for the user's research query.
      date: [Current date and time with timezone in ISO format from step 6]
      file-id: [UUID from step 6]
      claude-sessionid: [claude-sessionid from step 6]
-     researcher: [Researcher name from thoughts status]
+     researcher: [Researcher name from memories status]
      git_commit: [Current commit hash from step 6]
      branch: [Current branch name from step 6]
      repository: [Repository name from step 6]
@@ -152,7 +152,7 @@ Then wait for the user's research query.
      # Research: [User's Question/Topic]
 
      **Date**: [Current date and time with timezone from step 6]
-     **Researcher**: [Researcher name from thoughts status]
+     **Researcher**: [Researcher name from memories status]
      **Git Commit**: [Current commit hash from step 6]
      **Branch**: [Current branch name from step 6]
      **Repository**: [Repository name]
@@ -187,22 +187,22 @@ Then wait for the user's research query.
      ## Architecture Insights
      [Patterns, conventions, and design decisions discovered]
 
-     ## Best Practices (from thoughts/best_practices/)
+     ## Best Practices (from memories/best_practices/)
      [Relevant best practices documented from previous implementations]
-     - `thoughts/best_practices/category-topic.md` - Best practice about X
+     - `memories/best_practices/category-topic.md` - Best practice about X
        - When to use: [Context]
        - Key insight: [Main takeaway]
        - Code examples: [file:line references]
      Note: Include only best practices directly relevant to the research question
 
-     ## Historical Context (from thoughts/)
-     [Relevant insights from thoughts/ directory with references]
-     - `thoughts/shared/something.md` - Historical decision about X
-     - `thoughts/local/notes.md` - Past exploration of Y
+     ## Historical Context (from memories/)
+     [Relevant insights from memories/ directory with references]
+     - `memories/shared/something.md` - Historical decision about X
+     - `memories/local/notes.md` - Past exploration of Y
      Note: Paths exclude "searchable/" even if found there
 
      ## Related Research
-     [Links to other research documents in thoughts/shared/research/]
+     [Links to other research documents in memories/shared/research/]
 
      ## Open Questions
      [Any areas that need further investigation]
@@ -229,12 +229,12 @@ Then wait for the user's research query.
    - Continue updating the document and syncing
 
 ## Important notes:
-- **Index-first approach:** When codebase indexes exist in `thoughts/codebase/`, scan them first (step 2) to identify specific file:line targets for your agents
+- **Index-first approach:** When codebase indexes exist in `memories/codebase/`, scan them first (step 2) to identify specific file:line targets for your agents
 - **Targeted agent prompts:** Use index findings to make agent prompts specific (e.g., "Start at auth/service.py:45") instead of broad searches
 - **Always use project-context-analyzer first** to understand project goals and requirements
 - Always use parallel Task agents to maximize efficiency and minimize context usage
 - Always run fresh codebase research - never rely solely on existing research documents
-- The thoughts/ directory and project docs provide historical context to supplement live findings
+- The memories/ directory and project docs provide historical context to supplement live findings
 - Focus on finding concrete file paths and line numbers for developer reference
 - Research documents should be self-contained with all necessary context
 - Each sub-agent prompt should be specific and focused on read-only operations
@@ -243,7 +243,7 @@ Then wait for the user's research query.
 - Link to GitHub when possible for permanent references
 - Keep the main agent focused on synthesis, not deep file reading
 - Encourage sub-agents to find examples and usage patterns, not just definitions
-- Explore all of thoughts/ directory, not just research subdirectory
+- Explore all of memories/ directory, not just research subdirectory
 - **File reading**: Always read mentioned files FULLY (no limit/offset) before spawning sub-tasks
 - **Critical ordering**: Follow the numbered steps exactly
   - ALWAYS read mentioned files first before spawning sub-tasks (step 1)

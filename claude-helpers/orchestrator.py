@@ -34,8 +34,8 @@ Then use:
     orch "Add user authentication"           # All phases (with interactive refinement)
     orch --no-refine "Quick bugfix"          # Skip refinement for simple tasks
     orch-plan "Add user authentication"      # Plan only
-    orch-impl thoughts/shared/plans/xxx.md   # Implement only
-    orch-clean thoughts/shared/plans/xxx.md  # Cleanup only
+    orch-impl memories/shared/plans/xxx.md   # Implement only
+    orch-clean memories/shared/plans/xxx.md  # Cleanup only
 """
 
 from __future__ import annotations
@@ -290,7 +290,7 @@ def extract_file_path(output: str, path_type: str = 'research') -> str | None:
         The file path if found, None otherwise
     """
     # Look for markdown file paths in the output
-    pattern = rf'thoughts/shared/{path_type}/[\w\-]+\.md'
+    pattern = rf'memories/shared/{path_type}/[\w\-]+\.md'
     matches = re.findall(pattern, output)
     if matches:
         return matches[-1]  # Return last match (most likely the created file)
@@ -302,7 +302,7 @@ def extract_file_path(output: str, path_type: str = 'research') -> str | None:
 
 def find_codebase_index(project_path: str) -> str | None:
     """Find the most recent codebase index file."""
-    codebase_dir = Path(project_path) / 'thoughts' / 'codebase'
+    codebase_dir = Path(project_path) / 'memories' / 'codebase'
     if not codebase_dir.exists():
         return None
 
@@ -329,8 +329,8 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
     else:
         index_context = "No codebase index found."
 
-    # Create output file in thoughts/shared/refinement/ with timestamp
-    refinement_dir = Path(project_path) / 'thoughts' / 'shared' / 'refinement'
+    # Create output file in memories/shared/refinement/ with timestamp
+    refinement_dir = Path(project_path) / 'memories' / 'shared' / 'refinement'
     refinement_dir.mkdir(parents=True, exist_ok=True)
     timestamp = time.strftime('%Y-%m-%d-%H%M%S')
     output_file = refinement_dir / f'{timestamp}-query-refinement.json'
@@ -342,7 +342,7 @@ def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult
 
 ## Context (skim briefly)
 {index_context}
-- CLAUDE.md, README.md, thoughts/shared/project/ (if they exist)
+- CLAUDE.md, README.md, memories/shared/project/ (if they exist)
 
 ## RULES
 - **DO NOT list files to change** - that's for the research phase
@@ -358,7 +358,7 @@ Example: "Replace MongoDB/Beanie with PostgreSQL/SQLAlchemy 2.0 async in the Fas
 
 ## Then list technical docs needed (just package names)
 
-Ask user to confirm (or ask up to 2 clarifying questions first), then write to: thoughts/shared/refinement/{timestamp}-query-refinement.json
+Ask user to confirm (or ask up to 2 clarifying questions first), then write to: memories/shared/refinement/{timestamp}-query-refinement.json
 
 ```json
 {{
@@ -377,7 +377,7 @@ Ask user to confirm (or ask up to 2 clarifying questions first), then write to: 
     # --system-prompt sets context, initial message starts the conversation
     process = subprocess.run(
         ['claude', '--dangerously-skip-permissions', '--system-prompt', prompt,
-         'Read the context files (codebase index, CLAUDE.md, README.md, thoughts/shared/project/) and propose a refined query. Keep it brief.'],
+         'Read the context files (codebase index, CLAUDE.md, README.md, memories/shared/project/) and propose a refined query. Keep it brief.'],
         cwd=project_path,
     )
 
@@ -506,7 +506,7 @@ Please proceed with reasonable defaults based on the research."""
             raise RuntimeError(f"Planning failed with code {returncode}")
 
         # Find the most recent plan file (we can't extract from output in interactive mode)
-        plans_dir = Path(project_path) / 'thoughts' / 'shared' / 'plans'
+        plans_dir = Path(project_path) / 'memories' / 'shared' / 'plans'
         if plans_dir.exists():
             plan_files = sorted(plans_dir.glob('*.md'), key=lambda f: f.stat().st_mtime, reverse=True)
             plan_path = str(plan_files[0].relative_to(project_path)) if plan_files else None
@@ -591,7 +591,7 @@ def run_phase_implement(plan_path: str, project_path: str,
             raise RuntimeError(f"Code review failed with code {returncode}")
 
         # Find the most recent review file
-        reviews_dir = Path(project_path) / 'thoughts' / 'shared' / 'reviews'
+        reviews_dir = Path(project_path) / 'memories' / 'shared' / 'reviews'
         if reviews_dir.exists():
             review_files = sorted(reviews_dir.glob('*.md'), key=lambda f: f.stat().st_mtime, reverse=True)
             review_path = str(review_files[0].relative_to(project_path)) if review_files else None

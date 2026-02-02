@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **IMPORTANT**: Before searching the codebase with Grep, Glob, or Explore, first read the codebase index:
 
-**`thoughts/codebase/codebase_overview_hooks_py.md`**
+**`memories/codebase/codebase_overview_claude_helpers_py.md`**
 
 This index contains:
 - **Most Used Symbols**: Top functions/classes by usage count
@@ -24,7 +24,7 @@ Reading the index first saves tokens and improves accuracy.
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
 - 12 specialized agents for code analysis, planning, and research
 - 14 slash commands for common workflows
-- A `thoughts/` directory system for documentation and plans
+- A `memories/` directory system for documentation and plans
 - Pre-configured tool permissions
 
 ## Quick Commands
@@ -41,7 +41,7 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 # Preview changes
 ./install-helper.sh --dry-run
 
-# Force reinstall (removes existing thoughts/)
+# Force reinstall (removes existing memories/)
 ./install-helper.sh --force
 ```
 
@@ -58,10 +58,10 @@ uv run claude-helpers/orchestrator.py --phase plan "Add user authentication"
 uv run claude-helpers/orchestrator.py --phase plan --no-refine "Add user authentication"
 
 # Implement phase (interactive review)
-uv run claude-helpers/orchestrator.py --phase implement thoughts/shared/plans/YYYY-MM-DD-feature.md
+uv run claude-helpers/orchestrator.py --phase implement memories/shared/plans/YYYY-MM-DD-feature.md
 
 # Cleanup phase (interactive commit)
-uv run claude-helpers/orchestrator.py --phase cleanup thoughts/shared/plans/YYYY-MM-DD-feature.md
+uv run claude-helpers/orchestrator.py --phase cleanup memories/shared/plans/YYYY-MM-DD-feature.md
 ```
 
 **Aliases (add to ~/.zshrc):**
@@ -89,7 +89,7 @@ claude-helpers/
 ├── fetch-docs.py     # Documentation fetcher
 └── orchestrator.py   # Full workflow automation
 
-thoughts/
+memories/
 ├── templates/        # Documentation templates (project.md, todo.md, done.md)
 ├── best_practices/   # Documented patterns from implementations
 ├── technical_docs/   # Library/framework documentation
@@ -143,8 +143,8 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 - `system-architect` - Design architectures
 
 **Documentation Research:**
-- `best-practices-researcher` - Search `thoughts/best_practices/`
-- `technical-docs-researcher` - Search `thoughts/technical_docs/`
+- `best-practices-researcher` - Search `memories/best_practices/`
+- `technical-docs-researcher` - Search `memories/technical_docs/`
 - `project-context-analyzer` - Extract project documentation context
 
 **External Research:**
@@ -175,7 +175,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 
 ## Best Practices Reference
 
-Documented patterns in `thoughts/best_practices/`:
+Documented patterns in `memories/best_practices/`:
 
 | Pattern | File | Use Case |
 |---------|------|----------|
@@ -218,7 +218,7 @@ export CLAUDE_HOOKS_DEBUG=1
 
 ## Codebase Overview Files
 
-This project maintains automatically generated codebase overview files in `thoughts/codebase/`:
+This project maintains automatically generated codebase overview files in `memories/codebase/`:
 
 ### Available Index Files
 - `codebase_overview_claude_helpers_py.md` - Helper utilities and CLI scripts

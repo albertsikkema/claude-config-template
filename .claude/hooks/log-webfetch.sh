@@ -1,13 +1,13 @@
 #!/bin/bash
 # Log WebFetch results as JSONL
-# Output: thoughts/logs/web-fetches.jsonl
+# Output: memories/logs/web-fetches.jsonl
 
 INPUT=$(cat)
 
 URL=$(echo "$INPUT" | jq -r '.tool_input.url // empty')
 
 if [ -n "$URL" ]; then
-  LOG_FILE="${CLAUDE_PROJECT_DIR}/thoughts/logs/web-fetches.jsonl"
+  LOG_FILE="${CLAUDE_PROJECT_DIR}/memories/logs/web-fetches.jsonl"
   mkdir -p "$(dirname "$LOG_FILE")"
 
   # Keep: timestamp, session_id, url, prompt, status, and the AI result

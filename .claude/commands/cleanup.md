@@ -28,14 +28,14 @@ When this command is invoked:
 I'll help you clean up after your implementation and update documentation.
 
 Please provide the file paths:
-- Plan file (required): e.g., `thoughts/shared/plans/2025-10-18-feature.md`
-- Research file (optional): e.g., `thoughts/shared/research/2025-10-18-topic.md`
-- Review file (optional): e.g., `thoughts/shared/reviews/2025-10-18-review.md`
+- Plan file (required): e.g., `memories/shared/plans/2025-10-18-feature.md`
+- Research file (optional): e.g., `memories/shared/research/2025-10-18-topic.md`
+- Review file (optional): e.g., `memories/shared/reviews/2025-10-18-review.md`
 
 I'll analyze what changed, document best practices, and update documentation.
 
 Tip: Quick invoke with all files:
-`/cleanup thoughts/shared/plans/2025-10-18-feature.md thoughts/shared/research/2025-10-18-topic.md thoughts/shared/reviews/2025-10-18-review.md`
+`/cleanup memories/shared/plans/2025-10-18-feature.md memories/shared/research/2025-10-18-topic.md memories/shared/reviews/2025-10-18-review.md`
 ```
 
 Then wait for the user's input.
@@ -111,10 +111,10 @@ Before documenting anything, check if it's already known:
 
 ```bash
 # Search existing best practices
-grep -r -i "[pattern-name]" thoughts/best_practices/ 2>/dev/null
+grep -r -i "[pattern-name]" memories/best_practices/ 2>/dev/null
 
 # Search technical docs
-grep -r -i "[pattern-name]" thoughts/technical_docs/ 2>/dev/null
+grep -r -i "[pattern-name]" memories/technical_docs/ 2>/dev/null
 ```
 
 **If you find anything** check if this pattern is already documented:   
@@ -165,7 +165,7 @@ A practice is ONLY worth documenting if it meets **at least 2** of these criteri
 
 Read existing best practices to avoid duplication:
 ```bash
-ls -la thoughts/best_practices/*.md 2>/dev/null
+ls -la memories/best_practices/*.md 2>/dev/null
 ```
 - Avoid duplicating content that already exists
 - Consider updating existing files if related
@@ -180,9 +180,9 @@ ls -la thoughts/best_practices/*.md 2>/dev/null
      - `api-error-handling.md` (too generic, already documented)
      - `testing-validation.md` (too standard)
 
-**6. Create best practice file** at `thoughts/best_practices/[category]-[topic].md`:
+**6. Create best practice file** at `memories/best_practices/[category]-[topic].md`:
 
-Use the template from `thoughts/templates/best-practice.md`
+Use the template from `memories/templates/best-practice.md`
 
 **IMPORTANT**:
 - Document WHY this is special/different for this project
@@ -198,7 +198,7 @@ Ask yourself:
 
 **If still yes to documenting**, ensure directory exists:
 ```bash
-mkdir -p thoughts/best_practices
+mkdir -p memories/best_practices
 ```
 
 **Expected result**: Most cleanups should create 0-2 best practices, not 5-10.
@@ -233,7 +233,7 @@ For each project documentation file that needs updates:
 1. **Discover existing project documentation**:
    ```bash
    # Find project documentation files
-   find thoughts/shared/project -type f -name "*.md" 2>/dev/null
+   find memories/shared/project -type f -name "*.md" 2>/dev/null
    ```
 
 2. **Read relevant files**:
@@ -241,7 +241,7 @@ For each project documentation file that needs updates:
    - Identify what needs to be updated based on the implementation
 
 3. **Update todo.md - Remove Completed Items**:
-   - File: `thoughts/shared/project/todo.md`
+   - File: `memories/shared/project/todo.md`
    - Actions:
      - Find items in Must Haves or Should Haves that were completed
      - Note their full description, category, and any notes
@@ -251,7 +251,7 @@ For each project documentation file that needs updates:
      - Reorder items if dependencies or priorities changed
 
 4. **Update done.md - Add Completed Work**:
-   - File: `thoughts/shared/project/done.md`
+   - File: `memories/shared/project/done.md`
    - Actions:
      - Add new month/year section if it doesn't exist (e.g., `## 2025-10 (October 2025)`)
      - Add completed items from todo.md with full traceability
@@ -262,13 +262,13 @@ For each project documentation file that needs updates:
 
      ### Features
      - [x] User authentication with OAuth2 (2025-10-20)
-       - Best Practices: `thoughts/best_practices/authentication-oauth-patterns.md`
+       - Best Practices: `memories/best_practices/authentication-oauth-patterns.md`
        - PR: #123
        - Notes: Implemented OAuth2 with Google and GitHub providers. Documented token refresh patterns and error handling. Key insight: token refresh logic at `src/auth/refresh.ts:45` needs monitoring in production.
      ```
 
 5. **Update project.md - Architecture & Stack Changes**:
-   - File: `thoughts/shared/project/project.md`
+   - File: `memories/shared/project/project.md`
    - Updates only if there were significant changes:
      - Update Technical Stack section if new dependencies added
      - Update Architecture Overview if system design changed
@@ -289,7 +289,7 @@ Present a short summary of what was done:
 ✓ Cleanup Complete
 
 ## Documentation Created:
-- [N] Best Practices in thoughts/best_practices/
+- [N] Best Practices in memories/best_practices/
   - [category]-[topic].md: [Best Practice Title]
   - [category]-[topic].md: [Another Best Practice]
 
@@ -344,8 +344,8 @@ Recommended next step: /pr to create PR description
 The complete workflow is:
 
 ```
-1. /research_codebase → thoughts/shared/research/YYYY-MM-DD-topic.md
-2. /create_plan → thoughts/shared/plans/YYYY-MM-DD-feature.md
+1. /research_codebase → memories/shared/research/YYYY-MM-DD-topic.md
+2. /create_plan → memories/shared/plans/YYYY-MM-DD-feature.md
 3. /implement_plan → Code changes + updated plan checkboxes + validation
 4. /code_reviewer → Review code quality and security
 5. /cleanup <plan> <research> <review> → Document best practices + update CLAUDE.md + update project docs
@@ -357,15 +357,15 @@ The complete workflow is:
 Cleanup is **mandatory** - it ensures documentation stays current and future AI sessions have proper context.
 
 ## Output Locations
-- **Best Practices**: `thoughts/best_practices/[category]-[topic].md`
+- **Best Practices**: `memories/best_practices/[category]-[topic].md`
 - **Updated CLAUDE.md**: `CLAUDE.md`
-- **Updated project docs**: `thoughts/shared/project/*.md` (project.md, todo.md, done.md)
+- **Updated project docs**: `memories/shared/project/*.md` (project.md, todo.md, done.md)
 
 
 ## Success Criteria
 
 A cleanup is complete when:
-- [ ] All significant decisions and best practices are documented in thoughts/best_practices/
+- [ ] All significant decisions and best practices are documented in memories/best_practices/
 - [ ] New patterns/conventions are in CLAUDE.md
 - [ ] Project documentation updated (todo.md items moved to done.md with full traceability, project.md updated if needed)
 - [ ] README.md updated if needed (user-facing changes)

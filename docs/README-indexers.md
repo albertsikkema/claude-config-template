@@ -23,7 +23,7 @@ Claude will:
 1. Auto-detect your project languages (Python, TypeScript, Go, C/C++)
 2. Find the right directories to scan (backend/, frontend/, src/, etc.)
 3. Run the appropriate indexers
-4. Save documentation to `thoughts/codebase/`
+4. Save documentation to `memories/codebase/`
 
 ### Manual Usage
 
@@ -350,10 +350,10 @@ python claude-helpers/index_cpp.py ./Source -o plugin_docs.md
 
 ```bash
 # Full-stack project
-python claude-helpers/index_python.py ./myapp/backend -o thoughts/codebase/backend_py.md
-python claude-helpers/index_js_ts.py ./myapp/frontend -o thoughts/codebase/frontend_js_ts.md
-python claude-helpers/index_go.py ./myapp/services -o thoughts/codebase/services_go.md
-python claude-helpers/index_cpp.py ./myapp/native -o thoughts/codebase/native_cpp.md
+python claude-helpers/index_python.py ./myapp/backend -o memories/codebase/backend_py.md
+python claude-helpers/index_js_ts.py ./myapp/frontend -o memories/codebase/frontend_js_ts.md
+python claude-helpers/index_go.py ./myapp/services -o memories/codebase/services_go.md
+python claude-helpers/index_cpp.py ./myapp/native -o memories/codebase/native_cpp.md
 ```
 
 ## Integration with `/index_codebase`
@@ -372,7 +372,7 @@ The `/index_codebase` slash command uses these scripts intelligently:
    - C/C++: Looks for `src/`, `include/`, `lib/`, `source/`
 
 3. **Organized Output**
-   - All docs saved to `thoughts/codebase/`
+   - All docs saved to `memories/codebase/`
    - Naming: `codebase_overview_<dirname>_<lang>.md`
    - Examples: `codebase_overview_backend_py.md`, `codebase_overview_frontend_ts.md`
 
@@ -413,8 +413,8 @@ python claude-helpers/index_go.py ./services/payment
 
 **Keep it organized:**
 ```bash
-# ✅ Recommended - save to thoughts/codebase/
-python claude-helpers/index_python.py ./backend -o thoughts/codebase/backend_py.md
+# ✅ Recommended - save to memories/codebase/
+python claude-helpers/index_python.py ./backend -o memories/codebase/backend_py.md
 
 # ❌ Avoid - clutters project root
 python claude-helpers/index_python.py ./backend -o backend_docs.md

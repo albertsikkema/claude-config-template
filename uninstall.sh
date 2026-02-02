@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # Default options
 REMOVE_CLAUDE=true
-REMOVE_THOUGHTS=true
+REMOVE_MEMORIES=true
 REMOVE_HELPERS=true
 FORCE_REMOVE=false
 DRY_RUN=false
@@ -28,7 +28,7 @@ Usage: $0 [OPTIONS] [TARGET_DIR]
 
 OPTIONS:
     --claude-only       Remove only .claude/ configuration
-    --thoughts-only     Remove only thoughts/ structure
+    --memories-only     Remove only memories/ structure
     --force, -f         Force removal without prompting
     --dry-run           Show what would be removed without making changes
     --help, -h          Show this help message
@@ -44,7 +44,7 @@ EXAMPLES:
     $0 /path/to/project     # Uninstall from specific directory
 
 WARNING:
-    This will permanently delete the .claude/ and/or thoughts/ directories!
+    This will permanently delete the .claude/ and/or memories/ directories!
     Use with caution. Use --dry-run to preview changes first.
 
 EOF
@@ -62,12 +62,12 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --claude-only)
             REMOVE_CLAUDE=true
-            REMOVE_THOUGHTS=false
+            REMOVE_MEMORIES=false
             shift
             ;;
-        --thoughts-only)
+        --memories-only)
             REMOVE_CLAUDE=false
-            REMOVE_THOUGHTS=true
+            REMOVE_MEMORIES=true
             shift
             ;;
         --force|-f)
@@ -176,12 +176,12 @@ main() {
         items_to_remove+=(".claude/")
     fi
 
-    # Only remove thoughts/ if --force is used (it contains user's work)
-    if [ "$REMOVE_THOUGHTS" = true ] && check_exists "thoughts"; then
+    # Only remove memories/ if --force is used (it contains user's work)
+    if [ "$REMOVE_MEMORIES" = true ] && check_exists "memories"; then
         if [ "$FORCE_REMOVE" = true ]; then
-            items_to_remove+=("thoughts/")
+            items_to_remove+=("memories/")
         else
-            print_message "$BLUE" "Skipping thoughts/ (use --force to remove user content)"
+            print_message "$BLUE" "Skipping memories/ (use --force to remove user content)"
         fi
     fi
 
@@ -213,19 +213,19 @@ main() {
         remove_item "$TARGET_DIR/.claude" ".claude/ directory"
     fi
 
-    # Remove thoughts structure (only if --force and in items_to_remove)
-    if [ "$REMOVE_THOUGHTS" = true ] && [ "$FORCE_REMOVE" = true ]; then
-        if check_exists "thoughts"; then
-            print_header "Removing thoughts/ Structure"
+    # Remove memories structure (only if --force and in items_to_remove)
+    if [ "$REMOVE_MEMORIES" = true ] && [ "$FORCE_REMOVE" = true ]; then
+        if check_exists "memories"; then
+            print_header "Removing memories/ Structure"
 
-            remove_item "$TARGET_DIR/thoughts/templates" "templates/"
-            remove_item "$TARGET_DIR/thoughts/shared/plans" "shared/plans/"
-            remove_item "$TARGET_DIR/thoughts/shared/research" "shared/research/"
-            remove_item "$TARGET_DIR/thoughts/shared/project/epics" "shared/project/epics/"
-            remove_item "$TARGET_DIR/thoughts/shared/project" "shared/project/"
-            remove_item "$TARGET_DIR/thoughts/shared" "shared/"
-            remove_item "$TARGET_DIR/thoughts/technical_docs" "technical_docs/"
-            remove_item "$TARGET_DIR/thoughts" "thoughts/ directory"
+            remove_item "$TARGET_DIR/memories/templates" "templates/"
+            remove_item "$TARGET_DIR/memories/shared/plans" "shared/plans/"
+            remove_item "$TARGET_DIR/memories/shared/research" "shared/research/"
+            remove_item "$TARGET_DIR/memories/shared/project/epics" "shared/project/epics/"
+            remove_item "$TARGET_DIR/memories/shared/project" "shared/project/"
+            remove_item "$TARGET_DIR/memories/shared" "shared/"
+            remove_item "$TARGET_DIR/memories/technical_docs" "technical_docs/"
+            remove_item "$TARGET_DIR/memories" "memories/ directory"
         fi
     fi
 

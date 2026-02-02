@@ -111,7 +111,7 @@ commits.md
 .opencode/
 .env.opencode
 AGENTS.md
-thoughts/
+memories/
 *.db
 *.sqlite3
 

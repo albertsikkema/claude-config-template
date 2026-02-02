@@ -57,7 +57,7 @@ _Nice-to-have items that may or may not happen._
 **Adding Items**:
 - Be specific and actionable
 - Include enough context for anyone to pick up the work
-- Link to research/ADRs if relevant (e.g., "See `thoughts/shared/research/2025-10-20-topic.md`")
+- Link to research/ADRs if relevant (e.g., "See `memories/shared/research/2025-10-20-topic.md`")
 
 **Prioritization**:
 - Review regularly and move items between sections as priorities shift

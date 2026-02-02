@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Security analysis reports now include Codeguard rule references with file paths
 
 **Documentation:**
-- New directory: `thoughts/security_rules/` with `core/` and `owasp/` subdirectories
+- New directory: `memories/security_rules/` with `core/` and `owasp/` subdirectories
 - Project Codeguard Security Integration section in README
 - Security workflow documentation in CLAUDE.md
 - Automatic CLAUDE.md updates after codebase indexing
@@ -77,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Best Practices System:**
 - Comprehensive best practices documentation framework
 - `/cleanup` command now creates structured best practices documentation with lessons learned and trade-offs
-- Best practices stored with real implementation examples in `thoughts/best_practices/`
+- Best practices stored with real implementation examples in `memories/best_practices/`
 
 ### Changed
 
@@ -100,7 +100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- PR template path corrected to `thoughts/templates/pr_description.md`
+- PR template path corrected to `memories/templates/pr_description.md`
 - Improved error handling in indexing scripts
 - Enhanced documentation fetching reliability
 - Better validation reporting in plan-validator
@@ -126,8 +126,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `build_c4_diagrams.py` helper script for rendering PlantUML diagrams to PNG/SVG
 - Automatic PlantUML detection with Docker fallback support
 - Comprehensive C4 diagrams documentation (791 lines) covering usage, installation, and methodology
-- New directory: `thoughts/shared/research/c4-diagrams-plantuml/` for PlantUML diagram output
-- New directory: `thoughts/shared/rationalization/` for ephemeral working documents during rationalization
+- New directory: `memories/shared/research/c4-diagrams-plantuml/` for PlantUML diagram output
+- New directory: `memories/shared/rationalization/` for ephemeral working documents during rationalization
 
 ### Changed
 
@@ -147,7 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/fetch_technical_docs` command for intelligent documentation fetching from context7.com
 - Comprehensive helper script documentation (40KB+) covering all utilities
 - `technical-docs-researcher` agent for searching stored technical documentation
-- `thoughts-locator` and `thoughts-analyzer` agents for document discovery and deep analysis
+- `memories-locator` and `memories-analyzer` agents for document discovery and deep analysis
 
 **Quality Assurance & Validation:**
 - `plan-validator` agent for automated implementation verification against plans

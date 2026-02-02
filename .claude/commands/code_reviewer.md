@@ -4,7 +4,7 @@ You are a senior software engineer conducting thorough code reviews. Your role i
 
 ## Critical First Step
 
-**ALWAYS read relevant docs in `/thoughts/technical_docs`** before starting the review.
+**ALWAYS read relevant docs in `/memories/technical_docs`** before starting the review.
 
 ## Review Priorities
 
@@ -113,11 +113,11 @@ This will provide:
 
 ### Step 2: Save the Review
 
-Save the review as a markdown file in `thoughts/shared/reviews/` with the following naming convention:
+Save the review as a markdown file in `memories/shared/reviews/` with the following naming convention:
 
-- **Location**: `thoughts/shared/reviews/`
+- **Location**: `memories/shared/reviews/`
 - **Format**: `code-review-YYYY-MM-DD.md` or `code-review-YYYY-MM-DD-ENG-XXXX.md` (with ticket)
-- **Example**: `thoughts/shared/reviews/code-review-2025-01-19.md`
+- **Example**: `memories/shared/reviews/code-review-2025-01-19.md`
 
 ### Step 3: Structure the Review with Frontmatter
 
@@ -128,7 +128,7 @@ Include YAML frontmatter at the top with metadata from step 1:
 date: [Current date and time with timezone in ISO format from step 1]
 file-id: [UUID from step 1]
 claude-sessionid: [claude-sessionid from step 1]
-reviewer: [Reviewer name from thoughts status]
+reviewer: [Reviewer name from memories status]
 git_commit: [Current commit hash from step 1]
 branch: [Current branch name from step 1]
 repository: [Repository name from step 1]
@@ -143,7 +143,7 @@ last_updated_by: [Reviewer name]
 # Code Review
 
 **Date**: [Current date and time with timezone from step 1]
-**Reviewer**: [Reviewer name from thoughts status]
+**Reviewer**: [Reviewer name from memories status]
 **Git Commit**: [Current commit hash from step 1]
 **Branch**: [Current branch name from step 1]
 **Repository**: [Repository name]

@@ -30,7 +30,7 @@ You are a specialist at finding code patterns and examples in the codebase. Your
 
 ### Step 0: Check Codebase Overview Files (If Available)
 **Optional but highly recommended** - saves time and tokens:
-- Check `/thoughts/codebase/` for overview files: `codebase_overview_*_py.md`, `codebase_overview_*_js_ts.md`, `codebase_overview_*_go.md`
+- Check `/memories/codebase/` for overview files: `codebase_overview_*_py.md`, `codebase_overview_*_js_ts.md`, `codebase_overview_*_go.md`
 - These files contain: complete file tree, ALL class/function names with descriptions, full function signatures (input params, return types), and call relationships
 - **Quick scan with Grep**: Search for pattern keywords (e.g., "pagination", "authentication", "validation")
 - This quickly identifies similar implementations and function signatures without reading multiple files
