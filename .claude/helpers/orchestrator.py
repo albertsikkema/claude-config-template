@@ -252,7 +252,7 @@ def run_claude_interactive(prompt: str, cwd: str) -> int:
     """Run Claude without --dangerously-skip-permissions for user interaction."""
     print(f"{Fore.BLUE}Starting interactive Claude session...{Style.RESET_ALL}", file=sys.stderr)
     process = subprocess.run(
-        ['claude', '-p', prompt],
+        ['claude', prompt],
         cwd=cwd,
     )
     return process.returncode
@@ -553,10 +553,11 @@ def run_phase_implement(plan_path: str, project_path: str,
     stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
 
     # Step 2: Code review (interactive so user can ask questions and suggest improvements)
+    code_review_cmd = f'/code_reviewer {plan_path}'
     if non_interactive:
         # Non-interactive: use -p flag and capture output
         returncode, review_output, elapsed = run_claude_command(
-            ['claude', '--dangerously-skip-permissions', '-p', '/code_reviewer'],
+            ['claude', '--dangerously-skip-permissions', '-p', code_review_cmd],
             cwd=project_path,
             timeout=600,
             phase='Review'
@@ -583,7 +584,7 @@ def run_phase_implement(plan_path: str, project_path: str,
     else:
         # Interactive: let user interact with Claude for review feedback
         returncode, elapsed = run_claude_interactive_command(
-            '/code_reviewer',
+            code_review_cmd,
             cwd=project_path,
             phase='Review'
         )
