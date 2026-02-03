@@ -22,7 +22,7 @@ Reading the index first saves tokens and improves accuracy.
 ## Repository Purpose
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
-- 12 specialized agents for code analysis, planning, and research
+- 16 specialized agents for code analysis, planning, and research
 - 15 slash commands for common workflows
 - A `memories/` directory system for documentation and plans
 - Pre-configured tool permissions
@@ -173,6 +173,12 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 **Planning & Architecture:**
 - `plan-implementer` - Execute technical plans
 - `system-architect` - Design architectures
+
+**PR Review (used by `/review_pr`):**
+- `pr-code-quality` - Line-by-line code analysis with explicit checklist (uses opus)
+- `pr-security` - Security vulnerability analysis using Codeguard rules
+- `pr-best-practices` - Project pattern compliance and helper reuse
+- `pr-test-coverage` - Test adequacy and missing scenarios
 
 **Documentation Research:**
 - `best-practices-researcher` - Search `memories/best_practices/`

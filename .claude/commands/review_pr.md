@@ -1,243 +1,228 @@
 # PR Review
 
-You are a senior software engineer conducting a comprehensive pull request review. Your role is to analyze **only the changed files in this PR** for code quality, security, best practices compliance, test coverage, and logical consistency.
+You are the orchestrator for a comprehensive PR review. You will spawn 4 focused agents in parallel, each handling a specific aspect of the review, then consolidate their findings.
 
-**IMPORTANT**: You are reviewing the PR diff, NOT the entire codebase. Focus exclusively on:
-- Files that were added, modified, or deleted in this PR
-- The specific lines that changed within those files
-- How those changes interact with the existing codebase
+## Why Multiple Agents?
 
-## Critical First Steps
+A single-pass review tries to do too much at once, leading to shallow analysis. By splitting into focused agents:
+- **Code Quality agent** (opus): Does meticulous line-by-line analysis
+- **Security agent**: Applies security rules without distraction
+- **Best Practices agent**: Checks project-specific patterns
+- **Test Coverage agent**: Focuses on test adequacy
 
-**Before reviewing ANY code, you MUST read the following documentation in this order:**
+## Step 1: Gather Context
 
-### 1. Codebase Index
-Read the codebase index FIRST to understand the project structure:
-```
-Glob: memories/codebase/codebase_overview_*.md
-```
-This gives you the foundation: file structure, key classes/functions, and how components relate.
+First, collect the information you'll pass to agents:
 
-### 2. PR Diff
-Get the actual changes to understand what's being reviewed:
-```bash
-gh pr diff {number}
-```
-Note the changed files, the libraries/frameworks they use, and the nature of the changes.
+1. **Get the PR diff**:
+   ```bash
+   gh pr diff {number}
+   ```
 
-### 3. Technical Documentation (Selective)
-Based on what you found in the codebase index and PR diff, read ONLY the relevant technical docs:
-```
-Glob: memories/technical_docs/**/*.md
-```
-**Selection criteria:**
-- Libraries/frameworks used in the changed files
-- APIs or patterns relevant to the changes
-- Skip docs for libraries not touched by this PR
+2. **List changed files** from the PR context provided
 
-### 4. Project Best Practices
-Read ALL files in `memories/best_practices/` to understand project-specific patterns:
-```
-Glob: memories/best_practices/**/*.md
-```
-These are hard-won lessons from this specific project - violations of these patterns are HIGH priority issues.
+3. **Identify languages** in changed files (Python, TypeScript, Go, etc.)
 
-### 5. Security Rules (Codeguard) - Selective
-Based on what you found in the codebase index, PR diff, and technical docs, read ONLY the relevant security rules:
+## Step 2: Launch 4 Agents in Parallel
+
+Use the Task tool to launch ALL 4 agents in a SINGLE message (parallel execution):
+
+### Agent 1: Code Quality (pr-code-quality)
+
 ```
-Glob: memories/security_rules/core/*.md
-Glob: memories/security_rules/owasp/*.md
+subagent_type: pr-code-quality
+prompt: |
+  Review this PR for code quality issues.
+
+  ## PR Info
+  - PR Number: #{number}
+  - Changed Files: [list]
+
+  ## PR Diff
+  [paste the diff]
+
+  Follow your instructions: read the codebase index first, then go line-by-line through each function using your checklist.
 ```
 
-**Selection criteria** - read rules related to:
-- **Language**: Rules matching the language(s) in changed files (check `languages:` in rule frontmatter)
-- **Security area**: Rules relevant to what the PR touches:
-  - Authentication/authorization changes → auth rules
-  - API endpoints → input validation, injection rules
-  - Database queries → SQL injection rules
-  - File handling → path traversal rules
-  - User input handling → XSS, injection rules
-  - Configuration changes → secrets management rules
-- Skip rules for languages/areas not touched by this PR
+### Agent 2: Security (pr-security)
 
-## Review Scope
+```
+subagent_type: pr-security
+prompt: |
+  Review this PR for security vulnerabilities.
 
-After reading documentation, review **the changed files** covering these 5 areas:
+  ## PR Info
+  - PR Number: #{number}
+  - Changed Files: [list]
+  - Languages: [detected languages]
+  - Security Areas: [based on what the code does: input handling, auth, data, files, etc.]
 
-### 1. Code Quality
-- **Logic correctness**: Does the code do what it's supposed to do?
-- **Edge cases**: Are boundary conditions handled?
-- **Readability**: Is the code self-documenting with clear naming?
-- **Maintainability**: Will this be easy to modify in the future?
-- **DRY principle**: Is there duplicated code that should be extracted?
+  ## PR Diff
+  [paste the diff]
 
-### 2. Security Analysis
-Apply the security rules you read from `memories/security_rules/`:
-- Check for injection vulnerabilities (SQL, command, XSS)
-- Verify authentication and authorization patterns
-- Review input validation and sanitization
-- Check for exposed secrets or credentials
-- Verify secure data handling practices
-- Reference specific Codeguard rules when reporting issues
+  Follow your instructions: read the codebase index first, then apply relevant security rules.
+```
 
-### 3. Best Practices Compliance
-Check against the patterns in `memories/best_practices/`:
-- List which documented patterns apply to these changes
-- Identify any violations of project-specific patterns
-- Note if new patterns should be documented based on this PR
-- Reference the specific best practice file when reporting issues
+### Agent 3: Best Practices (pr-best-practices)
 
-### 4. Test Coverage
-- Do tests exist for new functionality?
-- Are edge cases covered in tests?
-- Are there missing test scenarios?
-- Is test organization appropriate (unit vs integration)?
-- Do tests actually test the right behavior?
+```
+subagent_type: pr-best-practices
+prompt: |
+  Review this PR for best practices compliance.
 
-### 5. Logical Consistency
-- **Layer usage**: Do the changes respect architectural layers (e.g., no business logic in controllers)?
-- **Helper reuse**: Do the changes use existing utility functions instead of reimplementing?
-- **Code deduplication**: Should any new code in this PR be extracted to shared utilities?
-- **Pattern consistency**: Do the changes follow patterns established elsewhere in the codebase?
+  ## PR Info
+  - PR Number: #{number}
+  - Changed Files: [list]
 
-## Review Process
+  ## PR Diff
+  [paste the diff]
 
-1. **Complete Critical First Steps** (codebase index → diff → technical docs → best practices → security rules)
-2. **Understand the PR**: Read the PR description and context provided
-3. **Review ONLY changed files**: For each file in the diff:
-   - Read the changed lines and surrounding context
-   - Analyze against all 5 review areas
-   - Note the specific line numbers for any issues
-4. **Cross-reference**: Compare changes against technical docs, best practices, and security rules
-5. **Categorize findings**: By severity (CRITICAL, HIGH, MEDIUM, LOW)
+  Follow your instructions: read the codebase index first, then check against best practices.
+```
 
-**Do NOT review:**
-- Files not in the PR diff
-- Unrelated parts of the codebase
-- Pre-existing issues in unchanged code (unless directly impacted by PR changes)
+### Agent 4: Test Coverage (pr-test-coverage)
 
-## Review Output Format
+```
+subagent_type: pr-test-coverage
+prompt: |
+  Review this PR for test coverage.
 
-Structure your review as follows:
+  ## PR Info
+  - PR Number: #{number}
+  - Changed Files: [list]
+  - Test Files: [list any test files in the diff or related to changed files]
+
+  ## PR Diff
+  [paste the diff]
+
+  Follow your instructions: read the codebase index first, then check test coverage.
+```
+
+## Step 3: Wait for Results
+
+All 4 agents will run in parallel. Wait for all to complete.
+
+## Step 4: Consolidate Findings
+
+Combine the agent outputs into a unified report:
 
 ```markdown
-## PR Summary
-[2-3 sentences: What does this PR do? What's your overall assessment?]
+# PR Review: #{number} - {title}
 
-## Documentation Read
-- Codebase index: [files read from memories/codebase/]
-- Technical docs: [list relevant files read from memories/technical_docs/]
-- Best practices: [list files read from memories/best_practices/]
-- Security rules: [list relevant rules read from memories/security_rules/]
+**Author**: {author}
+**Branch**: {head} → {base}
+**Files Changed**: {count}
 
-## Changes Reviewed
-| File | Type of Change | Key Observations |
-|------|----------------|------------------|
-| path/to/file.py | New feature | [brief note] |
+---
+
+## Summary
+
+[2-3 sentence overall assessment based on all agent findings]
+
+**Recommendation**: [Approve / Request Changes / Comment]
+
+---
 
 ## Critical Issues (MUST FIX)
-Issues that block merge - bugs, security vulnerabilities, data loss risks.
 
-### Issue 1: [Title]
-- **File**: `path/to/file.py:123`
-- **Severity**: CRITICAL
-- **Issue**: [Description]
-- **Risk**: [Why this is critical]
-- **Reference**: [Codeguard rule or best practice file if applicable]
-- **Suggestion**:
-  ```python
-  # Current (problematic)
-  ...
+[Combine CRITICAL findings from all agents - these block merge]
 
-  # Suggested (fixed)
-  ...
-  ```
+### From Code Quality Review
+[Critical issues from pr-code-quality agent]
 
-## Security Findings
-Results from applying Codeguard security rules.
+### From Security Review
+[Critical vulnerabilities from pr-security agent]
 
-| Finding | File:Line | Rule Reference | Severity |
-|---------|-----------|----------------|----------|
-| [Issue] | file.py:42 | memories/security_rules/core/rule.md | HIGH |
+---
 
-## Best Practices Assessment
+## High Priority Issues
 
-### Compliant Patterns
-- [Pattern from best_practices/X.md]: Correctly applied in file.py
+### Code Quality
+[High severity code issues]
 
-### Violations
-- **[Pattern]**: Violated in `file.py:123`
-  - Reference: `memories/best_practices/pattern-name.md`
-  - Issue: [Description]
-  - Fix: [How to fix]
+### Security
+[High severity security issues]
 
-## Test Coverage
+### Best Practices
+[Pattern violations]
 
-### Covered
-- [What's tested]
+### Test Coverage
+[Missing critical tests]
 
-### Missing
-- [ ] [Test scenario that should be added]
-- [ ] [Another missing test]
+---
 
-## Logical Consistency
+## Medium/Low Priority
 
-### Layer Violations
-[Any architectural layer violations]
+### Improvements
+[Non-blocking suggestions from all agents]
 
-### Helper Reuse Opportunities
-[Existing helpers that could be used instead of new code]
+### Test Suggestions
+[Nice-to-have test additions]
 
-### Extraction Candidates
-[Code that should be extracted to shared utilities]
-
-## Improvements (Nice to Have)
-Non-blocking suggestions that would improve code quality.
-
-1. **[Area]**: [Suggestion]
-   - File: `path/to/file.py:123`
-   - Rationale: [Why this would be better]
+---
 
 ## Well Done
-[Positive aspects of the PR - acknowledge good work]
 
-## Open Questions
-[Any clarifications needed from the PR author]
+[Positive findings from agents - acknowledge good work]
 
-## Overall Recommendation
-- [ ] **Approve**: Ready to merge
-- [ ] **Request Changes**: Must address critical/high issues
-- [ ] **Comment**: Suggestions only, author can decide
+---
+
+## Agent Reports
+
+<details>
+<summary>Full Code Quality Report</summary>
+
+[Paste full output from pr-code-quality agent]
+
+</details>
+
+<details>
+<summary>Full Security Report</summary>
+
+[Paste full output from pr-security agent]
+
+</details>
+
+<details>
+<summary>Full Best Practices Report</summary>
+
+[Paste full output from pr-best-practices agent]
+
+</details>
+
+<details>
+<summary>Full Test Coverage Report</summary>
+
+[Paste full output from pr-test-coverage agent]
+
+</details>
 ```
 
-## Interactive Review
+## Step 5: Interactive Discussion
 
-After presenting your initial review:
+After presenting the consolidated report:
 
-1. **Allow follow-up questions**: The user may want to discuss specific findings
-2. **Deep-dive on request**: Be prepared to analyze specific areas in more detail
-3. **Discuss alternatives**: Help evaluate different approaches to fixing issues
-4. **Update findings**: If the user provides additional context, adjust your assessment
+1. **Answer questions**: User may want details on specific findings
+2. **Deep-dive**: Offer to investigate specific issues further
+3. **Discuss fixes**: Help evaluate approaches to fixing issues
+4. **Re-run agents**: If user provides context that changes assessment
 
-## Saving the Review
+## Step 6: Save Review (Optional)
 
-At the end of the interactive review session, ask the user:
+At the end, ask:
 
-> "Would you like me to save this review to a file? I'll use the PR review template and save it to `memories/shared/reviews/`."
+> "Would you like me to save this review? I'll save it to `memories/shared/reviews/pr-review-YYYY-MM-DD-PR-{number}.md`"
 
-If the user confirms:
-
-1. **Gather metadata**: Run `.claude/helpers/spec_metadata.sh`
-2. **Use the template**: Read `memories/templates/pr_review.md.template`
-3. **Fill in all sections**: Use the review content generated during this session
-4. **Save the file**: Write to `memories/shared/reviews/pr-review-YYYY-MM-DD-PR-{number}.md`
-5. **Confirm**: Tell the user the file path
+If confirmed:
+1. Run `.claude/helpers/spec_metadata.sh` for metadata
+2. Use `memories/templates/pr_review.md.template`
+3. Fill in all sections from the consolidated report
+4. Save the file
 
 ## Remember
 
-- **Read documentation FIRST** - this is critical for quality reviews
-- **Be constructive** - explain WHY something should change
-- **Reference specific files** - always include file:line references
-- **Acknowledge good work** - don't only focus on problems
-- **Stay practical** - balance perfectionism with pragmatism
-- **Follow up** - the review is interactive, engage with the user
+- **Launch all 4 agents in ONE message** (parallel, not sequential)
+- **Each agent has narrow focus** - don't ask them to do other agents' work
+- **Consolidate thoughtfully** - prioritize by severity across all findings
+- **Acknowledge good work** - don't only report problems
+- **Be interactive** - engage with user after presenting report
