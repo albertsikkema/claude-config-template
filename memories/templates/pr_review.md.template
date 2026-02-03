@@ -1,0 +1,163 @@
+---
+date: {{DATE_ISO}}
+file-id: {{UUID}}
+claude-sessionid: {{CLAUDE_SESSIONID}}
+reviewer: {{REVIEWER}}
+git_commit: {{GIT_COMMIT}}
+branch: {{BRANCH}}
+repository: {{REPOSITORY}}
+pr_number: {{PR_NUMBER}}
+pr_title: "{{PR_TITLE}}"
+pr_author: {{PR_AUTHOR}}
+pr_url: {{PR_URL}}
+base_branch: {{BASE_BRANCH}}
+head_branch: {{HEAD_BRANCH}}
+files_reviewed:
+{{FILES_REVIEWED_YAML}}
+review_type: pr_review
+recommendation: {{RECOMMENDATION}}
+security_rating: {{SECURITY_RATING}}
+code_quality_rating: {{CODE_QUALITY_RATING}}
+critical_issues_count: {{CRITICAL_ISSUES_COUNT}}
+high_issues_count: {{HIGH_ISSUES_COUNT}}
+tags: [pr-review, {{ADDITIONAL_TAGS}}]
+status: complete
+last_updated: {{LAST_UPDATED}}
+last_updated_by: {{REVIEWER}}
+---
+
+# PR Review: {{PR_TITLE}}
+
+**PR**: #{{PR_NUMBER}} - [View on GitHub]({{PR_URL}})
+**Author**: {{PR_AUTHOR}}
+**Date**: {{DATE_ISO}}
+**Reviewer**: {{REVIEWER}}
+**Repository**: {{REPOSITORY}}
+**Branch**: {{HEAD_BRANCH}} → {{BASE_BRANCH}}
+
+---
+
+## Summary
+
+{{SUMMARY}}
+
+## Overall Assessment
+
+| Metric | Rating |
+|--------|--------|
+| **Recommendation** | {{RECOMMENDATION}} |
+| **Security** | {{SECURITY_RATING}} |
+| **Code Quality** | {{CODE_QUALITY_RATING}} |
+| **Test Coverage** | {{TEST_COVERAGE_RATING}} |
+
+- **Critical Issues**: {{CRITICAL_ISSUES_COUNT}}
+- **High Priority Issues**: {{HIGH_ISSUES_COUNT}}
+- **Improvements Suggested**: {{IMPROVEMENTS_COUNT}}
+
+---
+
+## Documentation Referenced
+
+### Codebase Index
+{{CODEBASE_INDEX_READ}}
+
+### Technical Docs Read (Relevant to PR)
+{{TECHNICAL_DOCS_READ}}
+
+### Best Practices Checked
+{{BEST_PRACTICES_CHECKED}}
+
+### Security Rules Applied (Relevant to PR)
+{{SECURITY_RULES_READ}}
+
+---
+
+## Changes Reviewed
+
+| File | Changes | Status |
+|------|---------|--------|
+{{FILES_TABLE}}
+
+---
+
+## Critical Issues
+
+{{CRITICAL_ISSUES}}
+
+---
+
+## Security Findings
+
+{{SECURITY_FINDINGS}}
+
+---
+
+## Best Practices Compliance
+
+### Followed Patterns
+{{BEST_PRACTICES_COMPLIANT}}
+
+### Violations
+{{BEST_PRACTICES_VIOLATIONS}}
+
+---
+
+## Test Coverage Analysis
+
+### Covered
+{{TEST_COVERAGE_COVERED}}
+
+### Missing
+{{TEST_COVERAGE_MISSING}}
+
+---
+
+## Logical Consistency
+
+### Layer Usage
+{{LAYER_USAGE}}
+
+### Helper Reuse
+{{HELPER_REUSE}}
+
+### Extraction Candidates
+{{EXTRACTION_CANDIDATES}}
+
+---
+
+## Improvements (Non-Blocking)
+
+{{IMPROVEMENTS}}
+
+---
+
+## Well Done
+
+{{WELL_DONE}}
+
+---
+
+## Open Questions
+
+{{OPEN_QUESTIONS}}
+
+---
+
+## PR Description (Original)
+
+{{PR_DESCRIPTION}}
+
+---
+
+## Review Discussion Notes
+
+{{DISCUSSION_NOTES}}
+
+---
+
+## References
+
+- PR Diff: `gh pr diff {{PR_NUMBER}}`
+- Technical Docs: `memories/technical_docs/`
+- Best Practices: `memories/best_practices/`
+- Security Rules: `memories/security_rules/`

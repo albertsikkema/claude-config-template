@@ -23,7 +23,7 @@ Reading the index first saves tokens and improves accuracy.
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
 - 12 specialized agents for code analysis, planning, and research
-- 14 slash commands for common workflows
+- 15 slash commands for common workflows
 - A `memories/` directory system for documentation and plans
 - Pre-configured tool permissions
 
@@ -72,6 +72,37 @@ alias orch-impl='uv run .claude/helpers/orchestrator.py --phase implement'
 alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
 ```
 
+### PR Reviewer (automated PR review)
+
+```bash
+# Review PR by number
+uv run .claude/helpers/pr_reviewer.py 123
+
+# Review PR by URL
+uv run .claude/helpers/pr_reviewer.py https://github.com/owner/repo/pull/123
+
+# Skip tests (not recommended)
+uv run .claude/helpers/pr_reviewer.py --skip-tests 123
+
+# Skip documentation fetch (faster)
+uv run .claude/helpers/pr_reviewer.py --skip-docs 123
+
+# Skip codebase indexing (faster)
+uv run .claude/helpers/pr_reviewer.py --skip-index 123
+```
+
+**Workflow:**
+1. Validates clean git status (aborts if dirty)
+2. Fetches PR details and comments via `gh` CLI
+3. Checks out PR branch
+4. Installs dependencies (uv sync, npm install, etc.)
+5. Runs tests (aborts if tests fail)
+6. Indexes codebase (`/index_codebase`)
+7. Fetches technical docs for packages in changed files
+8. Runs interactive `/review_pr` with test results in context
+9. Restores original branch after review
+10. Prompts to save review as markdown
+
 ## Directory Structure
 
 ```
@@ -85,11 +116,12 @@ alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
 │   ├── index_cpp.py      # C/C++ indexer
 │   ├── build_c4_diagrams.py  # C4 diagram generator
 │   ├── fetch-docs.py     # Documentation fetcher
-│   └── orchestrator.py   # Full workflow automation
+│   ├── orchestrator.py   # Full workflow automation
+│   └── pr_reviewer.py    # PR review automation
 └── settings.json     # Permissions and hooks
 
 memories/
-├── templates/        # Documentation templates (project.md, todo.md, done.md)
+├── templates/        # Documentation templates (project.md, todo.md, done.md, pr_review.md)
 ├── best_practices/   # Documented patterns from implementations
 ├── technical_docs/   # Library/framework documentation
 ├── security_rules/   # 108 Codeguard rules (core/ + owasp/)
@@ -125,6 +157,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 | `/commit` | Create git commits |
 | `/pr` | Generate PR descriptions |
 | `/code_reviewer` | Review code quality |
+| `/review_pr` | Comprehensive PR review (reads all docs, best practices, 108 security rules) |
 | `/security` | Security analysis with Codeguard rules |
 | `/deploy` | Deployment preparation |
 | `/fetch_technical_docs` | Fetch documentation from context7.com |
