@@ -39,6 +39,12 @@ When reviewing code, evaluate these areas:
 - Is the code testable?
 - Are there suggestions for test cases that should be written?
 
+### 8. Simplicity
+- Can the implementation be simplified?
+- Are there easier alternatives that achieve the same result?
+- Is any code over-engineered for the requirements?
+- Imagine a simpler solution exists - what would it look like?
+
 ## Review Format
 
 For each code submission, provide:
