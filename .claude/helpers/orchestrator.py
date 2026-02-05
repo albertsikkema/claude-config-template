@@ -272,7 +272,7 @@ def run_claude_interactive_command(initial_message: str, cwd: str, phase: str = 
 
     start_time = time.time()
     process = subprocess.run(
-        ['claude-safe', '--', initial_message],
+        ['claude-safe', '--no-firewall', '--', initial_message],
         cwd=cwd,
     )
     elapsed = time.time() - start_time
@@ -376,7 +376,7 @@ Ask user to confirm (or ask up to 2 clarifying questions first), then write to: 
     # Run truly interactive Claude session (no -p flag, but skip permissions for speed)
     # --system-prompt sets context, initial message starts the conversation
     process = subprocess.run(
-        ['claude-safe', '--', '--system-prompt', prompt,
+        ['claude-safe', '--no-firewall', '--', '--system-prompt', prompt,
          'Read the context files (codebase index, CLAUDE.md, README.md, memories/shared/project/) and propose a refined query. Keep it brief.'],
         cwd=project_path,
     )
@@ -415,7 +415,7 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False,
 
     # Step 1: Index codebase
     returncode, output, elapsed = run_claude_command(
-        ['claude-safe', '--', '-p', '/index_codebase'],
+        ['claude-safe', '--no-firewall', '--', '-p', '/index_codebase'],
         cwd=project_path,
         timeout=600,
         phase='Indexing'
@@ -447,7 +447,7 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False,
         docs_prompt = '/fetch_technical_docs'
 
     returncode, output, elapsed = run_claude_command(
-        ['claude-safe', '--', '-p', docs_prompt],
+        ['claude-safe', '--no-firewall', '--', '-p', docs_prompt],
         cwd=project_path,
         timeout=600,
         phase='Docs'
@@ -456,7 +456,7 @@ def run_phase_plan(query: str, project_path: str, skip_refinement: bool = False,
 
     # Step 4: Research with refined query
     returncode, output, elapsed = run_claude_command(
-        ['claude-safe', '--', '-p', f'/research_codebase {working_query}'],
+        ['claude-safe', '--no-firewall', '--', '-p', f'/research_codebase {working_query}'],
         cwd=project_path,
         timeout=600,
         phase='Research'
@@ -483,7 +483,7 @@ Please proceed with reasonable defaults based on the research."""
     if non_interactive:
         # Non-interactive: use -p flag and capture output
         returncode, output, elapsed = run_claude_command(
-            ['claude-safe', '--', '-p', prompt],
+            ['claude-safe', '--no-firewall', '--', '-p', prompt],
             cwd=project_path,
             timeout=600,
             phase='Planning'
@@ -543,7 +543,7 @@ def run_phase_implement(plan_path: str, project_path: str,
 
     # Step 1: Implement plan (includes validation)
     returncode, output, elapsed = run_claude_command(
-        ['claude-safe', '--', '-p', f'/implement_plan {plan_path}'],
+        ['claude-safe', '--no-firewall', '--', '-p', f'/implement_plan {plan_path}'],
         cwd=project_path,
         timeout=1800,  # 30 min for implementation
         phase='Implement'
@@ -557,7 +557,7 @@ def run_phase_implement(plan_path: str, project_path: str,
     if non_interactive:
         # Non-interactive: use -p flag and capture output
         returncode, review_output, elapsed = run_claude_command(
-            ['claude-safe', '--', '-p', code_review_cmd],
+            ['claude-safe', '--no-firewall', '--', '-p', code_review_cmd],
             cwd=project_path,
             timeout=600,
             phase='Review'
@@ -634,7 +634,7 @@ def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, proj
         cleanup_cmd += f' {review_path}'
 
     returncode, output, elapsed = run_claude_command(
-        ['claude-safe', '--', '-p', cleanup_cmd],
+        ['claude-safe', '--no-firewall', '--', '-p', cleanup_cmd],
         cwd=project_path,
         timeout=600,
         phase='Cleanup'
