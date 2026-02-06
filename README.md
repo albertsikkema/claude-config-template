@@ -53,8 +53,8 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 This is a **configuration template** that you install into your projects. It provides:
 
 - **Complete development workflow** - Research → Plan → Implement → Cleanup → Deploy ([see WORKFLOW.md](WORKFLOW.md))
-- **12 specialized AI agents** - Automated research, code analysis, and architecture design
-- **14 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
+- **16 specialized AI agents** - Automated research, code analysis, and architecture design
+- **15 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
 - **108 security rules** - Language-specific secure coding guidance from [Project Codeguard](https://github.com/project-codeguard/rules)
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -78,11 +78,17 @@ Security rules integration:
 - `codebase-locator` - Find WHERE code lives
 - `codebase-analyzer` - Understand HOW code works
 - `codebase-pattern-finder` - Discover similar implementations
-- `codebase-researcher` - Orchestrate comprehensive research
 
 **Architecture & Planning:**
 - `system-architect` - Design systems and evaluate patterns
 - `plan-implementer` - Execute approved technical plans
+- `plan-validator` - Validate implementation correctness
+
+**PR Review (used by `/review_pr`):**
+- `pr-code-quality` - Line-by-line code analysis with explicit checklist
+- `pr-security` - Security vulnerability analysis using Codeguard rules
+- `pr-best-practices` - Project pattern compliance and helper reuse
+- `pr-test-coverage` - Test adequacy and missing scenarios
 
 **Documentation Research:**
 - `project-context-analyzer` - Extract and synthesize project documentation context
@@ -108,6 +114,7 @@ Security rules integration:
 | `/commit` | Create well-formatted git commits |
 | `/pr` | Generate comprehensive PR descriptions |
 | `/code_reviewer` | Review code quality |
+| `/review_pr` | Comprehensive PR review (reads all docs, best practices, 108 security rules) |
 | `/security` | Comprehensive security analysis with Codeguard rules |
 | `/deploy` | Automated deployment preparation (version, changelog, build, release) |
 | `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
@@ -120,8 +127,14 @@ After installation, you'll have:
 ```
 your-project/
 ├── .claude/
-│   ├── agents/              # 12 specialized agents
-│   ├── commands/            # 14 slash commands
+│   ├── agents/              # 16 specialized agents
+│   ├── commands/            # 15 slash commands
+│   ├── hooks/               # Security hooks (three-layer defense)
+│   │   ├── pre_tool_use.py      # Layer 1 (regex) + Layer 2 (settings.json deny)
+│   │   ├── user_prompt_submit.py # Sensitive data detection in prompts
+│   │   ├── utils/
+│   │   │   └── settings_loader.py # Deny pattern loader for Layer 2
+│   │   └── ...                  # Notification, session, logging hooks
 │   ├── helpers/             # Utility scripts
 │   │   ├── README.md            # Scripts overview
 │   │   ├── index_python.py      # Python codebase indexer
@@ -131,7 +144,8 @@ your-project/
 │   │   ├── fetch-docs.py        # Documentation fetcher
 │   │   ├── fetch_openapi.sh     # OpenAPI schema fetcher
 │   │   └── spec_metadata.sh     # Metadata generator
-│   └── settings.json        # Configuration and hooks
+│   ├── settings.json        # Permissions, hooks, and deny rules
+│   └── settings.local.json  # Project-specific overrides (preserved across installs)
 │
 ├── docs/                    # Helper script documentation
 │   ├── README-fetch-docs.md     # Documentation fetcher guide
@@ -491,9 +505,15 @@ When you run `/security`, it automatically:
 
 **Source**: Curated by Cisco and aligned with OWASP best practices.
 
-### Security Hooks
+### Security Hooks — Three-Layer Defense
 
-The template includes pre-configured security hooks that protect against dangerous operations:
+The template uses a **three-layer defense architecture** that protects against dangerous operations:
+
+| Layer | Mechanism | Speed | What it catches |
+|-------|-----------|-------|-----------------|
+| **Layer 1** | Regex patterns in `pre_tool_use.py` | ~0ms | Obvious dangerous commands (rm -rf, git push, fork bombs) |
+| **Layer 2** | `settings.json` deny list via `settings_loader.py` | ~1ms | Single source of truth; enforced even in `--dangerously-skip-permissions` mode |
+| **Layer 3** | LLM prompt hook in `settings.json` | ~1-2s | Intent-based threats regex can't see (e.g., `curl -o /tmp/x.sh && sh /tmp/x.sh`) |
 
 **UserPromptSubmit Hook** (`user_prompt_submit.py`)
 Blocks user prompts containing sensitive data:
@@ -503,33 +523,39 @@ Blocks user prompts containing sensitive data:
 - Slack tokens (`xoxb-`, `xoxp-`)
 - Private keys (RSA, SSH, PGP)
 
-**PreToolUse Hook** (`pre_tool_use.py`)
-Blocks dangerous tool operations:
+**PreToolUse Hook** (`pre_tool_use.py`) — Full mode (default):
 
 | Category | Blocked Patterns |
 |----------|------------------|
-| **Destructive commands** | `rm -rf`, fork bombs, `dd` to devices |
+| **Destructive commands** | `rm -rf`, fork bombs, `dd` to devices, `mkfs` |
 | **Dangerous git** | ALL git push (push manually), `reset --hard`, `clean -fd` |
 | **Sensitive files** | `.env`, `.pem`, `.key`, SSH keys, credentials |
 | **Path traversal** | `..` in paths, escaping project directory |
+| **Cloud/infrastructure** | `terraform destroy`, `aws terminate-instances`, `kubectl delete namespace` |
+| **Database destruction** | `DROP TABLE`, `TRUNCATE`, `FLUSHALL` |
+| **Data exfiltration** | `curl -d @file`, `scp`, `rsync` to remote hosts |
+| **Network threats** | Cloud metadata SSRF, pipe-to-shell, reverse shells |
+
+**PreToolUse Hook** — Container mode (`CLAUDE_CONTAINER_MODE=1`):
+
+| Category | Blocked Patterns |
+|----------|------------------|
+| **Dangerous git** | ALL git push (push manually) |
+| **Sensitive files** | `.env`, `.pem`, `.key`, SSH keys, credentials |
+| **Cloud metadata SSRF** | `169.254.169.254`, `metadata.google.internal` |
+| **Pipe-to-shell** | `curl \| bash`, `wget \| sh` |
+| **Reverse shells** | `bash /dev/tcp`, `nc -e`, python socket connections |
+| **Container escape** | `nsenter`, `docker --privileged` |
+| **Credential exfiltration** | `env \| base64`, `/etc/shadow` |
+| **Crypto mining** | `xmrig` |
+
+**Audit logging:** All tool invocations are logged to `memories/logs/hook-audit.jsonl` with timestamp, session ID, tool, decision, and reason.
 
 **How it works:**
 - Hooks run automatically before each operation
-- Exit code `2` blocks the operation and shows error to Claude
-- All paths are properly quoted to handle spaces
-- Timeouts prevent hung operations
-
-**Customizing security rules:**
-Edit `.claude/hooks/pre_tool_use.py` to add/remove patterns:
-```python
-# Add custom sensitive file patterns
-sensitive_patterns = [
-    (r'\.pem$', 'PEM certificate/key file'),
-    (r'my-custom-secrets', 'Custom secrets file'),  # Add your own
-]
-```
-
-**Note**: Security hooks cannot be bypassed by Claude - they run at the system level before any tool executes.
+- Layer 2 (settings.json deny) is enforced in ALL modes, including `--dangerously-skip-permissions`
+- Layer 3 (LLM prompt hook) only runs on Bash commands — file operations skip LLM evaluation
+- Security hooks cannot be bypassed by Claude — they run at the system level before any tool executes
 
 #### Operating Modes
 
@@ -547,10 +573,16 @@ sensitive_patterns = [
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `CLAUDE_CONTAINER_MODE` | `0` | Set to `1` for relaxed security in containers (keeps git + sensitive file checks, disables rm/fork/path checks) |
 | `CLAUDE_AUDIO_ENABLED` | `0` | Set to `1` to enable audio notifications on session end, task completion, and when Claude needs input |
 | `CLAUDE_HOOKS_DEBUG` | `0` | Set to `1` to enable debug logging for troubleshooting hooks |
 
 ```bash
+# For containerized/sandboxed environments (relaxed pre_tool_use checks)
+# Still blocks: ALL git push, .env/.pem/credentials access, settings.json deny list, network threats
+# Allows: rm -rf, path traversal, fork bombs (safe in container)
+export CLAUDE_CONTAINER_MODE=1
+
 # Enable audio notifications
 export CLAUDE_AUDIO_ENABLED=1
 
@@ -674,7 +706,7 @@ If the `/project` command isn't recognized after installation:
 **Agent not found**
 
 If agents aren't being recognized:
-- Verify `.claude/agents/` contains all 11 agent files
+- Verify `.claude/agents/` contains all 16 agent files
 - Restart Claude Code
 - Check file permissions (files should be readable)
 

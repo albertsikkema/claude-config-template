@@ -8,7 +8,6 @@ This ensures a single source of truth for deny rules.
 from __future__ import annotations
 
 import json
-import os
 import re
 from pathlib import Path
 

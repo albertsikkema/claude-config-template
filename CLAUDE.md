@@ -107,8 +107,8 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 
 ```
 .claude/
-├── agents/           # 12 specialized agents
-├── commands/         # 14 slash commands
+├── agents/           # 16 specialized agents
+├── commands/         # 15 slash commands
 ├── helpers/          # Utility scripts
 │   ├── index_python.py   # Python codebase indexer
 │   ├── index_js_ts.py    # JavaScript/TypeScript indexer
