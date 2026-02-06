@@ -5,14 +5,14 @@ PreToolUse security hook that blocks dangerous operations.
 Full mode (default) checks for:
 - Dangerous rm commands
 - Fork bombs
-- Dangerous git commands (push to main/master, force push)
+- Dangerous git commands (all git push, force operations)
 - Disk write attacks (dd to /dev/)
 - Sensitive file access (.env, .pem, .key, credentials, etc.)
 - Path traversal attacks
 - Project directory escape
 
 Container mode (CLAUDE_CONTAINER_MODE=1) checks for:
-- Dangerous git commands (push to main/master, force push)
+- Dangerous git commands (all git push, force operations)
 - Sensitive file access (.env, .pem, .key, credentials, etc.)
 
 Environment variables:
@@ -66,12 +66,8 @@ FORK_BOMB_PATTERNS = [
 ]
 
 DANGEROUS_GIT_PATTERNS = [
-    # Block ALL pushes to main/master (including regular push)
-    re.compile(r'git\s+push\s+.*\b(main|master)\b'),
-    re.compile(r'git\s+push\s+origin\s+(main|master)'),
-    # Block force push without explicit branch (might be on main)
-    re.compile(r'git\s+push\s+.*--force'),
-    re.compile(r'git\s+push\s+.*-f\b'),
+    # Block ALL git push commands — push manually
+    re.compile(r'git\s+push\b'),
     # Other dangerous commands
     re.compile(r'git\s+reset\s+--hard\s+origin/'),
     re.compile(r'git\s+clean\s+-fd'),  # Force delete untracked files
@@ -254,7 +250,7 @@ def check_bash_command(command: str) -> str | None:
         return "Fork bomb detected"
 
     if is_dangerous_git_command(command):
-        return "Dangerous git command detected (push to main/master or force push)"
+        return "Git push is not allowed — push manually"
 
     if is_dangerous_disk_write(command):
         return "Dangerous disk write operation detected"
@@ -300,7 +296,7 @@ def check_file_operation(tool_name: str, tool_input: dict, project_dir: str) -> 
 def check_bash_command_container(command: str) -> str | None:
     """Check bash command in container mode (only git and .env access)."""
     if is_dangerous_git_command(command):
-        return "Dangerous git command detected (push to main/master or force push)"
+        return "Git push is not allowed — push manually"
 
     # Check for .env access in bash commands
     for pattern in ENV_ACCESS_PATTERNS:

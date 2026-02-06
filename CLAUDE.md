@@ -242,10 +242,41 @@ export CLAUDE_AUDIO_ENABLED=1
 export CLAUDE_HOOKS_DEBUG=1
 
 # For containerized/sandboxed environments (relaxed pre_tool_use checks)
-# Still blocks: git push to main/master, force push, .env/.pem/credentials access
+# Still blocks: ALL git push, .env/.pem/credentials access
 # Allows: rm -rf, path traversal, fork bombs (safe in container)
 export CLAUDE_CONTAINER_MODE=1
 ```
+
+### Three Operating Modes
+
+Claude Code runs in three distinct modes with different security needs:
+
+| Mode | Use case | Permissions | Hooks |
+|------|----------|-------------|-------|
+| **Container non-interactive** | Orchestrator, CI/CD, `-p` flag | `--dangerously-skip-permissions` | `CLAUDE_CONTAINER_MODE=1` (relaxed) |
+| **Container interactive** | User types `claude` in container | Permissive `~/.claude/settings.local.json` | `CLAUDE_CONTAINER_MODE=1` (relaxed) |
+| **Host interactive** | Regular system work | Strict project `settings.json` | Full security |
+
+- **Container non-interactive** uses `--dangerously-skip-permissions` — the only hard guarantee against hanging on a prompt with no TTY
+- **Container interactive** writes to `~/.claude/settings.local.json` (user-home inside container, not the project-level file) to avoid bleed-back to mounted repos on host
+- **Host interactive** uses the existing strict project-level `settings.json`
+- In all modes, hooks still block ALL git push and sensitive file access
+
+### Container Setup
+
+```bash
+# In Dockerfile or entrypoint:
+export CLAUDE_CONTAINER_MODE=1
+python3 .claude/helpers/generate_settings.py
+
+# Interactive sessions pick up permissive ~/.claude/settings.local.json
+# Non-interactive scripts continue using --dangerously-skip-permissions
+```
+
+`generate_settings.py` flags:
+- `--container` — force container permissions (all tools auto-allowed)
+- `--baseline` — force baseline permissions (read-only tools)
+- `--check` — print detected mode without writing
 
 ## Common Pitfalls
 

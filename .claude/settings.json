@@ -1,6 +1,13 @@
 {
   "permissions": {
     "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "WebSearch",
+      "WebFetch(*)",
+      "TodoRead",
+      "Task(*)"
     ],
     "deny": []
   },

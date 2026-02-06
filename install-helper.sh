@@ -406,6 +406,7 @@ main() {
             echo "  1. Review .claude/settings.local.json and adjust permissions as needed"
             echo "  2. Explore available agents in .claude/agents/"
             echo "  3. Check out slash commands in .claude/commands/"
+            echo "  4. For containers: see CLAUDE.md \"Container Setup\" section"
         fi
 
         if [ "$INSTALL_MEMORIES" = true ]; then
