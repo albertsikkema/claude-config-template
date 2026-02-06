@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 """
-PreToolUse security hook that blocks dangerous operations.
+PreToolUse security hook — three-layer defense architecture.
+
+Layer 1: Regex pattern matching (fast, ~0ms, catches obvious patterns)
+Layer 2: settings.json deny list enforcement (single source of truth,
+         enforced even in --dangerously-skip-permissions mode)
+Layer 3: LLM prompt hook (configured in settings.json, catches intent-based
+         threats that regex can't see)
+
+Decision modes:
+- deny:  Block the tool call entirely
+- allow: Silently permit the tool call
 
 Full mode (default) checks for:
 - Dangerous rm commands
@@ -10,6 +20,9 @@ Full mode (default) checks for:
 - Sensitive file access (.env, .pem, .key, credentials, etc.)
 - Path traversal attacks
 - Project directory escape
+- Cloud/infrastructure destruction (terraform, aws, kubectl)
+- Database destruction (DROP TABLE, TRUNCATE, FLUSHALL)
+- Data exfiltration (curl -d @file, scp, rsync to remote)
 
 Container mode (CLAUDE_CONTAINER_MODE=1) checks for:
 - Dangerous git commands (all git push, force operations)
@@ -20,6 +33,11 @@ Container mode (CLAUDE_CONTAINER_MODE=1) checks for:
 - Container escape attempts (nsenter, docker --privileged)
 - Credential exfiltration (env | base64, /etc/shadow)
 - Crypto mining (xmrig)
+- settings.json deny list enforcement
+
+Audit logging:
+- All tool invocations logged to memories/logs/hook-audit.jsonl
+- Entries include timestamp, session ID, tool, decision, and reason
 
 Environment variables:
 - CLAUDE_HOOKS_DEBUG=1      Enable debug logging
@@ -32,14 +50,19 @@ import json
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Tuple
+
+# Import settings loader for Layer 2
+sys.path.insert(0, str(Path(__file__).parent))
+from utils.settings_loader import load_deny_patterns
 
 # Debug mode for troubleshooting
 DEBUG = os.environ.get('CLAUDE_HOOKS_DEBUG', '').lower() in ('1', 'true')
 
 # Container mode - relaxes some security checks for sandboxed environments
-# Keeps: sensitive file access, dangerous git commands
+# Keeps: sensitive file access, dangerous git commands, settings.json deny list
 # Disables: rm -rf, fork bombs, disk writes, path escape
 CONTAINER_MODE = os.environ.get('CLAUDE_CONTAINER_MODE', '').lower() in ('1', 'true')
 
@@ -146,6 +169,13 @@ SENSITIVE_FILE_PATTERNS = [
     (re.compile(r'\.netrc'), 'Netrc file'),
     (re.compile(r'\.npmrc'), 'NPM config with tokens'),
     (re.compile(r'\.pypirc'), 'PyPI config with tokens'),
+    (re.compile(r'\.vault-token$'), 'Vault token'),
+    (re.compile(r'\.htpasswd$'), 'Apache password file'),
+    (re.compile(r'\.pgpass$'), 'PostgreSQL password file'),
+    (re.compile(r'\.my\.cnf$'), 'MySQL config file'),
+    (re.compile(r'\.docker/config\.json$'), 'Docker registry auth'),
+    (re.compile(r'service[_-]account.*\.json$'), 'GCP service account'),
+    (re.compile(r'\.tfstate$'), 'Terraform state file'),
 ]
 
 # Exact filename matches for sensitive files
@@ -154,6 +184,8 @@ SENSITIVE_FILES = {
     '.env.local',
     '.env.production',
     '.env.development',
+    '.env.staging',
+    '.envrc',
     'id_rsa',
     'id_ed25519',
     'id_ecdsa',
@@ -168,6 +200,47 @@ def debug_log(message: str) -> None:
     """Log debug message if debug mode is enabled."""
     if DEBUG:
         print(f"[DEBUG] {message}", file=sys.stderr)
+
+
+def respond_deny(reason: str) -> None:
+    """Block the tool call via hookSpecificOutput."""
+    print(json.dumps({
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "deny",
+            "permissionDecisionReason": reason
+        }
+    }))
+    sys.exit(0)
+
+
+
+def audit_log(tool_name: str, tool_input: dict, decision: str, reason: str, mode: str) -> None:
+    """Append audit entry to JSONL log file."""
+    try:
+        log_dir = Path(os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())) / "memories" / "logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_path = log_dir / "hook-audit.jsonl"
+
+        # Truncate tool_input to avoid massive log entries
+        summary = json.dumps(tool_input)
+        if len(summary) > 256:
+            summary = summary[:253] + "..."
+
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "sid": os.environ.get("CLAUDE_SESSION_ID", ""),
+            "tool": tool_name,
+            "input": summary,
+            "decision": decision,
+            "reason": reason,
+            "mode": mode,
+        }
+
+        with open(log_path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+    except Exception:
+        pass  # Never let logging break the hook
 
 
 def is_dangerous_rm_command(command: str) -> bool:
@@ -304,6 +377,33 @@ def is_path_escape(file_path: str, project_dir: str) -> tuple[bool, str | None]:
     return False, None
 
 
+def check_against_settings_deny(
+    tool_name: str, tool_input: dict, deny_patterns: dict[str, list[re.Pattern]]
+) -> str | None:
+    """Check tool invocation against settings.json deny patterns (Layer 2)."""
+    patterns = deny_patterns.get(tool_name, [])
+    if not patterns:
+        return None
+
+    # Build the string to match against
+    if tool_name == "Bash":
+        match_str = tool_input.get("command", "")
+    else:
+        # For file tools, match against the file path
+        match_str = tool_input.get("file_path", "") or tool_input.get("path", "")
+
+    if not match_str:
+        return None
+
+    for pattern in patterns:
+        if pattern.search(match_str):
+            debug_log(f"Matched settings.json deny pattern: {pattern.pattern}")
+            return f"Blocked by settings.json deny rule: {pattern.pattern}"
+
+    return None
+
+
+
 def check_bash_command(command: str) -> str | None:
     """Check bash command for dangerous patterns."""
     if is_dangerous_rm_command(command):
@@ -410,53 +510,71 @@ def main() -> None:
         tool_name = input_data.get('tool_name', '')
         tool_input = input_data.get('tool_input', {})
         project_dir = os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())
+        mode = "container" if CONTAINER_MODE else "full"
 
         debug_log(f"Checking tool: {tool_name}")
+
+        # Layer 2: Load settings.json deny patterns (enforced in ALL modes)
+        deny_patterns = load_deny_patterns(project_dir)
 
         if CONTAINER_MODE:
             debug_log("Container mode - using relaxed security checks")
 
-            # Container mode: only check git commands and sensitive file access
+            # Layer 1: Regex checks (container subset)
             if tool_name == 'Bash':
                 command = tool_input.get('command', '')
                 error = check_bash_command_container(command)
                 if error:
-                    print(f"BLOCKED: {error}", file=sys.stderr)
-                    sys.exit(2)
+                    audit_log(tool_name, tool_input, "deny", error, mode)
+                    respond_deny(error)
 
             if tool_name in ['Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Grep']:
                 error = check_file_operation_container(tool_name, tool_input)
                 if error:
-                    print(f"BLOCKED: {error}", file=sys.stderr)
-                    sys.exit(2)
+                    audit_log(tool_name, tool_input, "deny", error, mode)
+                    respond_deny(error)
 
+            # Layer 2: settings.json deny (enforced even in container mode)
+            error = check_against_settings_deny(tool_name, tool_input, deny_patterns)
+            if error:
+                audit_log(tool_name, tool_input, "deny", error, mode)
+                respond_deny(error)
+
+            audit_log(tool_name, tool_input, "allow", "", mode)
             sys.exit(0)
 
         # Full security checks (non-container mode)
 
-        # Check bash commands
+        # Layer 1: Regex checks
         if tool_name == 'Bash':
             command = tool_input.get('command', '')
             error = check_bash_command(command)
             if error:
-                print(f"BLOCKED: {error}", file=sys.stderr)
-                sys.exit(2)
+                audit_log(tool_name, tool_input, "deny", error, mode)
+                respond_deny(error)
 
         # Check file operations (including Glob and Grep)
         if tool_name in ['Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Grep']:
             error = check_file_operation(tool_name, tool_input, project_dir)
             if error:
-                print(f"BLOCKED: {error}", file=sys.stderr)
-                sys.exit(2)
+                audit_log(tool_name, tool_input, "deny", error, mode)
+                respond_deny(error)
 
+        # Layer 2: settings.json deny
+        error = check_against_settings_deny(tool_name, tool_input, deny_patterns)
+        if error:
+            audit_log(tool_name, tool_input, "deny", error, mode)
+            respond_deny(error)
+
+        audit_log(tool_name, tool_input, "allow", "", mode)
         sys.exit(0)
 
     except json.JSONDecodeError as e:
         debug_log(f"JSON decode error: {e}")
-        sys.exit(0)
+        sys.exit(1)
     except Exception as e:
         debug_log(f"Unexpected error: {e}")
-        sys.exit(0)
+        sys.exit(1)
 
 
 if __name__ == '__main__':

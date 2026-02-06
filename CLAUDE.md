@@ -228,7 +228,21 @@ Documented patterns in `memories/best_practices/`:
 
 ## Hooks Configuration
 
-Security hooks in `.claude/hooks/` protect against dangerous operations. Configure via environment variables:
+Security hooks in `.claude/hooks/` use a **three-layer defense architecture**:
+
+| Layer | Mechanism | Speed | What it catches |
+|-------|-----------|-------|-----------------|
+| **Layer 1** | Regex patterns in `pre_tool_use.py` | ~0ms | Obvious dangerous commands (rm -rf, git push, fork bombs) |
+| **Layer 2** | `settings.json` deny list via `settings_loader.py` | ~1ms | Single source of truth; enforced even in `--dangerously-skip-permissions` mode |
+| **Layer 3** | LLM prompt hook (Haiku) in `settings.json` | ~1-2s | Intent-based threats regex can't see (e.g., `curl -o /tmp/x.sh && sh /tmp/x.sh`) |
+
+**Decision modes:**
+- `deny` — block the tool call entirely (dangerous patterns)
+- `allow` — silently permit
+
+**Audit logging:** All tool invocations are logged to `memories/logs/hook-audit.jsonl` with timestamp, session ID, tool, decision, and reason.
+
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -242,7 +256,7 @@ export CLAUDE_AUDIO_ENABLED=1
 export CLAUDE_HOOKS_DEBUG=1
 
 # For containerized/sandboxed environments (relaxed pre_tool_use checks)
-# Still blocks: ALL git push, .env/.pem/credentials access
+# Still blocks: ALL git push, .env/.pem/credentials access, settings.json deny list
 # Allows: rm -rf, path traversal, fork bombs (safe in container)
 export CLAUDE_CONTAINER_MODE=1
 ```
@@ -260,7 +274,9 @@ export CLAUDE_CONTAINER_MODE=1
 - `settings.local.json` — project-specific permission overrides. **Preserved** across installs. Use this to add allows/denies for your project. Merges with (not replaces) `settings.json`.
 
 **Security:**
+- Layer 2 (settings.json deny) is enforced in ALL modes, including `--dangerously-skip-permissions`
 - Hooks always block ALL git push and sensitive file access, regardless of mode
+- Layer 3 (LLM prompt hook) only runs on Bash commands — file operations skip LLM evaluation
 - `CLAUDE_CONTAINER_MODE=1` relaxes non-essential hook checks (rm, path traversal, fork bombs) that the container already constrains
 - Non-interactive uses `--dangerously-skip-permissions` — the only hard guarantee against hanging on a prompt with no TTY
 

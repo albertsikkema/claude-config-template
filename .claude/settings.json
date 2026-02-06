@@ -65,6 +65,13 @@
       "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.config/gh/*)",
+      "Read(./.vault-token)",
+      "Read(./.htpasswd)",
+      "Read(./.pgpass)",
+      "Read(./.my.cnf)",
+      "Read(~/.docker/config.json)",
+      "Read(./*.tfstate)",
+
       "Bash(cat ~/.aws/*)",
       "Bash(cat ~/.ssh/id_*)",
       "Bash(cat /etc/shadow)",
@@ -116,7 +123,41 @@
       "Bash(reboot)",
       "Bash(halt)",
 
-      "Bash(*xmrig*)"
+      "Bash(*xmrig*)",
+
+      "Bash(terraform destroy *)",
+      "Bash(terraform apply -destroy *)",
+      "Bash(pulumi destroy *)",
+
+      "Bash(aws ec2 terminate-instances *)",
+      "Bash(aws rds delete-db-instance *)",
+      "Bash(aws cloudformation delete-stack *)",
+      "Bash(aws dynamodb delete-table *)",
+      "Bash(gcloud projects delete *)",
+      "Bash(gcloud compute instances delete *)",
+
+      "Bash(kubectl delete namespace *)",
+      "Bash(kubectl delete deployment *)",
+      "Bash(kubectl delete -f *)",
+
+      "Bash(* DROP TABLE *)",
+      "Bash(* DROP DATABASE *)",
+      "Bash(* TRUNCATE TABLE *)",
+      "Bash(redis-cli FLUSHALL *)",
+      "Bash(redis-cli FLUSHDB *)",
+      "Bash(* dropDatabase *)",
+
+      "Bash(docker system prune *)",
+      "Bash(docker volume rm *)",
+
+      "Bash(crontab -r *)",
+      "Bash(systemctl disable *)",
+
+      "Bash(curl -d @* *)",
+      "Bash(curl -F file=@* *)",
+      "Bash(curl --data-binary @* *)",
+      "Bash(scp * *:*)",
+      "Bash(rsync * *:*)"
     ]
   },
   "hooks": {
@@ -134,7 +175,22 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "",
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre_tool_use.py",
+            "timeout": 10000
+          },
+          {
+            "type": "prompt",
+            "prompt": "You are a security gate for an AI coding assistant running in a sandboxed container. Evaluate this Bash command:\n\n$ARGUMENTS\n\nBLOCK (ok: false) if the command:\n- Exfiltrates data to external servers (curl -d, scp, rsync, nc to remote hosts)\n- Opens reverse shells or network backdoors\n- Accesses cloud metadata endpoints (169.254.169.254, metadata.google.internal)\n- Downloads and executes remote code (even via intermediate files like curl -o then sh)\n- Destroys infrastructure (terraform destroy, aws terminate, kubectl delete namespace)\n- Drops or truncates databases (DROP TABLE, TRUNCATE, FLUSHALL)\n- Mines cryptocurrency\n- Attempts container escape (nsenter, mount host filesystem)\n- Encodes and exfiltrates environment variables or credentials\n\nALLOW (ok: true) if the command is:\n- Normal development (build, test, lint, install, git operations except push)\n- File operations within the project directory\n- Reading system info, logs, or configs\n- Package management (npm, pip, uv)\n- Docker operations that don't escape the container\n\nRespond ONLY with JSON: {\"ok\": true} or {\"ok\": false, \"reason\": \"brief explanation\"}",
+            "timeout": 10000
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Edit|Write|Glob|Grep|MultiEdit",
         "hooks": [
           {
             "type": "command",
