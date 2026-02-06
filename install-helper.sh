@@ -296,10 +296,12 @@ main() {
             install_item "$SCRIPT_DIR/.claude/settings.json" "$TARGET_DIR/.claude/settings.json" "settings.json"
         fi
 
-        # Install settings.local.json (always overwrite)
-        if [ -f "$SCRIPT_DIR/.claude/settings.local.json" ]; then
-            print_message "$BLUE" "Installing settings.local.json..."
+        # Install settings.local.json only if it doesn't exist (preserves project-specific permissions)
+        if [ -f "$SCRIPT_DIR/.claude/settings.local.json" ] && ! check_exists ".claude/settings.local.json"; then
+            print_message "$BLUE" "Installing settings.local.json (project-specific overrides)..."
             install_item "$SCRIPT_DIR/.claude/settings.local.json" "$TARGET_DIR/.claude/settings.local.json" "settings.local.json"
+        elif check_exists ".claude/settings.local.json"; then
+            print_message "$YELLOW" "  ⊘ Skipped settings.local.json (preserving project-specific permissions)"
         fi
 
         # Install hooks directory
@@ -403,10 +405,8 @@ main() {
         print_message "$BLUE" "Next steps:"
 
         if [ "$INSTALL_CLAUDE" = true ]; then
-            echo "  1. Review .claude/settings.local.json and adjust permissions as needed"
-            echo "  2. Explore available agents in .claude/agents/"
-            echo "  3. Check out slash commands in .claude/commands/"
-            echo "  4. For containers: see CLAUDE.md \"Container Setup\" section"
+            echo "  1. Explore available agents in .claude/agents/"
+            echo "  2. Check out slash commands in .claude/commands/"
         fi
 
         if [ "$INSTALL_MEMORIES" = true ]; then

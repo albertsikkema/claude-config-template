@@ -509,7 +509,7 @@ Blocks dangerous tool operations:
 | Category | Blocked Patterns |
 |----------|------------------|
 | **Destructive commands** | `rm -rf`, fork bombs, `dd` to devices |
-| **Dangerous git** | All pushes to main (feature branches allowed), force push, `reset --hard`, `clean -fd` |
+| **Dangerous git** | ALL git push (push manually), `reset --hard`, `clean -fd` |
 | **Sensitive files** | `.env`, `.pem`, `.key`, SSH keys, credentials |
 | **Path traversal** | `..` in paths, escaping project directory |
 
@@ -530,6 +530,18 @@ sensitive_patterns = [
 ```
 
 **Note**: Security hooks cannot be bypassed by Claude - they run at the system level before any tool executes.
+
+#### Operating Modes
+
+| Mode | Hooks | Permissions | Environment |
+|------|-------|-------------|-------------|
+| **Host interactive** | Full (all checks) | `settings.json` + `settings.local.json` | Unrestricted |
+| **Container interactive** | Relaxed (`CLAUDE_CONTAINER_MODE=1`) | `settings.json` + `settings.local.json` | Limited (container) |
+| **Container non-interactive** | Relaxed (`CLAUDE_CONTAINER_MODE=1`) | Ignored (`--dangerously-skip-permissions`) | Limited (container) |
+
+**Permissions files:**
+- `settings.json` — global presets (read tools auto-allowed, write tools prompted). **Overwritten** on every install.
+- `settings.local.json` — project-specific permission overrides. **Preserved** across installs. Use this to add allows/denies for your project. Merges with (not replaces) `settings.json`.
 
 **Environment variables:**
 

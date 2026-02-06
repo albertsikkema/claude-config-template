@@ -1,9 +1,7 @@
 {
+  "_comment": "Project-specific permission overrides. This file is preserved across installs — settings.json is overwritten, this file is not.",
   "permissions": {
-    "allow": [
-      "WebSearch",
-      "Bash(.claude/helpers/spec_metadata.sh)",
-      "Bash(uuidgen:*)"
-    ]
+    "allow": [],
+    "deny": []
   }
 }

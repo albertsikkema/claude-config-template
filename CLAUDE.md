@@ -247,36 +247,22 @@ export CLAUDE_HOOKS_DEBUG=1
 export CLAUDE_CONTAINER_MODE=1
 ```
 
-### Three Operating Modes
+### Operating Modes
 
-Claude Code runs in three distinct modes with different security needs:
+| Mode | Hooks | Permissions | Environment |
+|------|-------|-------------|-------------|
+| **Host interactive** | Full (all checks) | `settings.json` + `settings.local.json` | Unrestricted |
+| **Container interactive** | Relaxed (`CLAUDE_CONTAINER_MODE=1`) | `settings.json` + `settings.local.json` | Limited (container) |
+| **Container non-interactive** | Relaxed (`CLAUDE_CONTAINER_MODE=1`) | Ignored (`--dangerously-skip-permissions`) | Limited (container) |
 
-| Mode | Use case | Permissions | Hooks |
-|------|----------|-------------|-------|
-| **Container non-interactive** | Orchestrator, CI/CD, `-p` flag | `--dangerously-skip-permissions` | `CLAUDE_CONTAINER_MODE=1` (relaxed) |
-| **Container interactive** | User types `claude` in container | Permissive `~/.claude/settings.local.json` | `CLAUDE_CONTAINER_MODE=1` (relaxed) |
-| **Host interactive** | Regular system work | Strict project `settings.json` | Full security |
+**Permissions files:**
+- `settings.json` — global presets (read tools auto-allowed, write tools prompted). **Overwritten** on every install.
+- `settings.local.json` — project-specific permission overrides. **Preserved** across installs. Use this to add allows/denies for your project. Merges with (not replaces) `settings.json`.
 
-- **Container non-interactive** uses `--dangerously-skip-permissions` — the only hard guarantee against hanging on a prompt with no TTY
-- **Container interactive** writes to `~/.claude/settings.local.json` (user-home inside container, not the project-level file) to avoid bleed-back to mounted repos on host
-- **Host interactive** uses the existing strict project-level `settings.json`
-- In all modes, hooks still block ALL git push and sensitive file access
-
-### Container Setup
-
-```bash
-# In Dockerfile or entrypoint:
-export CLAUDE_CONTAINER_MODE=1
-python3 .claude/helpers/generate_settings.py
-
-# Interactive sessions pick up permissive ~/.claude/settings.local.json
-# Non-interactive scripts continue using --dangerously-skip-permissions
-```
-
-`generate_settings.py` flags:
-- `--container` — force container permissions (all tools auto-allowed)
-- `--baseline` — force baseline permissions (read-only tools)
-- `--check` — print detected mode without writing
+**Security:**
+- Hooks always block ALL git push and sensitive file access, regardless of mode
+- `CLAUDE_CONTAINER_MODE=1` relaxes non-essential hook checks (rm, path traversal, fork bombs) that the container already constrains
+- Non-interactive uses `--dangerously-skip-permissions` — the only hard guarantee against hanging on a prompt with no TTY
 
 ## Common Pitfalls
 
