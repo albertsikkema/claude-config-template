@@ -14,6 +14,12 @@ Full mode (default) checks for:
 Container mode (CLAUDE_CONTAINER_MODE=1) checks for:
 - Dangerous git commands (all git push, force operations)
 - Sensitive file access (.env, .pem, .key, credentials, etc.)
+- Cloud metadata SSRF (169.254.169.254, metadata.google.internal)
+- Pipe-to-shell attacks (curl/wget | bash)
+- Reverse shell attempts (bash /dev/tcp, nc -e, python socket)
+- Container escape attempts (nsenter, docker --privileged)
+- Credential exfiltration (env | base64, /etc/shadow)
+- Crypto mining (xmrig)
 
 Environment variables:
 - CLAUDE_HOOKS_DEBUG=1      Enable debug logging
@@ -77,6 +83,41 @@ DANGEROUS_DISK_PATTERNS = [
     re.compile(r'\bdd\s+.*of=/dev/'),  # dd to device
     re.compile(r'\bmkfs\.'),  # Format filesystem
     re.compile(r'>\s*/dev/sd'),  # Write to disk device
+]
+
+CLOUD_METADATA_PATTERNS = [
+    re.compile(r'\bcurl\s+.*http://169\.254\.169\.254'),
+    re.compile(r'\bwget\s+.*http://169\.254\.169\.254'),
+    re.compile(r'\bcurl\s+.*http://metadata\.google\.internal'),
+    re.compile(r'\bwget\s+.*http://metadata\.google\.internal'),
+]
+
+PIPE_TO_SHELL_PATTERNS = [
+    re.compile(r'\bcurl\s+.*\|\s*(sh|bash)\b'),
+    re.compile(r'\bwget\s+.*\|\s*(sh|bash)\b'),
+    re.compile(r'\|\s*base64\s+-d\s*\|\s*(sh|bash)\b'),
+]
+
+REVERSE_SHELL_PATTERNS = [
+    re.compile(r'bash\s+-i\s+>&\s*/dev/tcp/'),
+    re.compile(r'\|\s*nc\s+-l'),
+    re.compile(r'\bnc\s+.*-e\s+/bin/(ba)?sh'),
+    re.compile(r'\bpython[23]?\s+-c\s+.*socket.*connect', re.IGNORECASE),
+]
+
+CONTAINER_ESCAPE_PATTERNS = [
+    re.compile(r'\bnsenter\b'),
+    re.compile(r'\bdocker\s+run\s+.*--privileged'),
+]
+
+CREDENTIAL_EXFIL_PATTERNS = [
+    re.compile(r'\benv\s*\|\s*base64\b'),
+    re.compile(r'\bprintenv\s*\|\s*base64\b'),
+    re.compile(r'\bcat\s+/etc/shadow\b'),
+]
+
+CRYPTO_MINING_PATTERNS = [
+    re.compile(r'xmrig', re.IGNORECASE),
 ]
 
 ENV_ACCESS_PATTERNS = [
@@ -183,6 +224,28 @@ def is_dangerous_disk_write(command: str) -> bool:
     return False
 
 
+def is_network_escape_threat(command: str) -> tuple[bool, str]:
+    """Detect network-based threats that can escape a container."""
+    normalized = ' '.join(command.lower().split())
+
+    checks = [
+        (CLOUD_METADATA_PATTERNS, "Cloud metadata access blocked (SSRF)"),
+        (PIPE_TO_SHELL_PATTERNS, "Piping remote content to shell is blocked"),
+        (REVERSE_SHELL_PATTERNS, "Reverse shell attempt blocked"),
+        (CONTAINER_ESCAPE_PATTERNS, "Container escape attempt blocked"),
+        (CREDENTIAL_EXFIL_PATTERNS, "Credential exfiltration blocked"),
+        (CRYPTO_MINING_PATTERNS, "Crypto mining blocked"),
+    ]
+
+    for patterns, message in checks:
+        for pattern in patterns:
+            if pattern.search(normalized):
+                debug_log(f"Matched network/escape pattern: {pattern.pattern}")
+                return True, message
+
+    return False, ""
+
+
 def is_sensitive_file(file_path: str) -> tuple[bool, str | None]:
     """Check if file path points to sensitive files."""
     if not file_path:
@@ -255,6 +318,11 @@ def check_bash_command(command: str) -> str | None:
     if is_dangerous_disk_write(command):
         return "Dangerous disk write operation detected"
 
+    # Check for network/escape threats
+    is_threat, reason = is_network_escape_threat(command)
+    if is_threat:
+        return reason
+
     # Check for .env access in bash commands
     for pattern in ENV_ACCESS_PATTERNS:
         if pattern.search(command):
@@ -294,7 +362,7 @@ def check_file_operation(tool_name: str, tool_input: dict, project_dir: str) -> 
 
 
 def check_bash_command_container(command: str) -> str | None:
-    """Check bash command in container mode (only git and .env access)."""
+    """Check bash command in container mode (git, .env, and network escape)."""
     if is_dangerous_git_command(command):
         return "Git push is not allowed — push manually"
 
@@ -303,6 +371,11 @@ def check_bash_command_container(command: str) -> str | None:
         if pattern.search(command):
             debug_log(f"Matched env access pattern: {pattern.pattern}")
             return "Access to .env files is prohibited"
+
+    # Check for network/escape threats (these escape the container boundary)
+    is_threat, reason = is_network_escape_threat(command)
+    if is_threat:
+        return reason
 
     return None
 

@@ -2,9 +2,122 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:*)",
-      "Task"
+      "Task",
+
+      "Bash(ls *)",
+      "Bash(tree *)",
+      "Bash(file *)",
+      "Bash(du *)",
+      "Bash(wc *)",
+
+      "Bash(pwd)",
+      "Bash(which *)",
+      "Bash(whoami)",
+      "Bash(uname *)",
+      "Bash(date *)",
+      "Bash(* --version)",
+      "Bash(* --help *)",
+
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git show *)",
+      "Bash(git branch -a *)",
+      "Bash(git branch -l *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)",
+
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(jq *)",
+
+      "Bash(npm run test *)",
+      "Bash(npm run lint *)",
+      "Bash(npm run build *)",
+      "Bash(npm list *)",
+      "Bash(npm outdated *)",
+      "Bash(npm install *)",
+
+      "Bash(pytest *)",
+      "Bash(python -m pytest *)",
+
+      "Bash(uv sync *)",
+      "Bash(pip install *)",
+
+      "Bash(docker ps *)",
+      "Bash(docker images *)",
+      "Bash(docker logs *)",
+      "Bash(docker compose up *)",
+      "Bash(docker compose down *)"
     ],
-    "deny": []
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(.envrc)",
+      "Read(./secrets/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/*)",
+      "Bash(cat ~/.aws/*)",
+      "Bash(cat ~/.ssh/id_*)",
+      "Bash(cat /etc/shadow)",
+      "Bash(env | base64)",
+      "Bash(printenv | base64)",
+      "Bash(history | grep -i password*)",
+
+      "Bash(git push *)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git push --force-with-lease *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -f *)",
+      "Bash(git branch -D *)",
+      "Bash(git checkout -- *)",
+
+      "Bash(curl * | sh)",
+      "Bash(curl * | bash)",
+      "Bash(wget * | sh)",
+      "Bash(wget * | bash)",
+      "Bash(* | base64 -d | sh)",
+
+      "Bash(curl http://169.254.169.254/*)",
+      "Bash(wget http://169.254.169.254/*)",
+      "Bash(curl http://metadata.google.internal/*)",
+
+      "Bash(bash -i >& /dev/tcp/*)",
+      "Bash(* | nc -l *)",
+
+      "Bash(docker run --privileged *)",
+      "Bash(docker run * -v /:/host *)",
+      "Bash(docker run * --pid=host *)",
+      "Bash(nsenter *)",
+
+      "Bash(rm -rf *)",
+      "Bash(rm /var/log/*)",
+      "Bash(find / -type f -delete)",
+      "Bash(find . -delete)",
+      "Bash(find * -delete)",
+      "Bash(truncate -s 0 /var/log/*)",
+
+      "Bash(dd if=/dev/zero of=/dev/*)",
+      "Bash(mkfs *)",
+
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)",
+      "Bash(chown *)",
+      "Bash(shutdown *)",
+      "Bash(reboot)",
+      "Bash(halt)",
+
+      "Bash(*xmrig*)"
+    ]
   },
   "hooks": {
     "UserPromptSubmit": [
