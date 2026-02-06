@@ -2,7 +2,7 @@
 """
 PreToolUse security hook that blocks dangerous operations.
 
-Checks for:
+Full mode (default) checks for:
 - Dangerous rm commands
 - Fork bombs
 - Dangerous git commands (push to main/master, force push)
@@ -11,7 +11,13 @@ Checks for:
 - Path traversal attacks
 - Project directory escape
 
-Set CLAUDE_HOOKS_DEBUG=1 to enable debug logging.
+Container mode (CLAUDE_CONTAINER_MODE=1) checks for:
+- Dangerous git commands (push to main/master, force push)
+- Sensitive file access (.env, .pem, .key, credentials, etc.)
+
+Environment variables:
+- CLAUDE_HOOKS_DEBUG=1      Enable debug logging
+- CLAUDE_CONTAINER_MODE=1   Use relaxed checks for sandboxed/container environments
 """
 
 from __future__ import annotations
@@ -25,6 +31,11 @@ from typing import Optional, Tuple
 
 # Debug mode for troubleshooting
 DEBUG = os.environ.get('CLAUDE_HOOKS_DEBUG', '').lower() in ('1', 'true')
+
+# Container mode - relaxes some security checks for sandboxed environments
+# Keeps: sensitive file access, dangerous git commands
+# Disables: rm -rf, fork bombs, disk writes, path escape
+CONTAINER_MODE = os.environ.get('CLAUDE_CONTAINER_MODE', '').lower() in ('1', 'true')
 
 # Pre-compiled regex patterns for performance
 DANGEROUS_RM_PATTERNS = [
@@ -286,6 +297,43 @@ def check_file_operation(tool_name: str, tool_input: dict, project_dir: str) -> 
     return None
 
 
+def check_bash_command_container(command: str) -> str | None:
+    """Check bash command in container mode (only git and .env access)."""
+    if is_dangerous_git_command(command):
+        return "Dangerous git command detected (push to main/master or force push)"
+
+    # Check for .env access in bash commands
+    for pattern in ENV_ACCESS_PATTERNS:
+        if pattern.search(command):
+            debug_log(f"Matched env access pattern: {pattern.pattern}")
+            return "Access to .env files is prohibited"
+
+    return None
+
+
+def check_file_operation_container(tool_name: str, tool_input: dict) -> str | None:
+    """Check file operations in container mode (only sensitive files, no path escape)."""
+    file_path = tool_input.get('file_path', '')
+
+    # For Grep, also check the path parameter
+    if tool_name == 'Grep':
+        file_path = tool_input.get('path', '') or file_path
+
+    # For Glob, check the path parameter
+    if tool_name == 'Glob':
+        file_path = tool_input.get('path', '') or file_path
+
+    if not file_path:
+        return None
+
+    # Check sensitive files only (no path escape check)
+    is_sensitive, reason = is_sensitive_file(file_path)
+    if is_sensitive:
+        return reason
+
+    return None
+
+
 def main() -> None:
     try:
         input_data = json.load(sys.stdin)
@@ -295,6 +343,27 @@ def main() -> None:
         project_dir = os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())
 
         debug_log(f"Checking tool: {tool_name}")
+
+        if CONTAINER_MODE:
+            debug_log("Container mode - using relaxed security checks")
+
+            # Container mode: only check git commands and sensitive file access
+            if tool_name == 'Bash':
+                command = tool_input.get('command', '')
+                error = check_bash_command_container(command)
+                if error:
+                    print(f"BLOCKED: {error}", file=sys.stderr)
+                    sys.exit(2)
+
+            if tool_name in ['Read', 'Edit', 'MultiEdit', 'Write', 'Glob', 'Grep']:
+                error = check_file_operation_container(tool_name, tool_input)
+                if error:
+                    print(f"BLOCKED: {error}", file=sys.stderr)
+                    sys.exit(2)
+
+            sys.exit(0)
+
+        # Full security checks (non-container mode)
 
         # Check bash commands
         if tool_name == 'Bash':

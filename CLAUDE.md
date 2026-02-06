@@ -232,6 +232,7 @@ Security hooks in `.claude/hooks/` protect against dangerous operations. Configu
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `CLAUDE_CONTAINER_MODE` | `0` | Set to `1` for relaxed security in containers (keeps git + sensitive file checks, disables rm/fork/path checks) |
 | `CLAUDE_AUDIO_ENABLED` | `0` | Set to `1` for audio notifications (session end, task completion, input needed) |
 | `CLAUDE_HOOKS_DEBUG` | `0` | Set to `1` for debug logging (`[DEBUG]` messages in stderr) |
 
@@ -239,6 +240,11 @@ Security hooks in `.claude/hooks/` protect against dangerous operations. Configu
 # Enable in your shell profile or .env
 export CLAUDE_AUDIO_ENABLED=1
 export CLAUDE_HOOKS_DEBUG=1
+
+# For containerized/sandboxed environments (relaxed pre_tool_use checks)
+# Still blocks: git push to main/master, force push, .env/.pem/credentials access
+# Allows: rm -rf, path traversal, fork bombs (safe in container)
+export CLAUDE_CONTAINER_MODE=1
 ```
 
 ## Common Pitfalls
