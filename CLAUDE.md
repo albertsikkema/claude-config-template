@@ -248,7 +248,7 @@ Security hooks in `.claude/hooks/` use a **three-layer defense architecture**:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAUDE_CONTAINER_MODE` | `0` | Set to `1` for relaxed security in containers (keeps git + sensitive file checks, disables rm/fork/path checks) |
+| `CLAUDE_CONTAINER_MODE` | `0` | Set to `1` for relaxed security in containers (keeps git + sensitive file checks, allows `.ssh/` access, disables rm/fork/path checks) |
 | `CLAUDE_AUDIO_ENABLED` | `0` | Set to `1` for audio notifications (session end, task completion, input needed) |
 | `CLAUDE_HOOKS_DEBUG` | `0` | Set to `1` for debug logging (`[DEBUG]` messages in stderr) |
 
@@ -259,7 +259,7 @@ export CLAUDE_HOOKS_DEBUG=1
 
 # For containerized/sandboxed environments (relaxed pre_tool_use checks)
 # Still blocks: ALL git push, .env/.pem/credentials access, settings.json deny list
-# Allows: rm -rf, path traversal, fork bombs (safe in container)
+# Allows: .ssh/ access (only explicit keys mounted), rm -rf, path traversal, fork bombs (safe in container)
 export CLAUDE_CONTAINER_MODE=1
 ```
 
@@ -277,9 +277,9 @@ export CLAUDE_CONTAINER_MODE=1
 
 **Security:**
 - Layer 2 (settings.json deny) is enforced in ALL modes, including `--dangerously-skip-permissions`
-- Hooks always block ALL git push and sensitive file access, regardless of mode
+- Hooks always block ALL git push and sensitive file access, regardless of mode (except `.ssh/` in container mode — only explicit keys are mounted)
 - Layer 3 (LLM prompt hook) only runs on Bash commands — file operations skip LLM evaluation
-- `CLAUDE_CONTAINER_MODE=1` relaxes non-essential hook checks (rm, path traversal, fork bombs) that the container already constrains
+- `CLAUDE_CONTAINER_MODE=1` relaxes non-essential hook checks (rm, path traversal, fork bombs) that the container already constrains, and allows `.ssh/` access since only explicit keys are mounted
 - Non-interactive uses `--dangerously-skip-permissions` — the only hard guarantee against hanging on a prompt with no TTY
 
 ## Common Pitfalls

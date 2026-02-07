@@ -537,7 +537,7 @@ Blocks user prompts containing sensitive data:
 |----------|------------------|
 | **Destructive commands** | `rm -rf`, fork bombs, `dd` to devices, `mkfs` |
 | **Dangerous git** | ALL git push (push manually), `reset --hard`, `clean -fd` |
-| **Sensitive files** | `.env`, `.pem`, `.key`, SSH keys, credentials |
+| **Sensitive files** | `.env`, `.pem`, `.key`, `.ssh/` directory, credentials |
 | **Path traversal** | `..` in paths, escaping project directory |
 | **Cloud/infrastructure** | `terraform destroy`, `aws terminate-instances`, `kubectl delete namespace` |
 | **Database destruction** | `DROP TABLE`, `TRUNCATE`, `FLUSHALL` |
@@ -549,7 +549,7 @@ Blocks user prompts containing sensitive data:
 | Category | Blocked Patterns |
 |----------|------------------|
 | **Dangerous git** | ALL git push (push manually) |
-| **Sensitive files** | `.env`, `.pem`, `.key`, SSH keys, credentials |
+| **Sensitive files** | `.env`, `.pem`, `.key`, credentials (`.ssh/` allowed — only explicit keys are mounted) |
 | **Cloud metadata SSRF** | `169.254.169.254`, `metadata.google.internal` |
 | **Pipe-to-shell** | `curl \| bash`, `wget \| sh` |
 | **Reverse shells** | `bash /dev/tcp`, `nc -e`, python socket connections |
@@ -581,14 +581,14 @@ Blocks user prompts containing sensitive data:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `CLAUDE_CONTAINER_MODE` | `0` | Set to `1` for relaxed security in containers (keeps git + sensitive file checks, disables rm/fork/path checks) |
+| `CLAUDE_CONTAINER_MODE` | `0` | Set to `1` for relaxed security in containers (keeps git + sensitive file checks, allows `.ssh/` access, disables rm/fork/path checks) |
 | `CLAUDE_AUDIO_ENABLED` | `0` | Set to `1` to enable audio notifications on session end, task completion, and when Claude needs input |
 | `CLAUDE_HOOKS_DEBUG` | `0` | Set to `1` to enable debug logging for troubleshooting hooks |
 
 ```bash
 # For containerized/sandboxed environments (relaxed pre_tool_use checks)
 # Still blocks: ALL git push, .env/.pem/credentials access, settings.json deny list, network threats
-# Allows: rm -rf, path traversal, fork bombs (safe in container)
+# Allows: .ssh/ access (only explicit keys mounted), rm -rf, path traversal, fork bombs (safe in container)
 export CLAUDE_CONTAINER_MODE=1
 
 # Enable audio notifications

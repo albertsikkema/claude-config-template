@@ -62,7 +62,6 @@
       "Read(./.env.*)",
       "Read(.envrc)",
       "Read(./secrets/**)",
-      "Read(~/.ssh/**)",
       "Read(~/.aws/**)",
       "Read(~/.config/gh/*)",
       "Read(./.vault-token)",
@@ -73,7 +72,6 @@
       "Read(./*.tfstate)",
 
       "Bash(cat ~/.aws/*)",
-      "Bash(cat ~/.ssh/id_*)",
       "Bash(cat /etc/shadow)",
       "Bash(env | base64)",
       "Bash(printenv | base64)",
@@ -184,7 +182,7 @@
           },
           {
             "type": "prompt",
-            "prompt": "You are a security gate for an AI coding assistant running in a sandboxed container. Evaluate this Bash command:\n\n$ARGUMENTS\n\nBLOCK (ok: false) if the command:\n- Exfiltrates data to external servers (curl -d, scp, rsync, nc to remote hosts)\n- Opens reverse shells or network backdoors\n- Accesses cloud metadata endpoints (169.254.169.254, metadata.google.internal)\n- Downloads and executes remote code (even via intermediate files like curl -o then sh)\n- Destroys infrastructure (terraform destroy, aws terminate, kubectl delete namespace)\n- Drops or truncates databases (DROP TABLE, TRUNCATE, FLUSHALL)\n- Mines cryptocurrency\n- Attempts container escape (nsenter, mount host filesystem)\n- Encodes and exfiltrates environment variables or credentials\n\nALLOW (ok: true) if the command is:\n- Normal development (build, test, lint, install, git operations except push)\n- File operations within the project directory\n- Reading system info, logs, or configs\n- Package management (npm, pip, uv)\n- Docker operations that don't escape the container\n\nRespond ONLY with JSON: {\"ok\": true} or {\"ok\": false, \"reason\": \"brief explanation\"}",
+            "prompt": "You are a security gate for an AI coding assistant running in a sandboxed container. Evaluate this Bash command:\n\n$ARGUMENTS\n\nBLOCK (ok: false) if the command:\n- Exfiltrates data to external servers (curl -d, scp, rsync, nc to remote hosts)\n- Opens reverse shells or network backdoors\n- Accesses cloud metadata endpoints (169.254.169.254, metadata.google.internal)\n- Downloads and executes remote code (even via intermediate files like curl -o then sh)\n- Destroys infrastructure (terraform destroy, aws terminate, kubectl delete namespace)\n- Drops or truncates databases (DROP TABLE, TRUNCATE, FLUSHALL)\n- Mines cryptocurrency\n- Attempts container escape (nsenter, mount host filesystem)\n- Encodes and exfiltrates environment variables or credentials\n\nALLOW (ok: true) if the command is:\n- Normal development (build, test, lint, install, git operations except push)\n- File operations within the project directory\n- Reading system info, logs, or configs\n- Package management (npm, pip, uv)\n- Docker operations that don't escape the container\n- SSH connections using local keys in ~/.ssh/ (git clone, git pull, scp from known hosts, remote commands)\n\nRespond ONLY with JSON: {\"ok\": true} or {\"ok\": false, \"reason\": \"brief explanation\"}",
             "timeout": 10000
           }
         ]

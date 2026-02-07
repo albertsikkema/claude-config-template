@@ -186,10 +186,6 @@ SENSITIVE_FILES = {
     '.env.development',
     '.env.staging',
     '.envrc',
-    'id_rsa',
-    'id_ed25519',
-    'id_ecdsa',
-    'id_dsa',
 }
 
 # Allowed .env variants
@@ -326,6 +322,10 @@ def is_sensitive_file(file_path: str) -> tuple[bool, str | None]:
 
     path_lower = file_path.lower()
     basename = os.path.basename(path_lower)
+
+    # In container mode, .ssh access is allowed (only explicit keys are mounted)
+    if CONTAINER_MODE and '.ssh/' in path_lower:
+        return False, None
 
     # Allow .env.sample and .env.example
     if basename in ALLOWED_ENV_FILES:
