@@ -52,7 +52,7 @@ if [ -d "$PROJECTS_DIR" ]; then
 
         if [ "$session_cwd" = "$CURRENT_DIR" ]; then
           # Use modification time (most recently written = active session)
-          mtime=$(stat -f "%m" "$session_file" 2>/dev/null || stat -c "%Y" "$session_file" 2>/dev/null || echo 0)
+          mtime=$(stat -c "%Y" "$session_file" 2>/dev/null || stat -f "%m" "$session_file" 2>/dev/null || echo 0)
           if [ "$mtime" -gt "$MOST_RECENT" ]; then
             MOST_RECENT=$mtime
             CLAUDE_SESSION_ID=$(basename "$session_file" .jsonl)
@@ -81,6 +81,6 @@ echo "Current Working Directory: $CURRENT_PWD"
 [ -n "$REPO_NAME" ] && echo "Repository Name: $REPO_NAME"
 [ -n "$CLAUDE_SESSION_ID" ] && echo "claude-sessionid: $CLAUDE_SESSION_ID"
 echo "Timestamp For Filename: $FILENAME_TS"
-[ -n "$MEMORIES_STATUS" ] && {
+if [ -n "$MEMORIES_STATUS" ]; then
   echo "$MEMORIES_STATUS"
-}
+fi
