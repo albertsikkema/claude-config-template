@@ -54,7 +54,7 @@ This is a **configuration template** that you install into your projects. It pro
 
 - **Complete development workflow** - Research → Plan → Implement → Cleanup → Deploy ([see WORKFLOW.md](WORKFLOW.md))
 - **16 specialized AI agents** - Automated research, code analysis, and architecture design
-- **15 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams and deployment automation)
+- **16 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams, deployment automation, and vulnerability scanning)
 - **108 security rules** - Language-specific secure coding guidance from [Project Codeguard](https://github.com/project-codeguard/rules)
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -119,6 +119,7 @@ Security rules integration:
 | `/deploy` | Automated deployment preparation (version, changelog, build, release) |
 | `/fetch_technical_docs` | Fetch LLM-optimized documentation from context7.com |
 | `/index_codebase` | Index Python/TypeScript/Go/C++ codebases |
+| `/vulnerability-check` | Scan dependencies for known vulnerabilities (OSV, GitHub, CISA KEV, NCSC) |
 
 ### 📁 Directory Structure
 
@@ -128,7 +129,7 @@ After installation, you'll have:
 your-project/
 ├── .claude/
 │   ├── agents/              # 16 specialized agents
-│   ├── commands/            # 15 slash commands
+│   ├── commands/            # 16 slash commands
 │   ├── hooks/               # Security hooks (three-layer defense)
 │   │   ├── pre_tool_use.py      # Layer 1 (regex) + Layer 2 (settings.json deny)
 │   │   ├── user_prompt_submit.py # Sensitive data detection in prompts
@@ -143,7 +144,8 @@ your-project/
 │   │   ├── build_c4_diagrams.py # C4 PlantUML diagram builder
 │   │   ├── fetch-docs.py        # Documentation fetcher
 │   │   ├── fetch_openapi.sh     # OpenAPI schema fetcher
-│   │   └── spec_metadata.sh     # Metadata generator
+│   │   ├── spec_metadata.sh     # Metadata generator
+│   │   └── vulnerability-check/ # Vulnerability scanning scripts (OSV, GitHub, CISA, NCSC)
 │   ├── settings.json        # Permissions, hooks, and deny rules
 │   └── settings.local.json  # Project-specific overrides (preserved across installs)
 │
@@ -277,6 +279,12 @@ This template includes several utility scripts in the `.claude/helpers/` directo
   - `spec_metadata.sh` - Generate comprehensive metadata
   - Used in plans, research, and ADRs
   - **📖 See [docs/README-spec-metadata.md](docs/README-spec-metadata.md) for detailed guide**
+
+- **Vulnerability Scanner**: Check dependencies for known security vulnerabilities
+  - `vulnerability-check/` - Scripts querying OSV.dev, GitHub Advisory DB, CISA KEV, and NCSC.nl
+  - Use via `/vulnerability-check` slash command
+  - Supports: npm, PyPI, Go, crates.io, Maven, RubyGems
+  - Can scan by package name, CVE ID, dependency file, or full project
 
 - **Orchestrator Agent**: Automate the full Claude Code workflow
   - `orchestrator.py` - Runs index → refine → docs → research → plan → implement → review → cleanup

@@ -23,7 +23,7 @@ Reading the index first saves tokens and improves accuracy.
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
 - 16 specialized agents for code analysis, planning, and research
-- 15 slash commands for common workflows
+- 16 slash commands for common workflows
 - A `memories/` directory system for documentation and plans
 - Pre-configured tool permissions
 
@@ -108,7 +108,7 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 ```
 .claude/
 ├── agents/           # 16 specialized agents
-├── commands/         # 15 slash commands
+├── commands/         # 16 slash commands
 ├── helpers/          # Utility scripts
 │   ├── index_python.py   # Python codebase indexer
 │   ├── index_js_ts.py    # JavaScript/TypeScript indexer
@@ -117,7 +117,8 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 │   ├── build_c4_diagrams.py  # C4 diagram generator
 │   ├── fetch-docs.py     # Documentation fetcher
 │   ├── orchestrator.py   # Full workflow automation
-│   └── pr_reviewer.py    # PR review automation
+│   ├── pr_reviewer.py    # PR review automation
+│   └── vulnerability-check/ # Vulnerability scanning (OSV, GitHub, CISA, NCSC)
 └── settings.json     # Permissions and hooks
 
 memories/
@@ -162,6 +163,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 | `/deploy` | Deployment preparation |
 | `/fetch_technical_docs` | Fetch documentation from context7.com |
 | `/index_codebase` | Index Python/TypeScript/Go/C++ codebases |
+| `/vulnerability-check` | Scan dependencies for known vulnerabilities (OSV, GitHub, CISA KEV, NCSC) |
 
 ## Agent Types
 
