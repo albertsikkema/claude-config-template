@@ -72,6 +72,34 @@ alias orch-impl='uv run .claude/helpers/orchestrator.py --phase implement'
 alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
 ```
 
+### Ralph Orchestrator (autonomous implementation)
+
+```bash
+# Step 1: Plan (existing orchestrator, interactive)
+orch --phase plan "Add user authentication"
+
+# Step 2: Convert plan to Ralph prompt
+uv run .claude/helpers/ralph_orchestrator.py --convert memories/shared/plans/2026-02-08-feature.md
+
+# Step 3: Run Ralph loop (autonomous build → review → fix)
+uv run .claude/helpers/ralph_orchestrator.py --implement memories/shared/ralph/2026-02-08-feature-prompt.md
+
+# Step 4: Human review of output + cleanup (existing orchestrator)
+orch --phase cleanup memories/shared/plans/2026-02-08-feature.md
+
+# Or steps 2+3 combined:
+uv run .claude/helpers/ralph_orchestrator.py --convert-and-implement memories/shared/plans/2026-02-08-feature.md
+
+# With options:
+uv run .claude/helpers/ralph_orchestrator.py --implement --max-iterations 20 --max-turns 30 prompt.md
+uv run .claude/helpers/ralph_orchestrator.py --implement --max-review-cycles 5 prompt.md
+```
+
+**Alias (add to ~/.zshrc):**
+```bash
+alias orch-ralph='uv run .claude/helpers/ralph_orchestrator.py'
+```
+
 ### PR Reviewer (automated PR review)
 
 ```bash
@@ -117,6 +145,7 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 │   ├── build_c4_diagrams.py  # C4 diagram generator
 │   ├── fetch-docs.py     # Documentation fetcher
 │   ├── orchestrator.py   # Full workflow automation
+│   ├── ralph_orchestrator.py  # Autonomous implementation (build → review → fix)
 │   ├── pr_reviewer.py    # PR review automation
 │   └── vulnerability-check/ # Vulnerability scanning (OSV, GitHub, CISA, NCSC)
 └── settings.json     # Permissions and hooks
