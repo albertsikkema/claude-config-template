@@ -78,7 +78,7 @@ class BuildResult:
 class RalphConfig:
     """Configuration for the ralph implement phase."""
     max_iterations: int = 10
-    max_turns: int = 25
+    max_turns: int = 40
     max_fix_iterations: int = 5
     max_review_cycles: int = 3
     plan_path: str = ''
@@ -996,7 +996,7 @@ Examples:
     parser.add_argument('--project', default='.', help='Project directory (default: .)')
     parser.add_argument('--max-iterations', type=int, default=10,
                         help='Build loop iteration limit (default: 10)')
-    parser.add_argument('--max-turns', type=int, default=25,
+    parser.add_argument('--max-turns', type=int, default=40,
                         help='Turns per Claude iteration (default: 25)')
     parser.add_argument('--max-fix-iterations', type=int, default=5,
                         help='Fix loop iteration limit (default: 5)')
