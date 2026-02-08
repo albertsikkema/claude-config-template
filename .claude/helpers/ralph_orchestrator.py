@@ -556,7 +556,7 @@ def run_build_loop(prompt_path: str, project_path: str,
     pre_ralph_commit = pre_commit or git_rev_parse_head(project_path)
     prompt_content = Path(project_path, prompt_path).read_text(encoding='utf-8')
 
-    log_dir = Path(project_path) / 'ralph-logs'
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
     log_dir.mkdir(parents=True, exist_ok=True)
 
     for i in range(1, max_iterations + 1):
@@ -599,7 +599,7 @@ def run_review(project_path: str, build_result: BuildResult,
     stream_progress('Review', f'Review cycle {review_cycle}/{config.max_review_cycles}')
 
     # Generate diff into ralph-logs/ to avoid accidental commits from git add -A
-    log_dir = Path(project_path) / 'ralph-logs'
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
     log_dir.mkdir(parents=True, exist_ok=True)
     diff_file = log_dir / 'RALPH_DIFF.patch'
     with diff_file.open('w') as f:
@@ -745,7 +745,7 @@ def run_fix_loop(project_path: str, config: RalphConfig,
     pre_commit is the original build baseline, preserved across fix iterations.
     """
     review_md_rel = os.path.relpath(
-        Path(project_path) / 'ralph-logs' / 'REVIEW.md', project_path
+        Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md', project_path
     )
     fix_prompt = f"""You are fixing issues identified in a code review.
 
@@ -772,7 +772,7 @@ RALPH_DONE
 """
 
     # Save fix prompt to a temp file
-    fix_prompt_path = Path(project_path) / 'ralph-logs' / 'fix-prompt.md'
+    fix_prompt_path = Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'fix-prompt.md'
     fix_prompt_path.parent.mkdir(parents=True, exist_ok=True)
     fix_prompt_path.write_text(fix_prompt, encoding='utf-8')
 
@@ -792,7 +792,7 @@ def save_review_with_frontmatter(project_path: str, review_cycle: int) -> str | 
 
     Returns path to saved review, or None on failure.
     """
-    review_file = Path(project_path) / 'ralph-logs' / 'REVIEW.md'
+    review_file = Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md'
     if not review_file.exists():
         return None
 
@@ -857,7 +857,7 @@ last_updated_by: ralph-orchestrator
 
 def _cleanup_ralph_artifacts(project_path: str) -> None:
     """Remove transient ralph artifacts (diff, review) from ralph-logs/ after archiving."""
-    log_dir = Path(project_path) / 'ralph-logs'
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
     for name in ('RALPH_DIFF.patch', 'REVIEW.md', 'fix-prompt.md'):
         artifact = log_dir / name
         if artifact.exists():
