@@ -63,7 +63,6 @@
       "Read(.envrc)",
       "Read(./secrets/**)",
       "Read(~/.aws/**)",
-      "Read(~/.config/gh/*)",
       "Read(./.vault-token)",
       "Read(./.htpasswd)",
       "Read(./.pgpass)",
