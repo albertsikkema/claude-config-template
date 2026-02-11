@@ -163,9 +163,9 @@ install_item() {
     print_message "$GREEN" "  ✓ Installed: $description"
 }
 
-# Update .gitignore with Claude Code entries
-update_gitignore() {
-    local gitignore_path="$TARGET_DIR/.gitignore"
+# Update .git/info/exclude with Claude Code entries (local-only, not committed)
+update_git_exclude() {
+    local exclude_path="$TARGET_DIR/.git/info/exclude"
     local entries_to_add=()
 
     # Determine which entries to add based on what was installed
@@ -182,46 +182,55 @@ update_gitignore() {
         return 0
     fi
 
-    print_header "Updating .gitignore"
+    print_header "Updating git exclude"
+
+    # Check if this is a git repo
+    if [ ! -d "$TARGET_DIR/.git" ]; then
+        print_message "$YELLOW" "  ⊘ Not a git repository, skipping git exclude"
+        return 0
+    fi
 
     if [ "$DRY_RUN" = true ]; then
-        print_message "$YELLOW" "  [DRY RUN] Would update .gitignore with:"
+        print_message "$YELLOW" "  [DRY RUN] Would update .git/info/exclude with:"
         for entry in "${entries_to_add[@]}"; do
             print_message "$YELLOW" "    - $entry"
         done
         return 0
     fi
 
-    # Create .gitignore if it doesn't exist
-    if [ ! -f "$gitignore_path" ]; then
-        print_message "$BLUE" "Creating .gitignore..."
-        touch "$gitignore_path"
+    # Create .git/info/ directory if it doesn't exist
+    mkdir -p "$TARGET_DIR/.git/info"
+
+    # Create exclude file if it doesn't exist
+    if [ ! -f "$exclude_path" ]; then
+        print_message "$BLUE" "Creating .git/info/exclude..."
+        touch "$exclude_path"
     fi
 
     local added_entries=()
     local skipped_entries=()
 
     for entry in "${entries_to_add[@]}"; do
-        # Check if entry already exists in .gitignore
-        if grep -qxF "$entry" "$gitignore_path" 2>/dev/null; then
+        # Check if entry already exists in exclude file
+        if grep -qxF "$entry" "$exclude_path" 2>/dev/null; then
             skipped_entries+=("$entry")
         else
-            # Add entry to .gitignore
-            echo "$entry" >> "$gitignore_path"
+            # Add entry to exclude file
+            echo "$entry" >> "$exclude_path"
             added_entries+=("$entry")
         fi
     done
 
     # Report what was done
     if [ ${#added_entries[@]} -gt 0 ]; then
-        print_message "$GREEN" "  ✓ Added to .gitignore:"
+        print_message "$GREEN" "  ✓ Added to .git/info/exclude:"
         for entry in "${added_entries[@]}"; do
             print_message "$GREEN" "    - $entry"
         done
     fi
 
     if [ ${#skipped_entries[@]} -gt 0 ]; then
-        print_message "$YELLOW" "  ⊘ Already in .gitignore:"
+        print_message "$YELLOW" "  ⊘ Already in .git/info/exclude:"
         for entry in "${skipped_entries[@]}"; do
             print_message "$YELLOW" "    - $entry"
         done
@@ -388,8 +397,8 @@ main() {
         print_message "$GREEN" "  ✓ Wrote version: $COMMIT_HASH"
     fi
 
-    # Update .gitignore
-    update_gitignore
+    # Update .git/info/exclude (local-only ignores)
+    update_git_exclude
 
     # Installation complete
     print_header "Installation Complete!"
@@ -410,7 +419,7 @@ main() {
         fi
 
         if [ "$INSTALL_MEMORIES" = true ]; then
-            echo "  5. Review .gitignore for Claude Code entries"
+            echo "  5. Entries added to .git/info/exclude (local-only)"
             echo "  6. Use /project command to create project documentation"
             echo "  7. Start creating plans in memories/shared/plans/"
             echo "  8. Document research in memories/shared/research/"
