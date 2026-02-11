@@ -249,7 +249,7 @@ curl -fsSL https://raw.githubusercontent.com/albertsikkema/claude-config-templat
 **Note**:
 - The remote installer (`install.sh`) downloads the repository, installs to your current directory, and cleans up automatically
 - For manual installation from a cloned repository, use `install-helper.sh`
-- The installer automatically updates your project's `.gitignore` to exclude `.claude/` and `memories/`
+- The installer automatically updates your project's `.git/info/exclude` to ignore `.claude/` and `memories/` (local-only, not committed)
 - **Default behavior**: `.claude/` is always updated, `memories/` preserves existing content and adds missing directories
 - **With `--force`**: Completely replaces `memories/` directory, removing all plans, research, and project docs
 
@@ -477,7 +477,7 @@ Edit `.claude/settings.json`:
    rm -rf claude-helpers/
    ```
 
-2. **Update your `.gitignore`** - remove the `claude-helpers/` entry if present (it's no longer needed since `.claude/` covers everything)
+2. **Update your `.gitignore`** - remove the `claude-helpers/` entry if present (it's no longer needed; the installer now uses `.git/info/exclude`)
 
 3. **Update any shell aliases** you may have created:
    ```bash
@@ -720,8 +720,8 @@ If agents aren't being recognized:
 
 **Git tracking configuration files**
 
-The installer automatically adds `.claude/`, `memories/`, and `.claude/helpers/` to your `.gitignore`. If you want to track these:
-- Edit `.gitignore` and remove the entries you want to track
+The installer automatically adds `.claude/` and `memories/` to `.git/info/exclude` (local-only, not committed to the repo). If you want to track these:
+- Edit `.git/info/exclude` and remove the entries you want to track
 - Or use `git add -f` to force-add specific files
 
 ### Getting Help

@@ -171,6 +171,7 @@ update_git_exclude() {
     # Determine which entries to add based on what was installed
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
+        entries_to_add+=("CLAUDE.md")
     fi
 
     if [ "$INSTALL_MEMORIES" = true ]; then
