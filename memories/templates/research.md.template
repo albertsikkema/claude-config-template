@@ -1,0 +1,48 @@
+---
+date: [Current date and time with timezone in ISO format]
+researcher: [Researcher name]
+git_commit: [Current commit hash]
+branch: [Current branch name]
+repository: [Repository name]
+topic: "[User's Question/Topic]"
+tags: [research, codebase, relevant-component-names]
+status: complete
+---
+
+# Research: [User's Question/Topic]
+
+## Research Question
+[Original user query]
+
+## Summary
+[High-level findings answering the user's question]
+
+## Project Context
+[Context from project-context-analyzer about relevant project goals, requirements, and current state]
+
+## Detailed Findings
+
+### [Component/Area 1]
+- Finding with reference (`file.ext:line`)
+- Connection to other components
+- Implementation details
+
+### [Component/Area 2]
+...
+
+## Code References
+- `path/to/file.py:123` - Description of what's there
+- `another/file.ts:45-67` - Description of the code block
+
+## Architecture Insights
+[Patterns, conventions, and design decisions discovered]
+
+## Best Practices (from memories/best_practices/)
+[Relevant best practices — include only those directly relevant to the research question]
+- `memories/best_practices/category-topic.md` - Key insight
+
+## Historical Context (from memories/)
+[Relevant insights from memories/ directory with references]
+
+## Open Questions
+[Any areas that need further investigation]

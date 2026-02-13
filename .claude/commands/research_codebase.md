@@ -77,20 +77,23 @@ Then wait for the user's research query.
    - Use the **codebase-locator** agent to find WHERE files and components live
    - Use the **codebase-analyzer** agent to understand HOW specific code works (without specific starting points)
    - Use the **codebase-pattern-finder** agent if you need examples of similar implementations
-   - Use the **best-practices-researcher** agent to search `memories/best_practices/` for documented patterns, lessons learned, trade-offs, and proven approaches from previous implementations (provides actionable insights with exact file paths and code references)
-   - Use the **technical-docs-researcher** agent to search `memories/technical_docs/` for library documentation, package recommendations, implementation patterns, and use case guidance (extracts best practices, version requirements, and configuration examples)
+
+   **For best practices (conventions, preferences, and lessons learned):**
+   - Use the **best-practices-researcher** agent to search `memories/best_practices/` for coding conventions, architecture preferences, code structure standards, proven patterns, and lessons learned from previous implementations
+
+   **For technical docs (library and framework reference):**
+   - Use the **technical-docs-researcher** agent to search `memories/technical_docs/` for fetched library documentation
+   - These docs are populated by `/fetch_technical_docs` and contain API references, configuration examples, version requirements, and recommended usage patterns
+   - Useful when the research involves third-party packages — check here before falling back to web search
+   - The agent returns specific file references and can cross-reference across multiple library docs
 
    **For memories directory:**
    - Use the **memories-locator** agent to discover what documents exist about the topic
    - Use the **memories-analyzer** agent to extract key insights from specific documents (only the most relevant ones)
 
-   **For web research (only if user explicitly asks):**
+   **For web research:**
    - Use the **web-researcher** agent for external documentation and resources
    - IF you use web-research agents, instruct them to return LINKS with their findings, and please INCLUDE those links in your final report
-
-   **For Linear tickets (if relevant):**
-   - Use the **linear-ticket-reader** agent to get full details of a specific ticket
-   - Use the **linear-searcher** agent to find related tickets or historical context
 
    The key is to use these agents intelligently:
    - **Always start with project-context-analyzer** to understand project goals and context
@@ -127,108 +130,18 @@ Then wait for the user's research query.
    - Highlight patterns, connections, and architectural decisions
    - Answer the user's specific questions with concrete evidence
 
-6. **Gather metadata for the research document:**
-   - Run the `.claude/helpers/spec_metadata.sh` script to generate all relevant metadata
-   - Filename: `memories/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
-     - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
-       - YYYY-MM-DD is today's date
-       - ENG-XXXX is the ticket number (omit if no ticket)
-       - description is a brief kebab-case description of the research topic
-     - Examples:
-       - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
-       - Without ticket: `2025-01-08-authentication-flow.md`
+6. **Generate research document:**
+   - Use the template at `memories/templates/research.md.template`
+   - Filename: `memories/shared/research/YYYY-MM-DD-description.md` (add ticket number if relevant, e.g. `YYYY-MM-DD-ENG-1478-description.md`)
+   - Fill in frontmatter: date, git commit, branch, repo, topic, tags
+   - Omit template sections that have no findings — don't include empty headings
 
-7. **Generate research document:**
-   - Use the metadata gathered in step 6
-   - Structure the document with YAML frontmatter followed by content:
-     ```markdown
-     ---
-     date: [Current date and time with timezone in ISO format from step 6]
-     file-id: [UUID from step 6]
-     claude-sessionid: [claude-sessionid from step 6]
-     researcher: [Researcher name from memories status]
-     git_commit: [Current commit hash from step 6]
-     branch: [Current branch name from step 6]
-     repository: [Repository name from step 6]
-     topic: "[User's Question/Topic]"
-     tags: [research, codebase, relevant-component-names]
-     status: complete
-     last_updated: [Current date in YYYY-MM-DD HH:mm format]
-     last_updated_by: [Researcher name]
-     ---
-
-     # Research: [User's Question/Topic]
-
-     **Date**: [Current date and time with timezone from step 6]
-     **Researcher**: [Researcher name from memories status]
-     **Git Commit**: [Current commit hash from step 6]
-     **Branch**: [Current branch name from step 6]
-     **Repository**: [Repository name]
-
-     ## Research Question
-     [Original user query]
-
-     ## Summary
-     [High-level findings answering the user's question]
-
-     ## Project Context
-     [Context from project-context-analyzer about relevant project goals, requirements, and current state]
-     - Project goals related to this topic
-     - Existing requirements and constraints
-     - Current implementation status
-     - Relevant work items or features
-
-     ## Detailed Findings
-
-     ### [Component/Area 1]
-     - Finding with reference ([file.ext:line](link))
-     - Connection to other components
-     - Implementation details
-
-     ### [Component/Area 2]
-     ...
-
-     ## Code References
-     - `path/to/file.py:123` - Description of what's there
-     - `another/file.ts:45-67` - Description of the code block
-
-     ## Architecture Insights
-     [Patterns, conventions, and design decisions discovered]
-
-     ## Best Practices (from memories/best_practices/)
-     [Relevant best practices documented from previous implementations]
-     - `memories/best_practices/category-topic.md` - Best practice about X
-       - When to use: [Context]
-       - Key insight: [Main takeaway]
-       - Code examples: [file:line references]
-     Note: Include only best practices directly relevant to the research question
-
-     ## Historical Context (from memories/)
-     [Relevant insights from memories/ directory with references]
-     - `memories/shared/something.md` - Historical decision about X
-     - `memories/local/notes.md` - Past exploration of Y
-     Note: Paths exclude "searchable/" even if found there
-
-     ## Related Research
-     [Links to other research documents in memories/shared/research/]
-
-     ## Open Questions
-     [Any areas that need further investigation]
-     ```
-
-8. **Add GitHub permalinks (if applicable):**
-   - Check if on main branch or if commit is pushed: `git branch --show-current` and `git status`
-   - If on main/master or pushed, generate GitHub permalinks:
-     - Get repo info: `gh repo view --json owner,name`
-     - Create permalinks: `https://github.com/{owner}/{repo}/blob/{commit}/{file}#L{line}`
-   - Replace local file references with permalinks in the document
-
-9. **Present findings:**
+7. **Present findings:**
    - Present a concise summary of findings to the user
    - Include key file references for easy navigation
    - Ask if they have follow-up questions or need clarification
 
-10. **Handle follow-up questions:**
+8. **Handle follow-up questions:**
    - If the user has follow-up questions, append to the same research document
    - Update the frontmatter fields `last_updated` and `last_updated_by` to reflect the update
    - Add `last_updated_note: "Added follow-up research for [brief description]"` to frontmatter
