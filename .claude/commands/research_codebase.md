@@ -61,9 +61,17 @@ Then wait for the user's research query.
 
    **For targeted codebase research (when you have index hits):**
    - Use the **codebase-analyzer** agent with SPECIFIC file:line references from indexes
-   - Example: "Analyze the authentication flow. Start at `auth/service.py:45` (UserService.authenticate method from index) and trace through the implementation and its dependencies."
-   - This makes the agent much faster and more focused
-   - Provide context from the index: function signatures, called-by relationships, etc.
+   - **Include relevant index excerpts directly in the agent prompt** — file paths, function signatures, and call relationships. This lets agents jump straight to reading source files instead of doing broad discovery searches.
+   - Example prompt template:
+     ```
+     Research [topic]. The codebase index identified these relevant entry points:
+     - `auth/service.py:45` - authenticate(username, password) -> bool — called by api/routes.py, middleware/auth.py
+     - `auth/models.py:12` - class User — called by auth/service.py, tests/test_auth.py
+
+     Start by reading these files and trace the implementation flow.
+     ```
+   - This makes the agent much faster and more focused — it can skip broad Glob/Grep discovery entirely
+   - The more index context you provide upfront, the fewer turns the agent needs
 
    **For exploratory codebase research (broader context or areas not in indexes):**
    - Use the **codebase-locator** agent to find WHERE files and components live
