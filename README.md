@@ -98,7 +98,7 @@ Security rules integration:
 - `memories-locator` - Find relevant documents
 
 **External Research:**
-- `web-search-researcher` - Research from the web
+- `web-researcher` - Research from the web
 
 ### ⚡ Slash Commands
 

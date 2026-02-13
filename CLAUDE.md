@@ -217,7 +217,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 - `project-context-analyzer` - Extract project documentation context
 
 **External Research:**
-- `web-search-researcher` - Web research
+- `web-researcher` - Web research
 
 ## File Naming Conventions
 

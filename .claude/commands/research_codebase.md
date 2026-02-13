@@ -85,7 +85,7 @@ Then wait for the user's research query.
    - Use the **memories-analyzer** agent to extract key insights from specific documents (only the most relevant ones)
 
    **For web research (only if user explicitly asks):**
-   - Use the **web-search-researcher** agent for external documentation and resources
+   - Use the **web-researcher** agent for external documentation and resources
    - IF you use web-research agents, instruct them to return LINKS with their findings, and please INCLUDE those links in your final report
 
    **For Linear tickets (if relevant):**
