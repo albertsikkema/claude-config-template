@@ -132,7 +132,8 @@ def search_context7(query: str, limit: int = 5) -> Optional[List[Dict]]:
 
     Returns list of dicts with simplified info.
     """
-    data = http_get(f"{CONTEXT7_API}?query={query}")
+    from urllib.parse import quote
+    data = http_get(f"{CONTEXT7_API}?query={quote(query)}")
     if not data:
         return None
 
