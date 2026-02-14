@@ -845,12 +845,21 @@ Cleanup complete! All knowledge captured in:
 - Project docs (todo.md, done.md updated)
 ```
 
+**The Rationalization Philosophy (Parnas & Clements, 1986):**
+
+The cleanup phase implements "Faking a Rational Design Process" — presenting the refined, polished version of what happened rather than the messy discovery path. This isn't lying:
+
+- The messy reality is captured: rejected alternatives, unexpected discoveries, decisions made under pressure
+- The clean narrative is what guides future work: best practices, updated conventions, project docs
+- Like mathematicians publish elegant proofs, not the tortured discovery process
+
 **Why Cleanup is Mandatory:**
 
 1. **AI Has No Memory**: Without updated docs, next session loses all context
-2. **Documents Dead Ends**: Rejected alternatives prevent wasted exploration
-3. **Builds Knowledge**: CLAUDE.md becomes smarter with each implementation
-4. **Keeps Project Docs Current**: todo.md and done.md stay in sync
+2. **Prevents Re-exploration**: Rejected alternatives and dead ends are documented so they aren't tried again
+3. **Builds Knowledge**: CLAUDE.md and best practices become smarter with each implementation
+4. **Clean Narrative**: Future developers (and AI sessions) see coherent decisions, not messy iteration
+5. **Keeps Project Docs Current**: todo.md and done.md stay in sync
 
 ---
 

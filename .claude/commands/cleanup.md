@@ -89,17 +89,22 @@ Then wait for the user's input.
    - Use TodoWrite to track cleanup tasks
    - Include: investigation, best practices documentation, CLAUDE.md updates, project doc updates
 
-### Step 2: Investigation - What Actually Happened?
+### Step 2: Rationalize — What Actually Happened?
+
+This step implements the "Faking a Rational Design Process" approach: compare what was planned vs what was actually built, capture the messy reality (rejected alternatives, discoveries, pivots), and present the refined version for future reference.
 
 You already have the context from reading plan, research, and review files and git history in Step 1.
 
-1. **Ask yourself** (based on plan, research, review, and git diff):
-   - What are the key things we learned during implementation? (look for patterns, decisions, trade-offs, max. 5)
-   - Did we try something that didn't work? (check review file)
-   - Is there a code pattern worth capturing?
-   - Are there lessons learned about architecture, design, testing, or deployment?
-   - Did we follow best practices or create new ones?
-   - Did implementation match the plan or deviate?
+1. **Compare plan vs reality** (based on plan, research, review, and git diff):
+   - Where did implementation deviate from the plan? Why?
+   - What discoveries changed the approach mid-implementation?
+   - What alternatives were tried and rejected? What failed and why?
+
+2. **Identify what's worth preserving** (max 5 items):
+   - Key technical decisions with rationale (what was chosen, what was rejected, why)
+   - Patterns or conventions that emerged during implementation
+   - Lessons learned about architecture, design, testing, or deployment
+   - Dead ends — approaches that don't work for this codebase (prevents re-exploration)
 
 ### Step 3: Document Best Practices (HIGH THRESHOLD)
 
