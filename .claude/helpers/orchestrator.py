@@ -106,7 +106,7 @@ class BuildResult:
 
 
 @dataclass
-class RalphConfig:
+class ImplementConfig:
     """Configuration for the implement phase (/implement_plan → review → fix loop)."""
     max_turns: int = 40
     max_fix_iterations: int = 5
@@ -736,17 +736,17 @@ def refresh_codebase_indexes(project_path: str) -> None:
 # --- Review / Fix loops ---
 
 def run_review(project_path: str, build_result: BuildResult,
-               config: RalphConfig, review_cycle: int) -> str:
-    """Run a code review on changes since pre_ralph_commit.
+               config: ImplementConfig, review_cycle: int) -> str:
+    """Run a code review on changes since pre_impl_commit.
 
     Returns 'REVIEW_PASS', 'REVIEW_NEEDS_FIXES', or 'REVIEW_UNKNOWN'.
     """
     stream_progress('Review', f'Review cycle {review_cycle}/{config.max_review_cycles}')
 
-    # Generate diff into ralph-logs/ to avoid accidental commits from git add -A
-    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
+    # Generate diff into impl-logs/ to avoid accidental commits from git add -A
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'impl-logs'
     log_dir.mkdir(parents=True, exist_ok=True)
-    diff_file = log_dir / 'RALPH_DIFF.patch'
+    diff_file = log_dir / 'review-diff.patch'
     with diff_file.open('w') as f:
         subprocess.run(
             ['git', 'diff', build_result.pre_commit, 'HEAD'],
@@ -770,7 +770,7 @@ def run_review(project_path: str, build_result: BuildResult,
     context_files.append(f'- Diff: `{diff_rel}`')
     context_section = '\n'.join(context_files)
 
-    # REVIEW.md also goes in ralph-logs/ to avoid accidental commits
+    # REVIEW.md also goes in impl-logs/ to avoid accidental commits
     review_md_path = log_dir / 'REVIEW.md'
     review_md_rel = os.path.relpath(review_md_path, project_path)
 
@@ -880,7 +880,7 @@ REVIEW_NEEDS_FIXES  (has critical issues or improvements that should be fixed)
         return 'REVIEW_UNKNOWN'
 
 
-def run_fix(project_path: str, config: RalphConfig,
+def run_fix(project_path: str, config: ImplementConfig,
             pre_commit: str) -> BuildResult:
     """Run a single fix pass to address review findings.
 
@@ -888,7 +888,7 @@ def run_fix(project_path: str, config: RalphConfig,
     pre_commit is the original baseline, preserved across review-fix cycles.
     """
     review_md_rel = os.path.relpath(
-        Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md', project_path
+        Path(project_path) / 'memories' / 'shared' / 'impl-logs' / 'REVIEW.md', project_path
     )
 
     # Build reference documents section
@@ -924,7 +924,7 @@ def run_fix(project_path: str, config: RalphConfig,
 
 ## When Done
 When all Critical Issues and Improvements are fixed, tests pass, and linter passes,
-output exactly: RALPH_DONE
+output exactly: IMPL_DONE
 """
 
     stream_progress('Fix', 'Running fix pass...')
@@ -940,9 +940,9 @@ output exactly: RALPH_DONE
         phase='Fix'
     )
 
-    success = 'RALPH_DONE' in output
+    success = 'IMPL_DONE' in output
     stream_progress('Fix', f'Complete ({format_duration(elapsed)}, '
-                    f'{"RALPH_DONE" if success else "no RALPH_DONE"})')
+                    f'{"IMPL_DONE" if success else "no IMPL_DONE"})')
 
     return BuildResult(success=success, iterations=1, pre_commit=pre_commit)
 
@@ -952,7 +952,7 @@ def save_review_with_frontmatter(project_path: str, review_cycle: int) -> str | 
 
     Returns path to saved review, or None on failure.
     """
-    review_file = Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md'
+    review_file = Path(project_path) / 'memories' / 'shared' / 'impl-logs' / 'REVIEW.md'
     if not review_file.exists():
         return None
 
@@ -1015,10 +1015,10 @@ last_updated_by: orchestrator
     return os.path.relpath(output_path, project_path)
 
 
-def _cleanup_ralph_artifacts(project_path: str) -> None:
-    """Remove transient artifacts from ralph-logs/ after archiving."""
-    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
-    for name in ('RALPH_DIFF.patch', 'REVIEW.md', 'fix-prompt.md'):
+def _cleanup_impl_artifacts(project_path: str) -> None:
+    """Remove transient artifacts from impl-logs/ after archiving."""
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'impl-logs'
+    for name in ('review-diff.patch', 'REVIEW.md', 'fix-prompt.md'):
         artifact = log_dir / name
         if artifact.exists():
             artifact.unlink()
@@ -1272,7 +1272,7 @@ Next step: Review the plan, then run --phase implement"""
 
 def run_phase_implement(plan_path: str, project_path: str,
                         research_path: str = '',
-                        config: RalphConfig | None = None) -> ImplementPhaseResult:
+                        config: ImplementConfig | None = None) -> ImplementPhaseResult:
     """Phase 2: /implement_plan → review → fix loop.
 
     Steps:
@@ -1293,7 +1293,7 @@ def run_phase_implement(plan_path: str, project_path: str,
 
     # Build config if not provided
     if config is None:
-        config = RalphConfig()
+        config = ImplementConfig()
 
     config.plan_path = plan_path
 
@@ -1383,7 +1383,7 @@ Follow Conventional Commits: feat, fix, refactor, test, docs, etc."""
         # Check verdict
         if verdict == 'REVIEW_PASS':
             final_status = 'PASS'
-            _cleanup_ralph_artifacts(project_path)
+            _cleanup_impl_artifacts(project_path)
             stream_progress('Implement', f'Review passed on cycle {cycle}')
             break
 
@@ -1403,7 +1403,7 @@ Follow Conventional Commits: feat, fix, refactor, test, docs, etc."""
             stream_progress('Fix', 'Fix did not signal completion — continuing to next review')
 
     # Clean up transient artifacts
-    _cleanup_ralph_artifacts(project_path)
+    _cleanup_impl_artifacts(project_path)
 
     # Count commits made
     result = subprocess.run(
@@ -1736,7 +1736,7 @@ Examples:
             print_result(result, args.json)
 
         elif args.phase == 'implement':
-            config = RalphConfig(
+            config = ImplementConfig(
                 max_turns=args.max_turns,
                 max_fix_iterations=args.max_fix_iterations,
                 max_review_cycles=args.max_review_cycles,
@@ -1765,7 +1765,7 @@ Examples:
                                          non_interactive=True)
             print_result(plan_result, args.json)
 
-            config = RalphConfig(
+            config = ImplementConfig(
                 max_turns=args.max_turns,
                 max_fix_iterations=args.max_fix_iterations,
                 max_review_cycles=args.max_review_cycles,
