@@ -15,12 +15,13 @@ Plan Phase Flow:
     4. Research codebase with refined query
     5. Create implementation plan
 
-Implement Phase Flow (/implement_plan → review → fix):
+Implement Phase Flow (/implement_plan → review → fix → handoff):
     1. Validate plan, detect tooling, auto-discover research
     2. Index codebase, ensure feature branch
     3. Run /implement_plan (single invocation, includes plan-validator)
-    4. Review → fix cycles (max 3: automated review with verdict, fix loop if needed)
+    4. Review → fix cycles (max 3: automated review with verdict, fix if needed)
     5. Archive review, clean up transient artifacts
+    6. Interactive handoff session (summary of done/fixed/open)
 
 Usage:
     uv run .claude/helpers/orchestrator.py "Add user authentication"              # Run all phases
@@ -74,6 +75,7 @@ STAGE_COLORS = {
     'Review': Fore.BLUE,
     'Fix': Fore.YELLOW,
     'Cleanup': Fore.YELLOW,
+    'Handoff': Fore.CYAN,
     'Commit': Fore.GREEN,
 }
 
@@ -1270,10 +1272,65 @@ Next step: Review the plan, then run --phase implement"""
     )
 
 
+def _run_handoff_session(project_path: str, plan_path: str,
+                         research_path: str, review_path: str,
+                         pre_commit: str, current_commit: str,
+                         status: str) -> None:
+    """Open an interactive Claude session with full implementation context.
+
+    Shows what was done, what was fixed, and what's open for improvement.
+    """
+    # Build list of files to read
+    read_instructions = []
+    read_instructions.append(f'1. Read the plan: `{plan_path}`')
+    step = 2
+    if research_path:
+        read_instructions.append(f'{step}. Read the research: `{research_path}`')
+        step += 1
+    if review_path:
+        read_instructions.append(f'{step}. Read the review: `{review_path}`')
+        step += 1
+    read_section = '\n'.join(read_instructions)
+
+    handoff_prompt = f"""You are resuming after an automated implementation phase.
+
+## Context Files — read these first
+{read_section}
+{step}. Run `git log --oneline {pre_commit}..{current_commit}` to see all commits made.
+{step + 1}. Run `git diff {pre_commit}..{current_commit} --stat` to see files changed.
+
+## Your Task
+Present a clear summary to the user:
+
+### What was done
+- List the completed plan phases/tasks based on commits and plan checkboxes.
+
+### What was fixed (from review)
+- Summarize fixes applied during review cycles (if any review exists).
+
+### Open for improvement
+- List any CRITICAL ISSUES or IMPROVEMENTS from the review that were NOT addressed.
+- Note any plan tasks that are still unchecked.
+- Mention any test failures or lint warnings if present.
+
+## Review Status: {status}
+
+After presenting the summary, you are in an interactive session.
+The user can ask you to fix remaining issues, run tests, make additional changes,
+or proceed to cleanup (`/cleanup {plan_path}`).
+"""
+
+    run_claude_interactive_command(
+        handoff_prompt,
+        cwd=project_path,
+        phase='Handoff'
+    )
+
+
 def run_phase_implement(plan_path: str, project_path: str,
                         research_path: str = '',
                         config: ImplementConfig | None = None) -> ImplementPhaseResult:
-    """Phase 2: /implement_plan → review → fix loop.
+    """Phase 2: /implement_plan → review → fix → handoff.
 
     Steps:
         1. Validate plan, detect tooling, auto-discover research
@@ -1281,6 +1338,7 @@ def run_phase_implement(plan_path: str, project_path: str,
         3. Run /implement_plan (single invocation, includes plan-validator)
         4. Review → fix cycles (max 3: automated review with verdict, fix if needed)
         5. Archive review, clean up transient artifacts
+        6. Interactive handoff session (summary of done/fixed/open)
     """
     # Validate plan exists
     full_plan_path = Path(project_path) / plan_path
@@ -1426,6 +1484,12 @@ Follow Conventional Commits: feat, fix, refactor, test, docs, etc."""
     print(f"  Pre-implement:    {pre_commit[:8]}", file=sys.stderr, flush=True)
     print(f"  Current HEAD:     {current_commit[:8]}", file=sys.stderr, flush=True)
     print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
+
+    # Step 4: Interactive handoff — open a session with full context
+    _run_handoff_session(
+        project_path, plan_path, research_path, review_path,
+        pre_commit, current_commit, final_status,
+    )
 
     return ImplementPhaseResult(
         plan_path=plan_path,
