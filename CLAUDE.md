@@ -61,7 +61,7 @@ uv run .claude/helpers/orchestrator.py --phase plan --no-refine "Add user authen
 uv run .claude/helpers/orchestrator.py --phase implement memories/shared/plans/YYYY-MM-DD-feature.md
 
 # Implement with custom limits
-uv run .claude/helpers/orchestrator.py --phase implement --max-iterations 20 --max-turns 30 plan.md
+uv run .claude/helpers/orchestrator.py --phase implement --max-turns 30 plan.md
 uv run .claude/helpers/orchestrator.py --phase implement --max-review-cycles 5 plan.md
 
 # Implement with explicit research file

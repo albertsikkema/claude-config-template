@@ -15,11 +15,11 @@ Plan Phase Flow:
     4. Research codebase with refined query
     5. Create implementation plan
 
-Implement Phase Flow (autonomous build → review → fix):
+Implement Phase Flow (/implement_plan → review → fix):
     1. Validate plan, detect tooling, auto-discover research
-    2. Generate comprehensive prompt from plan
-    3. Build loop (multi-iteration, refreshes indexes between iterations)
-    4. Review → fix cycles (automated review with verdict, fix loop if needed)
+    2. Index codebase, ensure feature branch
+    3. Run /implement_plan (single invocation, includes plan-validator)
+    4. Review → fix cycles (max 3: automated review with verdict, fix loop if needed)
     5. Archive review, clean up transient artifacts
 
 Usage:
@@ -107,13 +107,11 @@ class BuildResult:
 
 @dataclass
 class RalphConfig:
-    """Configuration for the implement phase (build → review → fix loop)."""
-    max_iterations: int = 10
+    """Configuration for the implement phase (/implement_plan → review → fix loop)."""
     max_turns: int = 40
     max_fix_iterations: int = 5
     max_review_cycles: int = 3
     plan_path: str = ''
-    prompt_path: str = ''
     research_path: str = ''
     test_cmd: str = ''
     lint_cmd: str = ''
@@ -680,179 +678,6 @@ def extract_plan_sections(content: str) -> dict[str, str]:
     return sections
 
 
-# --- Prompt generation ---
-
-def generate_ralph_prompt(plan_path: str, project_path: str,
-                          research_path: str = '') -> str:
-    """Generate a comprehensive implementation prompt from a plan file.
-
-    Args:
-        plan_path: Relative path to the plan file
-        project_path: Absolute path to the project root
-        research_path: Optional relative path to the research file
-
-    Returns the relative path to the generated prompt file.
-    """
-    plan_file = Path(project_path) / plan_path
-    if not plan_file.exists():
-        raise RuntimeError(f"Plan file not found: {plan_path}")
-
-    content = plan_file.read_text(encoding='utf-8')
-    sections = extract_plan_sections(content)
-
-    # Detect tooling
-    test_cmd, lint_cmd, format_cmd = detect_tooling(project_path)
-
-    # Find codebase index
-    index_path = find_codebase_index(project_path)
-    if index_path:
-        index_rel = os.path.relpath(index_path, project_path)
-    else:
-        index_rel = 'memories/codebase/ (run /index_codebase first)'
-
-    # Build prompt
-    prompt = f"""# {sections['title']} — Implementation
-
-You are implementing an approved plan. Work through the tasks systematically.
-
-## Reference Documents
-- **Plan**: `{plan_path}` — Read this for the full implementation specification.
-- **Codebase index**: `{index_rel}` — Read this for the project map.
-"""
-    if research_path:
-        prompt += f"- **Research**: `{research_path}` — Read this for codebase analysis and context.\n"
-
-    # Check for API tools index
-    api_tools_path = Path(project_path) / 'memories' / 'codebase' / 'codebase_overview_root_api_tools.md'
-    if api_tools_path.exists():
-        api_tools_rel = os.path.relpath(str(api_tools_path), project_path)
-        prompt += (f"- **API Testing index**: `{api_tools_rel}` "
-                   f"— Cross-reference when modifying API endpoints. "
-                   f"Update Bruno .bru files for any changed/new endpoints.\n")
-
-    prompt += """
-Read these files before starting and refer back to them for each task.
-
-## Project Context
-"""
-    prompt += f"""- **Test command**: `{test_cmd}`
-- **Lint command**: `{lint_cmd}`
-- **Format command**: `{format_cmd}`
-
-## Before You Start
-1. Read `{plan_path}` for the full implementation plan.
-"""
-    if research_path:
-        prompt += f"2. Read `{research_path}` for codebase research and context.\n"
-        prompt += f"3. Read `{index_rel}` for the full project map.\n"
-        prompt += f"4. Run `git log --oneline -20` to see what has already been committed. Skip completed tasks.\n"
-        prompt += f"5. Run `{test_cmd}` to verify baseline.\n"
-        prompt += f"6. Run `{lint_cmd}` to verify baseline.\n"
-    else:
-        prompt += f"2. Read `{index_rel}` for the full project map.\n"
-        prompt += f"3. Run `git log --oneline -20` to see what has already been committed. Skip completed tasks.\n"
-        prompt += f"4. Run `{test_cmd}` to verify baseline.\n"
-        prompt += f"5. Run `{lint_cmd}` to verify baseline.\n"
-
-    prompt += "\n"
-
-    # Add overview if present
-    if sections['overview']:
-        prompt += f"""## Overview
-
-{sections['overview']}
-
-"""
-
-    # Add tasks
-    prompt += f"""## Your Tasks
-
-{sections['phases']}
-
-"""
-
-    # Add files section if extracted
-    if sections['files']:
-        prompt += f"""## Key Files
-
-{sections['files']}
-
-"""
-
-    # Add rules
-    prompt += f"""## Rules
-
-### Testing & Linting
-1. Run tests after every change: `{test_cmd}`
-2. Run linter after every change: `{lint_cmd}`
-3. Fix failures before moving on
-4. Do not delete or break existing functionality
-
-### Self-Review Before Committing
-- Correctness — edge cases handled?
-- Security — input validation, no injection, no credential exposure
-- Performance — no N+1 queries, unbounded loops
-- Simplicity — avoid over-engineering
-
-### Commit Style
-The commit message MUST follow the Conventional Commits specification:
-
-  <type>[optional scope]: <description>
-
-Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
-Use an optional scope in parentheses to clarify what area changed.
-The description must be lowercase, imperative, and concise.
-
-Examples:
-  feat(repl): add streaming markdown rendering
-  fix(hashline): correct off-by-one in range replacement
-  refactor: simplify provider abstraction
-  docs: update SPEC.md with task queue design
-
-One commit per sub-task:
-```
-git add -A && git commit -m "<type>[optional scope]: <description>"
-```
-
-## Completion Criteria
-"""
-
-    # Add plan criteria
-    if sections['criteria']:
-        prompt += sections['criteria'] + '\n'
-    else:
-        prompt += '- [ ] All plan tasks completed\n'
-
-    prompt += f"""- [ ] All tests pass (`{test_cmd}`)
-- [ ] Linter passes (`{lint_cmd}`)
-- [ ] Each sub-task committed to git
-
-## When You Are Done
-When ALL completion criteria are met, output exactly:
-RALPH_DONE
-"""
-
-    # Save to memories/shared/ralph-logs/ (ephemeral intermediate artifact)
-    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    # Generate filename from plan path
-    plan_stem = plan_file.stem  # e.g., 2026-02-08-feature
-    date = time.strftime('%Y-%m-%d')
-    # Use plan stem if it starts with a date, otherwise prepend today's date
-    if re.match(r'\d{4}-\d{2}-\d{2}', plan_stem):
-        slug = plan_stem
-    else:
-        slug = f'{date}-{plan_stem}'
-
-    prompt_filename = f'{slug}-prompt.md'
-    prompt_path = log_dir / prompt_filename
-    prompt_path.write_text(prompt, encoding='utf-8')
-
-    rel_path = os.path.relpath(prompt_path, project_path)
-    return rel_path
-
-
 # --- Codebase index refresh ---
 
 def refresh_codebase_indexes(project_path: str) -> None:
@@ -908,57 +733,7 @@ def refresh_codebase_indexes(project_path: str) -> None:
             stream_progress('Indexing', f'Warning: Failed to refresh {index_file.name}: {e}')
 
 
-# --- Build / Review / Fix loops ---
-
-def run_build_loop(prompt_path: str, project_path: str,
-                   max_iterations: int, max_turns: int,
-                   phase_name: str = 'Build',
-                   pre_commit: str | None = None) -> BuildResult:
-    """Run the build loop: iterate Claude with the prompt until RALPH_DONE.
-
-    Args:
-        pre_commit: If provided, use this as the pre-loop commit hash instead of
-                    snapshotting HEAD. Used by fix loop to preserve the original
-                    build baseline.
-
-    Returns BuildResult with success status and iteration count.
-    """
-    pre_ralph_commit = pre_commit or git_rev_parse_head(project_path)
-    prompt_content = Path(project_path, prompt_path).read_text(encoding='utf-8')
-
-    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
-    log_dir.mkdir(parents=True, exist_ok=True)
-
-    for i in range(1, max_iterations + 1):
-        stream_progress(phase_name, f'Iteration {i}/{max_iterations}')
-
-        # Refresh existing indexes (cheap — direct indexer, no Claude call)
-        refresh_codebase_indexes(project_path)
-
-        # Run Claude iteration
-        returncode, output, elapsed = run_claude_command(
-            ['claude-safe', '--no-firewall', '--', '-p', prompt_content,
-             '--max-turns', str(max_turns)],
-            cwd=project_path,
-            timeout=900,
-            phase=f'{phase_name} ({i}/{max_iterations})'
-        )
-
-        # Log raw output
-        log_path = log_dir / f'{phase_name.lower()}-{i}.log'
-        log_path.write_text(output, encoding='utf-8')
-
-        stream_progress(phase_name,
-                        f'Iteration {i} complete ({format_duration(elapsed)}, exit={returncode})')
-
-        # Check completion signal
-        if 'RALPH_DONE' in output:
-            stream_progress(phase_name, f'RALPH_DONE detected at iteration {i}')
-            return BuildResult(success=True, iterations=i, pre_commit=pre_ralph_commit)
-
-    stream_progress(phase_name, f'Reached max iterations ({max_iterations}) without RALPH_DONE')
-    return BuildResult(success=False, iterations=max_iterations, pre_commit=pre_ralph_commit)
-
+# --- Review / Fix loops ---
 
 def run_review(project_path: str, build_result: BuildResult,
                config: RalphConfig, review_cycle: int) -> str:
@@ -992,8 +767,6 @@ def run_review(project_path: str, build_result: BuildResult,
         context_files.append(f'- Plan: `{config.plan_path}`')
     if config.research_path:
         context_files.append(f'- Research: `{config.research_path}`')
-    if config.prompt_path:
-        context_files.append(f'- Implementation specs/prompt: `{config.prompt_path}`')
     context_files.append(f'- Diff: `{diff_rel}`')
     context_section = '\n'.join(context_files)
 
@@ -1107,12 +880,12 @@ REVIEW_NEEDS_FIXES  (has critical issues or improvements that should be fixed)
         return 'REVIEW_UNKNOWN'
 
 
-def run_fix_loop(project_path: str, config: RalphConfig,
-                 pre_commit: str) -> BuildResult:
-    """Run the fix loop to address review findings.
+def run_fix(project_path: str, config: RalphConfig,
+            pre_commit: str) -> BuildResult:
+    """Run a single fix pass to address review findings.
 
-    Creates a fix prompt from REVIEW.md and runs a build loop.
-    pre_commit is the original build baseline, preserved across fix iterations.
+    Creates a fix prompt from REVIEW.md and runs Claude once.
+    pre_commit is the original baseline, preserved across review-fix cycles.
     """
     review_md_rel = os.path.relpath(
         Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md', project_path
@@ -1120,12 +893,13 @@ def run_fix_loop(project_path: str, config: RalphConfig,
 
     # Build reference documents section
     ref_docs = []
+    step = 3
     if config.plan_path:
-        ref_docs.append(f'3. Read the plan at `{config.plan_path}`.')
+        ref_docs.append(f'{step}. Read the plan at `{config.plan_path}`.')
+        step += 1
     if config.research_path:
-        ref_docs.append(f'4. Read the research at `{config.research_path}`.')
-    if config.prompt_path:
-        ref_docs.append(f'5. Read the specs/prompt at `{config.prompt_path}`.')
+        ref_docs.append(f'{step}. Read the research at `{config.research_path}`.')
+        step += 1
     ref_section = '\n'.join(ref_docs)
 
     fix_prompt = f"""You are fixing issues identified in a code review.
@@ -1134,8 +908,8 @@ def run_fix_loop(project_path: str, config: RalphConfig,
 1. Read `{review_md_rel}` for the review findings.
 2. Read the codebase index at `{config.codebase_index}`.
 {ref_section}
-6. Run tests: `{config.test_cmd}`
-7. Run linter: `{config.lint_cmd}`
+{step}. Run tests: `{config.test_cmd}`
+{step + 1}. Run linter: `{config.lint_cmd}`
 
 ## Fix Priority
 1. Critical Issues — MUST fix
@@ -1149,24 +923,28 @@ def run_fix_loop(project_path: str, config: RalphConfig,
 - Commit each fix: `git add -A && git commit -m "fix[optional scope]: <lowercase imperative description>"`
 
 ## When Done
-When all Critical Issues and Improvements are fixed, tests pass, linter passes:
-RALPH_DONE
+When all Critical Issues and Improvements are fixed, tests pass, and linter passes,
+output exactly: RALPH_DONE
 """
 
-    # Save fix prompt to a temp file
-    fix_prompt_path = Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'fix-prompt.md'
-    fix_prompt_path.parent.mkdir(parents=True, exist_ok=True)
-    fix_prompt_path.write_text(fix_prompt, encoding='utf-8')
+    stream_progress('Fix', 'Running fix pass...')
 
-    fix_rel = os.path.relpath(fix_prompt_path, project_path)
+    # Refresh indexes before fix
+    refresh_codebase_indexes(project_path)
 
-    return run_build_loop(
-        fix_rel, project_path,
-        max_iterations=config.max_fix_iterations,
-        max_turns=config.max_turns,
-        phase_name='Fix',
-        pre_commit=pre_commit,
+    returncode, output, elapsed = run_claude_command(
+        ['claude-safe', '--no-firewall', '--', '-p', fix_prompt,
+         '--max-turns', str(config.max_turns)],
+        cwd=project_path,
+        timeout=900,
+        phase='Fix'
     )
+
+    success = 'RALPH_DONE' in output
+    stream_progress('Fix', f'Complete ({format_duration(elapsed)}, '
+                    f'{"RALPH_DONE" if success else "no RALPH_DONE"})')
+
+    return BuildResult(success=success, iterations=1, pre_commit=pre_commit)
 
 
 def save_review_with_frontmatter(project_path: str, review_cycle: int) -> str | None:
@@ -1495,17 +1273,14 @@ Next step: Review the plan, then run --phase implement"""
 def run_phase_implement(plan_path: str, project_path: str,
                         research_path: str = '',
                         config: RalphConfig | None = None) -> ImplementPhaseResult:
-    """Phase 2: Autonomous build → review → fix loop.
+    """Phase 2: /implement_plan → review → fix loop.
 
     Steps:
-        1. Validate plan exists
-        2. Detect tooling (test/lint/format)
-        3. Find research file (from --research flag or auto-discover by date)
-        4. Index codebase
-        5. Generate comprehensive prompt from plan
-        6. Run build loop (multi-iteration, refreshes indexes between iterations)
-        7. Run review → fix cycles (automated review with verdict, fix loop if needed)
-        8. Archive review, clean up transient artifacts
+        1. Validate plan, detect tooling, auto-discover research
+        2. Index codebase, ensure feature branch
+        3. Run /implement_plan (single invocation, includes plan-validator)
+        4. Review → fix cycles (max 3: automated review with verdict, fix if needed)
+        5. Archive review, clean up transient artifacts
     """
     # Validate plan exists
     full_plan_path = Path(project_path) / plan_path
@@ -1553,24 +1328,42 @@ def run_phase_implement(plan_path: str, project_path: str,
     if index_path:
         config.codebase_index = os.path.relpath(index_path, project_path)
 
-    # Step 2: Generate prompt from plan
-    stream_progress('Implement', 'Generating implementation prompt from plan...')
-    prompt_path = generate_ralph_prompt(plan_path, project_path, research_path)
-    config.prompt_path = prompt_path
-    stream_progress('Implement', f'Prompt generated: {prompt_path}')
+    # Step 2: Run /implement_plan (single invocation — includes plan-validator)
+    pre_commit = git_rev_parse_head(project_path)
 
-    # Step 3: Build loop
-    build_result = run_build_loop(
-        prompt_path, project_path,
-        max_iterations=config.max_iterations,
-        max_turns=config.max_turns,
-        phase_name='Build'
+    # Build the /implement_plan prompt with additional context
+    implement_prompt = f'/implement_plan {plan_path}'
+    context_parts = []
+    if research_path:
+        context_parts.append(f'- Research: read `{research_path}` for codebase analysis and context.')
+    if config.codebase_index:
+        context_parts.append(f'- Codebase index: read `{config.codebase_index}` for the project map.')
+    context_parts.append(f'- Test command: `{test_cmd}`')
+    context_parts.append(f'- Lint command: `{lint_cmd}`')
+    if context_parts:
+        implement_prompt += '\n\nAdditional context:\n' + '\n'.join(context_parts)
+
+    implement_prompt += """
+
+After completing each phase, commit your work:
+```
+git add -A && git commit -m "<type>[optional scope]: <description>"
+```
+Follow Conventional Commits: feat, fix, refactor, test, docs, etc."""
+
+    stream_progress('Implement', 'Running /implement_plan (includes plan-validator)...')
+    returncode, output, elapsed = run_claude_command(
+        ['claude-safe', '--no-firewall', '--', '-p', implement_prompt,
+         '--max-turns', str(config.max_turns)],
+        cwd=project_path,
+        timeout=1800,
+        phase='Implement'
     )
+    stream_progress('Implement',
+                    f'/implement_plan complete ({format_duration(elapsed)}, exit={returncode})')
 
-    if not build_result.success:
-        stream_progress('Build', 'Build loop did not complete — proceeding to review anyway')
-
-    # Step 4-6: Review-fix cycle
+    # Step 3: Review → fix cycle (max review_cycles iterations)
+    build_result = BuildResult(success=(returncode == 0), iterations=1, pre_commit=pre_commit)
     review_path = ''
     final_status = 'NEEDS_REVIEW'
     final_review_cycle = 0
@@ -1578,7 +1371,7 @@ def run_phase_implement(plan_path: str, project_path: str,
     for cycle in range(1, config.max_review_cycles + 1):
         final_review_cycle = cycle
 
-        # Step 4: Review
+        # Review
         verdict = run_review(project_path, build_result, config, cycle)
 
         # Archive the review
@@ -1600,21 +1393,21 @@ def run_phase_implement(plan_path: str, project_path: str,
                             f'Final review cycle ({cycle}) still has issues. Manual review needed.')
             break
 
-        # Step 5: Fix loop
+        # Fix
         stream_progress('Fix', f'Fixing issues from review cycle {cycle}...')
-        fix_result = run_fix_loop(project_path, config, build_result.pre_commit)
+        fix_result = run_fix(project_path, config, pre_commit)
 
         if fix_result.success:
-            stream_progress('Fix', f'Fix loop complete at iteration {fix_result.iterations}')
+            stream_progress('Fix', 'Fix complete')
         else:
-            stream_progress('Fix', 'Fix loop did not complete — continuing to next review')
+            stream_progress('Fix', 'Fix did not signal completion — continuing to next review')
 
     # Clean up transient artifacts
     _cleanup_ralph_artifacts(project_path)
 
     # Count commits made
     result = subprocess.run(
-        ['git', 'log', f'{build_result.pre_commit}..HEAD', '--oneline'],
+        ['git', 'log', f'{pre_commit}..HEAD', '--oneline'],
         cwd=project_path, capture_output=True, text=True
     )
     commit_count = len(result.stdout.strip().splitlines()) if result.stdout.strip() else 0
@@ -1628,10 +1421,9 @@ def run_phase_implement(plan_path: str, project_path: str,
     print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}", file=sys.stderr, flush=True)
     print(f"\n{Fore.GREEN}{Style.BRIGHT}  Implement Summary{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
     print(f"  Status:           {final_status}", file=sys.stderr, flush=True)
-    print(f"  Build iterations: {build_result.iterations}", file=sys.stderr, flush=True)
     print(f"  Review cycles:    {final_review_cycle}", file=sys.stderr, flush=True)
     print(f"  Commits made:     {commit_count}", file=sys.stderr, flush=True)
-    print(f"  Pre-implement:    {build_result.pre_commit[:8]}", file=sys.stderr, flush=True)
+    print(f"  Pre-implement:    {pre_commit[:8]}", file=sys.stderr, flush=True)
     print(f"  Current HEAD:     {current_commit[:8]}", file=sys.stderr, flush=True)
     print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
 
@@ -1639,10 +1431,10 @@ def run_phase_implement(plan_path: str, project_path: str,
         plan_path=plan_path,
         review_path=review_path,
         status=final_status,
-        build_iterations=build_result.iterations,
+        build_iterations=1,
         review_cycles=final_review_cycle,
         commits_made=commit_count,
-        pre_commit=build_result.pre_commit,
+        pre_commit=pre_commit,
     )
 
 
@@ -1903,8 +1695,8 @@ Examples:
   %(prog)s --phase implement path/to/plan.md      # Implement phase (autonomous build/review/fix)
   %(prog)s --phase cleanup path/to/plan.md        # Cleanup phase
 
-  # With build/review/fix options:
-  %(prog)s --phase implement --max-iterations 20 --max-turns 30 path/to/plan.md
+  # With review/fix options:
+  %(prog)s --phase implement --max-turns 30 path/to/plan.md
   %(prog)s --phase implement --max-review-cycles 5 path/to/plan.md
         """
     )
@@ -1917,8 +1709,6 @@ Examples:
     parser.add_argument('--json', action='store_true', help='Output JSON format')
     parser.add_argument('--no-refine', action='store_true', dest='no_refine',
                         help='Skip interactive query refinement (use original query as-is)')
-    parser.add_argument('--max-iterations', type=int, default=10,
-                        help='Build loop iteration limit (default: 10)')
     parser.add_argument('--max-turns', type=int, default=40,
                         help='Turns per Claude iteration (default: 40)')
     parser.add_argument('--max-fix-iterations', type=int, default=5,
@@ -1947,7 +1737,6 @@ Examples:
 
         elif args.phase == 'implement':
             config = RalphConfig(
-                max_iterations=args.max_iterations,
                 max_turns=args.max_turns,
                 max_fix_iterations=args.max_fix_iterations,
                 max_review_cycles=args.max_review_cycles,
@@ -1977,7 +1766,6 @@ Examples:
             print_result(plan_result, args.json)
 
             config = RalphConfig(
-                max_iterations=args.max_iterations,
                 max_turns=args.max_turns,
                 max_fix_iterations=args.max_fix_iterations,
                 max_review_cycles=args.max_review_cycles,
