@@ -109,7 +109,7 @@ Security rules integration:
 | `/create_plan` | Interactive implementation planning |
 | `/implement_plan` | Execute approved plans |
 | `/validate_plan` | Validate implementation correctness |
-| `/cleanup` | Document best practices and clean up ephemeral artifacts |
+| `/cleanup` | Document best practices, update project docs |
 | `/build_c4_docs` | Generate C4 architecture diagrams (System Context, Container, Component) |
 | `/commit` | Create well-formatted git commits |
 | `/pr` | Generate comprehensive PR descriptions |
@@ -171,9 +171,8 @@ your-project/
     │   └── owasp/           # 86 OWASP-based security rules
     │
     └── shared/
-        ├── plans/           # Implementation plans (deleted after cleanup)
-        ├── research/        # Research documents (deleted after cleanup)
-        ├── rationalization/ # Ephemeral working docs (deleted after cleanup)
+        ├── plans/           # Implementation plans
+        ├── research/        # Research documents
         └── project/         # Project documentation (3-file structure)
 ```
 
@@ -343,8 +342,7 @@ This template provides a systematic **Research → Plan → Implement → Cleanu
 - **Phase 3**: Plan
 - **Phase 4**: Implement
 - **Phase 5**: Validate
-- **Phase 6**: Cleanup (MANDATORY - documents best practices, removes ephemeral artifacts)
-- **Phase 7**: Commit & PR
+- **Phase 6**: Cleanup (MANDATORY - documents best practices, commits remaining changes, creates PR)
 
 ### Quick Start Example
 
@@ -605,7 +603,7 @@ The core workflow ensures quality and preserves knowledge:
 1. **Research**: Understand before building (spawns parallel agents, documents findings)
 2. **Plan**: Design before coding (interactive planning with user)
 3. **Implement**: Execute with clarity (step-by-step with validation)
-4. **Cleanup**: Document best practices and remove ephemeral artifacts (see [WORKFLOW.md](WORKFLOW.md))
+4. **Cleanup**: Document best practices and update project docs (see [WORKFLOW.md](WORKFLOW.md))
 
 ### Intelligent Agents
 

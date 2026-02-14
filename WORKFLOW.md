@@ -119,7 +119,7 @@ _Important but not blocking launch._
 2. Work on highest priority unblocked item
 3. When complete:
    - Check off item in todo.md
-   - Move to done.md with full details (plan link, PR, notes)
+   - Add to done.md with full details (plan link, PR, notes)
 
 **Adding New Work:**
 1. Add to appropriate section in **todo.md**
@@ -134,7 +134,7 @@ _Important but not blocking launch._
 
 **Completed Work:**
 1. Check off in todo.md: `- [x] Item`
-2. Immediately move to done.md:
+2. Add to done.md:
    - Add to current month/year section
    - Include completion date
    - Link to plan, research, ADR (if applicable)
@@ -615,7 +615,7 @@ Next: /validate_plan to verify correctness
 
 **When to do this:**
 - After implementation (Phase 4)
-- Before rationalization (Phase 6)
+- Before cleanup (Phase 6)
 - To verify all requirements were met
 
 **Command:**
@@ -774,12 +774,11 @@ All critical issues should be addressed before proceeding to cleanup.
      - `memories-analyzer` - Historical context
      - `project-context-analyzer` - Project documentation review
 
-2. **Creates Working Rationalization Document** (ephemeral):
+2. **Investigates What Actually Happened**:
    - Documents discoveries made during implementation
    - Lists technical decisions with rationale
    - Captures rejected alternatives
    - Identifies patterns/conventions discovered
-   - **This doc is temporary** - deleted when rationalization completes
 
 3. **Interactive Decision Making**:
    - Presents findings to you
@@ -789,10 +788,9 @@ All critical issues should be addressed before proceeding to cleanup.
    - Gets your approval on what to document
 
 4. **Creates Permanent Outputs**:
-   - **ADRs**: Architecture Decision Records with full rationale
-   - **Updated Plan**: Shows final approach as if it was always intended
+   - **Best Practices**: Documented patterns in `memories/best_practices/`
    - **CLAUDE.md Updates**: New patterns and conventions
-   - **Deleted Working Doc**: Removes ephemeral cleanup working document
+   - **Project Docs**: Updated todo.md, done.md, project.md
 
 **Example:**
 ```bash
@@ -800,14 +798,11 @@ You: /cleanup memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: Analyzing implementation vs plan...
 
-[Analyzes git history, spawns research agents]
+[Analyzes git history, reads changed files]
 
-## Rationalization Findings
-
-### Key Discoveries During Implementation:
+## Key Discoveries During Implementation:
 1. **Discovery**: Exponential backoff works better than linear
    - **Impact**: Changed retry strategy mid-implementation
-   - **Evidence**: Tested both, exponential reduced server load by 60%
 
 2. **Discovery**: Need to track failure reasons
    - **Impact**: Added retry_reason field (not in plan)
@@ -837,157 +832,25 @@ Claude: Analyzing implementation vs plan...
 
 ---
 
-Which updates should I make?
-
-1. ADRs: Create both? (Use Celery, 3-retry strategy)
-2. CLAUDE.md: Add both patterns?
-3. Plan: Update to show exponential backoff as original approach?
-
-You: Create both ADRs and add both patterns to CLAUDE.md. Update plan.
-
-Claude: Creating permanent documentation...
-
-✓ Created ADR-001: Use Celery for Payment Retry Queue
-  → memories/shared/adrs/001-celery-payment-retry.md
-
-✓ Created ADR-002: Three-Retry Strategy with Exponential Backoff
-  → memories/shared/adrs/002-three-retry-strategy.md
-
+✓ Created best practice: retry-exponential-backoff-pattern.md
 ✓ Updated CLAUDE.md:
   - Added "Retry Pattern" to Architecture Patterns section
-  - Added "Retry Logging Convention" to Coding Standards
+✓ Updated project docs:
+  - todo.md: marked payment retry as complete
+  - done.md: added with plan link and notes
 
-✓ Updated implementation plan:
-  - Phase 2 now shows exponential backoff as original design
-  - Added retry_reason field to schema changes
-  - Updated testing strategy to include backoff testing
-
-✓ Deleted working rationalization document
-
-Rationalization complete! All knowledge captured in:
-- Updated plan (clean narrative)
-- 2 ADRs (decision rationale)
-- CLAUDE.md (reusable patterns)
-
-Next: /commit to create commits with clean narrative
+Cleanup complete! All knowledge captured in:
+- Best practices (novel patterns)
+- CLAUDE.md (reusable conventions)
+- Project docs (todo.md, done.md updated)
 ```
 
-**Rationalization Document Structure** (ephemeral - gets deleted):
-```yaml
----
-date: 2025-10-18 16:00:00 CEST
-file-id: [unique UUID]
-parentfile-id: [plan's file-id]
-status: in_progress
----
-
-# Rationalization: Payment Retry Logic
-
-> NOTE: This is a working document for rationalization.
-> It will be DELETED when rationalization is complete.
-> Permanent outputs: updated plan, ADRs, CLAUDE.md updates.
-
-## Summary
-[What was implemented and how it evolved]
-
-## Implementation Evolution
-### Original Plan Approach
-[What plan said to do]
-
-### What Actually Happened
-[What was actually built with file:line]
-
-### Key Discoveries During Implementation
-[Numbered list of discoveries with impact]
-
-## Technical Decisions Made
-[List with ADR Needed? flags]
-
-## Rejected Alternatives
-[What didn't work and why]
-
-## Patterns & Conventions Discovered
-[With "Add to CLAUDE.md?" flags]
-
-## Rationalized Narrative
-[Clean story - final approach as if always intended]
-
-## Documentation Updates Needed
-### Plan Updates
-- [ ] Update Phase 2 approach
-- [ ] Add retry_reason field
-
-### CLAUDE.md Updates
-- [ ] Add retry pattern
-- [ ] Add logging convention
-
-### ADRs to Create
-- [ ] ADR-001: Celery decision
-- [ ] ADR-002: Retry strategy
-```
-
-**ADR Structure** (permanent):
-```markdown
-# ADR-001: Use Celery for Payment Retry Queue
-
-**Date**: 2025-10-18
-**Status**: Accepted
-**Deciders**: albert
-**Related**: memories/shared/plans/2025-10-18-payment-retry-logic.md
-
-## Context
-We needed a reliable background task system for retrying failed payments...
-
-## Decision
-Use Celery with Redis backend for payment retry queue.
-
-## Rationale
-- Already using Celery for other async tasks
-- Proven reliability at scale
-- Built-in retry mechanisms and monitoring
-- No additional infrastructure needed
-
-## Consequences
-### What becomes easier:
-- Retry logic isolated from main payment flow
-- Can monitor retry queue health
-- Easy to add more background tasks
-
-### What becomes more difficult:
-- Need to maintain Celery workers
-- Adds complexity to deployment
-
-## Alternatives Considered
-### Option 1: Redis Queue (RQ)
-**Pros**: Simpler than Celery
-**Cons**: Less features, would require migration
-**Why rejected**: Already using Celery successfully
-
-### Option 2: AWS SQS
-**Pros**: Managed service
-**Cons**: Vendor lock-in, costs increase with scale
-**Why rejected**: Want to avoid cloud vendor dependencies
-
-## Implementation
-**Code**: `src/payments/retry_service.py:45`
-**Tests**: `tests/payments/test_retry.py`
-```
-
-**Why Rationalization is Mandatory:**
+**Why Cleanup is Mandatory:**
 
 1. **AI Has No Memory**: Without updated docs, next session loses all context
-2. **Prevents Drift**: Plan stays accurate, doesn't become stale fiction
-3. **Captures Decisions**: ADRs prevent re-litigating choices
-4. **Documents Dead Ends**: Rejected alternatives prevent wasted exploration
-5. **Builds Knowledge**: CLAUDE.md becomes smarter with each implementation
-6. **Clean Narrative**: Future developers see elegant solution, not messy path
-
-**The "Faking" Philosophy:**
-- You're not lying about what happened
-- You're presenting the refined, polished version
-- Like mathematicians publish elegant proofs, not tortured discovery
-- The messy reality is captured (rejected alternatives, discoveries)
-- The clean narrative is what guides future work (updated plan, ADRs)
+2. **Documents Dead Ends**: Rejected alternatives prevent wasted exploration
+3. **Builds Knowledge**: CLAUDE.md becomes smarter with each implementation
+4. **Keeps Project Docs Current**: todo.md and done.md stay in sync
 
 ---
 
@@ -1113,10 +976,6 @@ Implements automatic retry logic for failed payment processing with exponential 
 ✓ Linting clean
 - [ ] Manual: Test with failed Stripe webhook
 - [ ] Manual: Verify admin panel shows retry status
-
-### ADRs Created
-- ADR-001: Use Celery for payment retry queue
-- ADR-002: Three-retry strategy with exponential backoff
 
 ### References
 - Plan: memories/shared/plans/2025-10-18-payment-retry-logic.md
@@ -1267,51 +1126,13 @@ You: /cleanup memories/shared/plans/2025-10-18-payment-retry-logic.md
 
 Claude: [Analyzes what actually happened vs plan...]
 
-Found 2 significant decisions needing ADRs:
-1. Use Celery for retry queue
-2. 3-retry exponential backoff strategy
-
-Found 2 patterns for CLAUDE.md:
-1. Retry decorator pattern
-2. Retry logging convention
-
-Rejected alternatives:
-- Linear backoff (caused congestion)
-- Immediate retry (hit rate limits)
-
-Should I create ADRs and update CLAUDE.md?
-
-You: Yes, create both ADRs and add patterns to CLAUDE.md
-
-Claude: ✓ Created ADR-001: Celery for payment retry
-✓ Created ADR-002: 3-retry exponential backoff
+✓ Created best practice: retry-exponential-backoff-pattern.md
 ✓ Updated CLAUDE.md with retry patterns
-✓ Updated plan to show exponential backoff as original design
-✓ Deleted working rationalization doc
+✓ Updated project docs (todo.md → done.md)
+✓ Committed cleanup changes
+✓ Created PR: https://github.com/org/repo/pull/123
 
-Rationalization complete! All knowledge captured.
-
-# ============================================================
-# Phase 8: Commit & PR
-# ============================================================
-You: /commit
-
-Claude: Proposing 3 logical commits...
-[Shows commit plan]
-
-You: Looks good
-
-Claude: ✓ Created 3 commits
-Next: /pr
-
-You: /pr
-
-Claude: [Analyzes diff, runs tests, generates description...]
-
-✓ PR description created and updated on GitHub
-✓ Saved to: memories/shared/prs/123_description.md
-
-Your PR is ready for review! 🎉
+Cleanup complete!
 ```
 
 ---
@@ -1321,19 +1142,15 @@ Your PR is ready for review! 🎉
 The workflow creates a traceable lineage of decisions:
 
 ```
-Project Documentation (project-overview.md)
+Project Documentation (project.md, todo.md, done.md)
     ↓ informs
 Research (file-id: uuid-1)
     ↓ parentfile-id
 Plan (file-id: uuid-2, parentfile-id: uuid-1)
-    ↓ parentfile-id
-Rationalization (file-id: uuid-3, parentfile-id: uuid-2)
-    ├─→ ADR-001 (references plan)
-    ├─→ ADR-002 (references plan)
-    ├─→ Updated Plan (shows final approach)
-    └─→ Updated CLAUDE.md (new patterns)
-    ↓ deleted after rationalization
-PR Description (references plan, ADRs, research)
+    ↓ implemented
+Review (code review with verdict)
+    ↓ cleanup
+Best Practices + CLAUDE.md updates + PR
 ```
 
 **Every document includes metadata:**
@@ -1354,7 +1171,7 @@ This creates a complete audit trail:
 - What decisions were made (ADRs)
 - What patterns emerged (CLAUDE.md)
 - What was actually built (git commits)
-- Why it was built that way (rationalization → ADRs)
+- Why it was built that way (best practices, CLAUDE.md)
 
 ---
 
@@ -1370,13 +1187,13 @@ memories/shared/research/2025-10-18-payment-processing.md
 memories/shared/plans/2025-10-18-ENG-1234-payment-retry.md
 ```
 
-**ADRs:**
+**Best Practices:**
 ```
-NNN-decision-title.md
+[category]-[topic].md
 
 Examples:
-memories/shared/adrs/001-use-celery-for-retry.md
-memories/shared/adrs/002-three-retry-strategy.md
+memories/best_practices/api-fire-and-forget-claude-integration.md
+memories/best_practices/security-defense-in-depth-validation.md
 ```
 
 **Project Documentation:**
@@ -1415,23 +1232,17 @@ memories/shared/project/done.md       # Completed work history
 - Easier to debug when issues arise
 
 ### 5. Always Validate
-- Catches issues before rationalization
+- Catches issues before cleanup
 - Identifies deviations early
 - Ensures nothing was missed
 
-### 6. NEVER Skip Rationalization
+### 6. NEVER Skip Cleanup
 - This is where knowledge is preserved
 - Future you will thank present you
 - Future AI sessions depend on this
 - Takes 10 minutes, saves hours later
 
-### 7. Create Meaningful ADRs
-- Document significant decisions
-- Include alternatives considered
-- Explain trade-offs clearly
-- Future teams need context
-
-### 8. Update CLAUDE.md Regularly
+### 7. Update CLAUDE.md Regularly
 - Add patterns as they emerge
 - Update conventions when they change
 - Remove outdated information
@@ -1485,10 +1296,10 @@ Code → Commit → PR → (documentation maybe?)
 
 **This Workflow:**
 ```
-Research → Plan → Implement → Validate → Rationalize → Commit → PR
+Research → Plan → Implement → Review → Cleanup → PR
 ```
-- Documentation reflects reality (rationalization ensures it)
-- Decisions preserved in ADRs
+- Documentation reflects reality (cleanup ensures it)
+- Decisions preserved in best practices
 - Patterns captured in CLAUDE.md
 - Each AI session builds on previous knowledge
 

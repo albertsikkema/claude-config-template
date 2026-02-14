@@ -134,8 +134,8 @@ memories/
 ├── technical_docs/   # Library/framework documentation
 ├── security_rules/   # 108 Codeguard rules (core/ + owasp/)
 └── shared/
-    ├── plans/        # Implementation plans (ephemeral)
-    ├── research/     # Research documents (ephemeral)
+    ├── plans/        # Implementation plans
+    ├── research/     # Research documents
     └── project/      # Project docs (project.md, todo.md, done.md)
 ```
 
@@ -146,8 +146,7 @@ The primary pattern: **Research → Plan → Implement → Cleanup**
 1. `/research_codebase <topic>` - Investigate and document findings
 2. `/create_plan` - Create implementation plan with user input
 3. `/implement_plan <path>` - Execute plan (includes validation)
-4. `/cleanup <path>` - **MANDATORY**: Document best practices, delete ephemeral artifacts
-5. `/commit` and `/pr` - Create commits and PR
+4. `/cleanup <path>` - **MANDATORY**: Document best practices, update project docs, commit, and create PR
 
 See [WORKFLOW.md](WORKFLOW.md) for complete details.
 
@@ -160,7 +159,7 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 | `/create_plan` | Interactive implementation planning |
 | `/implement_plan` | Execute approved plans |
 | `/validate_plan` | Validate implementation |
-| `/cleanup` | Document best practices, remove ephemeral artifacts |
+| `/cleanup` | Document best practices, update project docs |
 | `/build_c4_docs` | Generate C4 architecture diagrams |
 | `/commit` | Create git commits |
 | `/pr` | Generate PR descriptions |

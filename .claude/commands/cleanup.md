@@ -1,6 +1,6 @@
    # Cleanup Implementation
 
-You are tasked with cleaning up after a completed implementation by analyzing what actually happened, creating documentation for significant decisions, and removing ephemeral artifacts.
+You are tasked with cleaning up after a completed implementation by analyzing what actually happened and creating documentation for significant decisions.
 
 This implements the "Review & Rationalization Phase" from the blog post "Faking a Rational Design Process in the AI Era", completing the Research → Plan → Implement → Cleanup workflow.
 
@@ -87,7 +87,7 @@ Then wait for the user's input.
 
 5. **Create cleanup todo list**:
    - Use TodoWrite to track cleanup tasks
-   - Include: investigation, best practices documentation, CLAUDE.md updates, project doc updates, artifact deletion
+   - Include: investigation, best practices documentation, CLAUDE.md updates, project doc updates
 
 ### Step 2: Investigation - What Actually Happened?
 
@@ -346,12 +346,8 @@ The complete workflow is:
 ```
 1. /research_codebase → memories/shared/research/YYYY-MM-DD-topic.md
 2. /create_plan → memories/shared/plans/YYYY-MM-DD-feature.md
-3. /implement_plan → Code changes + updated plan checkboxes + validation
-4. /code_reviewer → Review code quality and security
-5. /cleanup <plan> <research> <review> → Document best practices + update CLAUDE.md + update project docs
-6. /commit → Create git commits
-7. /pr → Create PR description
-8. Move task to Done → Automatically deletes plan/research/review files
+3. /implement_plan → Code changes + commits + automated review
+4. /cleanup <plan> <research> <review> → Document best practices + update CLAUDE.md + update project docs + commit + PR
 ```
 
 Cleanup is **mandatory** - it ensures documentation stays current and future AI sessions have proper context.
