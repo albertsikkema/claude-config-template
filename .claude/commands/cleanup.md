@@ -8,6 +8,8 @@ This implements the "Review & Rationalization Phase" from the blog post "Faking 
 
 From Parnas and Clements (1986): Documentation should show the cleaned-up, rationalized version of what happened, not the messy discovery process. This doesn't mean lying—it means presenting the refined, polished version of our work.
 
+<!-- Origin: D.L. Parnas & P.C. Clements, "A rational design process: How and why to fake it", IEEE TSE, Feb 1986. https://users.ece.utexas.edu/~perry/education/SE-Intro/fakeit.pdf -->
+
 **What cleanup does:**
 - Captures what was tried (rejected alternatives in best practices)
 - Documents best practices discovered during implementation, so we can learn and improve in the future
