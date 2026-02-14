@@ -137,6 +137,7 @@ class CleanupPhaseResult:
     """Result from the cleanup phase."""
     committed: bool
     commit_hash: str | None
+    pr_url: str | None
 
 
 @dataclass
@@ -1447,7 +1448,7 @@ def run_phase_implement(plan_path: str, project_path: str,
 
 
 def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, project_path: str) -> CleanupPhaseResult:
-    """Phase 3: Cleanup → Commit (interactive) → Complete"""
+    """Phase 3: Cleanup → Commit remaining → PR → Complete"""
 
     # Validate plan exists
     full_plan_path = Path(project_path) / plan_path
@@ -1471,23 +1472,152 @@ def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, proj
         raise RuntimeError(f"Cleanup failed with code {returncode}")
     stream_progress("Cleanup", f"Complete ({format_duration(elapsed)})")
 
-    # Step 2: Commit - INTERACTIVE
-    stream_progress("Commit", "Starting interactive commit (approval required)...")
-    returncode = run_claude_interactive(
-        '/commit',
-        cwd=project_path
-    )
-
-    committed = returncode == 0
+    # Step 2: Commit remaining files (non-interactive)
+    committed = _commit_remaining(project_path, plan_path)
 
     # Step 3: Mark plan complete (update frontmatter)
     if committed:
         mark_plan_complete(full_plan_path)
 
+    # Step 4: Create PR if not on main
+    pr_url = _create_pr_if_branch(project_path, plan_path, review_path)
+
     return CleanupPhaseResult(
         committed=committed,
-        commit_hash=git_rev_parse_head(project_path) if committed else None
+        commit_hash=git_rev_parse_head(project_path) if committed else None,
+        pr_url=pr_url,
     )
+
+
+def _commit_remaining(project_path: str, plan_path: str) -> bool:
+    """Commit any remaining uncommitted files. Returns True if a commit was made."""
+    # Check if there's anything to commit
+    result = subprocess.run(
+        ['git', 'status', '--porcelain'],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    if not result.stdout.strip():
+        stream_progress("Commit", "No uncommitted changes")
+        return False
+
+    # Stage and commit
+    subprocess.run(['git', 'add', '-A'], cwd=project_path, check=True)
+
+    # Derive scope from plan filename: 2026-02-14-add-bruno-indexer.md -> add-bruno-indexer
+    plan_name = Path(plan_path).stem
+    # Strip date prefix (YYYY-MM-DD-)
+    scope_part = re.sub(r'^\d{4}-\d{2}-\d{2}-?', '', plan_name)
+    msg = f"chore(cleanup): update docs and best practices for {scope_part}"
+
+    result = subprocess.run(
+        ['git', 'commit', '-m', msg],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        stream_progress("Commit", f"Commit failed: {result.stderr.strip()}")
+        return False
+
+    stream_progress("Commit", f"Committed cleanup changes")
+    return True
+
+
+def _extract_review_summary(review_path: str, project_path: str) -> str:
+    """Extract the SUMMARY section from a review file."""
+    full_path = Path(project_path) / review_path
+    if not full_path.exists():
+        return ''
+    try:
+        content = full_path.read_text(encoding='utf-8')
+    except OSError:
+        return ''
+
+    # Extract text between ## SUMMARY and the next ## heading
+    match = re.search(
+        r'^##\s+SUMMARY\s*\n(.*?)(?=^##\s+|\Z)',
+        content, re.MULTILINE | re.DOTALL,
+    )
+    return match.group(1).strip() if match else ''
+
+
+def _build_pr_body(plan_path: str, review_path: str,
+                   project_path: str) -> tuple[str, str]:
+    """Build PR title and body from plan and review. Returns (title, body)."""
+    # Title from plan
+    full_plan_path = Path(project_path) / plan_path
+    try:
+        content = full_plan_path.read_text(encoding='utf-8')
+        sections = extract_plan_sections(content)
+        title = sections['title'].removesuffix(' — Implementation').removesuffix(' Implementation Plan')
+    except Exception:
+        plan_name = Path(plan_path).stem
+        scope_part = re.sub(r'^\d{4}-\d{2}-\d{2}-?', '', plan_name)
+        title = scope_part.replace('-', ' ').capitalize()
+        sections = {'overview': '', 'files': ''}
+
+    # Body: prefer review summary, fall back to plan overview
+    body_parts = []
+
+    review_summary = _extract_review_summary(review_path, project_path) if review_path else ''
+    if review_summary:
+        body_parts.append(f'## Summary\n\n{review_summary}')
+    elif sections['overview']:
+        body_parts.append(f'## Summary\n\n{sections["overview"]}')
+
+    if sections['files']:
+        body_parts.append(f'## Key Files\n\n{sections["files"]}')
+
+    body_parts.append(f'Plan: `{plan_path}`')
+
+    return title, '\n\n'.join(body_parts)
+
+
+def _create_pr_if_branch(project_path: str, plan_path: str,
+                         review_path: str = '') -> str | None:
+    """Create a PR via gh if on a feature branch. Returns PR URL or None."""
+    # Get current branch
+    result = subprocess.run(
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    branch = result.stdout.strip()
+    if branch in ('main', 'master'):
+        stream_progress("PR", "On main branch, skipping PR creation")
+        return None
+
+    # Push branch
+    stream_progress("PR", f"Pushing branch {branch}...")
+    result = subprocess.run(
+        ['git', 'push', '-u', 'origin', branch],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        stream_progress("PR", f"Push failed: {result.stderr.strip()}")
+        return None
+
+    # Check if PR already exists
+    result = subprocess.run(
+        ['gh', 'pr', 'view', '--json', 'url', '-q', '.url'],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    if result.returncode == 0 and result.stdout.strip():
+        pr_url = result.stdout.strip()
+        stream_progress("PR", f"PR already exists: {pr_url}")
+        return pr_url
+
+    # Build PR title and body from plan + review
+    pr_title, pr_body = _build_pr_body(plan_path, review_path, project_path)
+
+    result = subprocess.run(
+        ['gh', 'pr', 'create', '--title', pr_title, '--body', pr_body],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        stream_progress("PR", f"PR creation failed: {result.stderr.strip()}")
+        return None
+
+    pr_url = result.stdout.strip()
+    stream_progress("PR", f"Created: {pr_url}")
+    return pr_url
 
 
 def mark_plan_complete(plan_path: Path) -> None:
@@ -1537,8 +1667,11 @@ def print_result(result: PlanPhaseResult | ImplementPhaseResult | CleanupPhaseRe
             if result.committed:
                 print(f"  {Fore.GREEN}Committed:{Style.RESET_ALL} Yes ({result.commit_hash[:8] if result.commit_hash else 'N/A'})")
             else:
-                print(f"  {Fore.YELLOW}Committed:{Style.RESET_ALL} No (user declined or error)")
-            print(f"\n  {Fore.BLUE}Next:{Style.RESET_ALL} Run /pr to create a pull request")
+                print(f"  {Fore.YELLOW}Committed:{Style.RESET_ALL} No changes to commit")
+            if result.pr_url:
+                print(f"  {Fore.GREEN}PR:{Style.RESET_ALL} {result.pr_url}")
+            else:
+                print(f"  {Fore.YELLOW}PR:{Style.RESET_ALL} Not created (on main or error)")
 
 
 # --- Main entry point ---
