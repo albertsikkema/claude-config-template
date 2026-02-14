@@ -83,6 +83,7 @@ INDEXER_MAP = {
     '_js_ts.md': 'index_js_ts.py',
     '_go.md': 'index_go.py',
     '_cpp.md': 'index_cpp.py',
+    '_api_tools.md': 'index_api_tools.py',
 }
 
 
@@ -524,6 +525,15 @@ You are implementing an approved plan. Work through the tasks systematically.
 """
     if research_path:
         prompt += f"- **Research**: `{research_path}` — Read this for codebase analysis and context.\n"
+
+    # Check for API tools index
+    api_tools_path = Path(project_path) / 'memories' / 'codebase' / 'codebase_overview_root_api_tools.md'
+    if api_tools_path.exists():
+        api_tools_rel = os.path.relpath(str(api_tools_path), project_path)
+        prompt += (f"- **API Testing index**: `{api_tools_rel}` "
+                   f"— Cross-reference when modifying API endpoints. "
+                   f"Update Bruno .bru files for any changed/new endpoints.\n")
+
     prompt += """
 Read these files before starting and refer back to them for each task.
 

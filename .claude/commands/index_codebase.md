@@ -2,11 +2,12 @@ You are tasked with indexing a codebase and generating comprehensive Markdown do
 
 ## Available Indexers
 
-The repository has four indexer scripts in `./.claude/helpers/`:
+The repository has five indexer scripts in `./.claude/helpers/`:
 1. **.claude/helpers/index_python.py** - For Python codebases
 2. **.claude/helpers/index_js_ts.py** - For JavaScript/TypeScript/React codebases
 3. **.claude/helpers/index_go.py** - For Go codebases
 4. **.claude/helpers/index_cpp.py** - For C/C++ codebases
+5. **.claude/helpers/index_api_tools.py** - For API testing tools (Bruno collections)
 
 ## Your Task
 
@@ -146,6 +147,13 @@ The repository has four indexer scripts in `./.claude/helpers/`:
    - Look for `from fastapi import` or `import fastapi` in Python files
    - If FastAPI is detected, attempt to fetch OpenAPI schema using `./.claude/helpers/fetch_openapi.sh`
    - Only run if a server might be running (non-intrusive check)
+12. **API Testing Tools Detection**: Check for API testing collections:
+    - Bruno: Look for `bruno.json` files anywhere in the project
+    - Common locations: `api_tools/`, `bruno/`, root directory
+    - If found, run:
+      ```bash
+      python ./.claude/helpers/index_api_tools.py ./ -o memories/codebase/codebase_overview_root_api_tools.md
+      ```
 
 ## Examples
 
@@ -188,6 +196,12 @@ python ./.claude/helpers/index_cpp.py ./Source -o memories/codebase/codebase_ove
 
 # Or index from root (will skip build/, third_party/, etc.)
 python ./.claude/helpers/index_cpp.py ./ -o memories/codebase/codebase_overview_root_cpp.md
+```
+
+### Index API testing tools (Bruno collections)
+```bash
+# Scans entire project for bruno.json files
+python ./.claude/helpers/index_api_tools.py ./ -o memories/codebase/codebase_overview_root_api_tools.md
 ```
 
 ### Fetch FastAPI OpenAPI schema (if FastAPI detected)
@@ -239,6 +253,7 @@ When FastAPI is detected:
   - `codebase_overview_<dirname>_go.md` - Go documentation
   - `codebase_overview_<dirname>_cpp.md` - C/C++ documentation
   - `openapi.json` - FastAPI OpenAPI schema (if applicable)
+  - `codebase_overview_<dirname>_api_tools.md` - API testing tools (Bruno collections)
 
 **Filename Examples:**
 - Scanning `./` (Python) → `codebase_overview_root_py.md`

@@ -44,6 +44,7 @@ Then wait for the user's input.
    - Look for index files:
      - `codebase_overview_*_py.md` - Python codebase indexes
      - `codebase_overview_*_ts.md` - TypeScript codebase indexes
+     - `codebase_overview_root_api_tools.md` - API testing tools index (Bruno collections)
      - `openapi.json` - FastAPI OpenAPI schema (if applicable)
 
    **If indexes exist:**
@@ -306,6 +307,24 @@ After structure approval:
    1. [Specific step to verify feature]
    2. [Another verification step]
    3. [Edge case to test manually]
+
+   ## API Testing Updates
+
+   **If `memories/codebase/codebase_overview_root_api_tools.md` exists AND the plan involves API endpoint changes:**
+
+   1. Cross-reference the "URL → Bruno File Map" in the API tools index
+   2. Add this section to the plan:
+
+   ### Endpoints Modified:
+   - [ ] `METHOD /path` — Update `path/to/file.bru` (body/headers/URL changes)
+
+   ### New Endpoints:
+   - [ ] `METHOD /path` — Create `collection/folder/name.bru`
+
+   ### Test Coverage:
+   - [ ] Ensure changed/new endpoints have `tests {}` blocks
+
+   **If no API endpoints are affected, omit this section entirely.**
 
    ## Performance Considerations
 
