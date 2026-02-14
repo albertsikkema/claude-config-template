@@ -39,7 +39,8 @@ Then wait for the user's input.
    - This ensures you have full context before decomposing the research
    - **NEVER** read files partially - if a file is mentioned, read it completely
 
-2. **Check for codebase indexes and scan them:**
+2. **Check for project-level files:**
+   - Check if a `Makefile` exists in the project root. If so, read it for context on existing targets.
    - Check if `memories/codebase/` directory exists and contains index files
    - Look for index files:
      - `codebase_overview_*_py.md` - Python codebase indexes
@@ -325,6 +326,16 @@ After structure approval:
    - [ ] Ensure changed/new endpoints have `tests {}` blocks
 
    **If no API endpoints are affected, omit this section entirely.**
+
+   ## Makefile Updates
+
+   **If a `Makefile` exists in the project root AND the plan adds new runnable tasks (e.g., new services, test suites, build steps):**
+
+   1. Read the existing Makefile and follow its conventions.
+   2. Only add/update targets that directly correspond to new functionality in the plan.
+   3. Do NOT add convenience wrappers, aliases, or targets "for completeness".
+
+   **If the Makefile is unaffected, omit this section entirely.**
 
    ## Performance Considerations
 
