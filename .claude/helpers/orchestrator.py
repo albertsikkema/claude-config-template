@@ -15,6 +15,13 @@ Plan Phase Flow:
     4. Research codebase with refined query
     5. Create implementation plan
 
+Implement Phase Flow (autonomous build → review → fix):
+    1. Validate plan, detect tooling, auto-discover research
+    2. Generate comprehensive prompt from plan
+    3. Build loop (multi-iteration, refreshes indexes between iterations)
+    4. Review → fix cycles (automated review with verdict, fix loop if needed)
+    5. Archive review, clean up transient artifacts
+
 Usage:
     uv run .claude/helpers/orchestrator.py "Add user authentication"              # Run all phases
     uv run .claude/helpers/orchestrator.py --phase plan "Add user authentication" # Plan phase only
@@ -63,9 +70,19 @@ STAGE_COLORS = {
     'Research': Fore.YELLOW,
     'Planning': Fore.MAGENTA,
     'Implement': Fore.GREEN,
+    'Build': Fore.GREEN,
     'Review': Fore.BLUE,
+    'Fix': Fore.YELLOW,
     'Cleanup': Fore.YELLOW,
     'Commit': Fore.GREEN,
+}
+
+# Map index file suffixes to indexer scripts
+INDEXER_MAP = {
+    '_py.md': 'index_python.py',
+    '_js_ts.md': 'index_js_ts.py',
+    '_go.md': 'index_go.py',
+    '_cpp.md': 'index_cpp.py',
 }
 
 
@@ -80,12 +97,38 @@ class PlanPhaseResult:
 
 
 @dataclass
+class BuildResult:
+    """Result from a build/fix loop."""
+    success: bool
+    iterations: int
+    pre_commit: str
+
+
+@dataclass
+class RalphConfig:
+    """Configuration for the implement phase (build → review → fix loop)."""
+    max_iterations: int = 10
+    max_turns: int = 40
+    max_fix_iterations: int = 5
+    max_review_cycles: int = 3
+    plan_path: str = ''
+    prompt_path: str = ''
+    research_path: str = ''
+    test_cmd: str = ''
+    lint_cmd: str = ''
+    codebase_index: str = ''
+
+
+@dataclass
 class ImplementPhaseResult:
     """Result from the implement phase."""
     plan_path: str
     review_path: str
-    changes_summary: str
-    issues: list[str]
+    status: str  # 'PASS', 'NEEDS_REVIEW'
+    build_iterations: int
+    review_cycles: int
+    commits_made: int
+    pre_commit: str
 
 
 @dataclass
@@ -239,6 +282,7 @@ def run_claude_command(command: list[str], cwd: str, timeout: int = 600, phase: 
         process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         process.kill()
+        process.wait()  # Reap the process to avoid zombies
         elapsed = time.time() - start_time
         raise RuntimeError(f"Command timed out after {format_duration(elapsed)}")
 
@@ -297,9 +341,6 @@ def extract_file_path(output: str, path_type: str = 'research') -> str | None:
     return None
 
 
-
-# --- Query refinement ---
-
 def find_codebase_index(project_path: str) -> str | None:
     """Find the most recent codebase index file."""
     codebase_dir = Path(project_path) / 'memories' / 'codebase'
@@ -314,6 +355,719 @@ def find_codebase_index(project_path: str) -> str | None:
     # Return the most recently modified one
     return str(max(index_files, key=lambda f: f.stat().st_mtime))
 
+
+def git_rev_parse_head(project_path: str) -> str:
+    """Get current HEAD commit hash."""
+    result = subprocess.run(
+        ['git', 'rev-parse', 'HEAD'],
+        cwd=project_path, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError("Failed to get HEAD commit hash")
+    return result.stdout.strip()
+
+
+# --- Tooling detection ---
+
+def detect_tooling(project_path: str) -> tuple[str, str, str]:
+    """Detect test command, lint command, and format command for the project.
+
+    Returns:
+        Tuple of (test_cmd, lint_cmd, format_cmd)
+    """
+    project = Path(project_path)
+
+    # Python with uv
+    if (project / 'pyproject.toml').exists() and (project / 'uv.lock').exists():
+        return 'uv run pytest -v', 'uv run ruff check .', 'uv run ruff format --check .'
+
+    # Python without uv
+    if (project / 'pyproject.toml').exists() or (project / 'setup.py').exists():
+        test_cmd = 'pytest -v'
+        lint_cmd = 'ruff check .' if (project / 'pyproject.toml').exists() else 'flake8 .'
+        format_cmd = 'ruff format --check .' if (project / 'pyproject.toml').exists() else 'black --check .'
+        return test_cmd, lint_cmd, format_cmd
+
+    # JavaScript/TypeScript
+    package_json = project / 'package.json'
+    if package_json.exists():
+        try:
+            data = json.loads(package_json.read_text(encoding='utf-8'))
+            scripts = data.get('scripts', {})
+            test_cmd = 'npm test' if 'test' in scripts else 'echo "no test script"'
+            lint_cmd = 'npm run lint' if 'lint' in scripts else 'echo "no lint script"'
+            format_cmd = 'npm run format' if 'format' in scripts else 'echo "no format script"'
+            return test_cmd, lint_cmd, format_cmd
+        except (json.JSONDecodeError, IOError):
+            return 'npm test', 'npm run lint', 'echo "no format script"'
+
+    # Go
+    if (project / 'go.mod').exists():
+        return 'go test ./...', 'golangci-lint run', 'gofmt -l .'
+
+    return 'echo "no test command"', 'echo "no lint command"', 'echo "no format command"'
+
+
+# --- Plan section extraction ---
+
+def extract_plan_sections(content: str) -> dict[str, str]:
+    """Extract key sections from a plan file.
+
+    Returns dict with keys: title, overview, phases, criteria, files, testing
+    """
+    sections: dict[str, str] = {}
+
+    # Strip YAML frontmatter
+    body = content
+    if content.startswith('---'):
+        end = content.find('---', 3)
+        if end > 0:
+            body = content[end + 3:].strip()
+
+    # Extract title (first # heading)
+    title_match = re.search(r'^#\s+(.+)$', body, re.MULTILINE)
+    sections['title'] = title_match.group(1).strip() if title_match else 'Implementation'
+
+    # Extract overview/context — everything before first ## heading
+    first_h2 = re.search(r'^##\s+', body, re.MULTILINE)
+    if first_h2:
+        overview = body[:first_h2.start()].strip()
+        # Remove the title line itself
+        overview = re.sub(r'^#\s+.+\n*', '', overview).strip()
+        sections['overview'] = overview
+    else:
+        sections['overview'] = ''
+
+    # Extract phases (## Phase N or ## Implementation Step N or ## N. heading)
+    phase_pattern = r'^##\s+(?:Phase\s+\d+|Implementation\s+(?:Step\s+)?\d+|\d+\.\s+).+$'
+    phase_matches = list(re.finditer(phase_pattern, body, re.MULTILINE))
+    if phase_matches:
+        phases_text = []
+        for i, match in enumerate(phase_matches):
+            start = match.start()
+            end = phase_matches[i + 1].start() if i + 1 < len(phase_matches) else len(body)
+            phases_text.append(body[start:end].strip())
+        sections['phases'] = '\n\n'.join(phases_text)
+    else:
+        # Fallback: extract all ## sections as potential task sections
+        h2_pattern = r'^##\s+.+$'
+        h2_matches = list(re.finditer(h2_pattern, body, re.MULTILINE))
+        if h2_matches:
+            all_sections = []
+            for i, match in enumerate(h2_matches):
+                start = match.start()
+                end = h2_matches[i + 1].start() if i + 1 < len(h2_matches) else len(body)
+                section_text = body[start:end].strip()
+                # Skip non-task sections
+                heading = match.group(0).lower()
+                if any(skip in heading for skip in ['context', 'overview', 'background',
+                                                     'success criteria', 'verification',
+                                                     'critical reference', 'key design',
+                                                     'implementation order']):
+                    continue
+                all_sections.append(section_text)
+            sections['phases'] = '\n\n'.join(all_sections) if all_sections else body
+        else:
+            sections['phases'] = body
+
+    # Extract success criteria (checkbox lines)
+    criteria_lines = re.findall(r'^[-*]\s+\[[ x]\]\s+.+$', body, re.MULTILINE)
+    sections['criteria'] = '\n'.join(criteria_lines) if criteria_lines else ''
+
+    # Extract file paths (bold file patterns)
+    file_paths = re.findall(r'\*\*(?:File|Path)\*\*:\s*`([^`]+)`', body)
+    # Also find backtick paths that look like file paths (must contain / or start with a word char)
+    file_paths += re.findall(r'`((?:[a-zA-Z0-9_./-]+/)[a-zA-Z0-9_.-]+\.[a-z]{1,4})`', body)
+    sections['files'] = '\n'.join(f'- `{p}`' for p in sorted(set(file_paths))) if file_paths else ''
+
+    return sections
+
+
+# --- Prompt generation ---
+
+def generate_ralph_prompt(plan_path: str, project_path: str,
+                          research_path: str = '') -> str:
+    """Generate a comprehensive implementation prompt from a plan file.
+
+    Args:
+        plan_path: Relative path to the plan file
+        project_path: Absolute path to the project root
+        research_path: Optional relative path to the research file
+
+    Returns the relative path to the generated prompt file.
+    """
+    plan_file = Path(project_path) / plan_path
+    if not plan_file.exists():
+        raise RuntimeError(f"Plan file not found: {plan_path}")
+
+    content = plan_file.read_text(encoding='utf-8')
+    sections = extract_plan_sections(content)
+
+    # Detect tooling
+    test_cmd, lint_cmd, format_cmd = detect_tooling(project_path)
+
+    # Find codebase index
+    index_path = find_codebase_index(project_path)
+    if index_path:
+        index_rel = os.path.relpath(index_path, project_path)
+    else:
+        index_rel = 'memories/codebase/ (run /index_codebase first)'
+
+    # Build prompt
+    prompt = f"""# {sections['title']} — Implementation
+
+You are implementing an approved plan. Work through the tasks systematically.
+
+## Reference Documents
+- **Plan**: `{plan_path}` — Read this for the full implementation specification.
+- **Codebase index**: `{index_rel}` — Read this for the project map.
+"""
+    if research_path:
+        prompt += f"- **Research**: `{research_path}` — Read this for codebase analysis and context.\n"
+    prompt += """
+Read these files before starting and refer back to them for each task.
+
+## Project Context
+"""
+    prompt += f"""- **Test command**: `{test_cmd}`
+- **Lint command**: `{lint_cmd}`
+- **Format command**: `{format_cmd}`
+
+## Before You Start
+1. Read `{plan_path}` for the full implementation plan.
+"""
+    if research_path:
+        prompt += f"2. Read `{research_path}` for codebase research and context.\n"
+        prompt += f"3. Read `{index_rel}` for the full project map.\n"
+        prompt += f"4. Run `git log --oneline -20` to see what has already been committed. Skip completed tasks.\n"
+        prompt += f"5. Run `{test_cmd}` to verify baseline.\n"
+        prompt += f"6. Run `{lint_cmd}` to verify baseline.\n"
+    else:
+        prompt += f"2. Read `{index_rel}` for the full project map.\n"
+        prompt += f"3. Run `git log --oneline -20` to see what has already been committed. Skip completed tasks.\n"
+        prompt += f"4. Run `{test_cmd}` to verify baseline.\n"
+        prompt += f"5. Run `{lint_cmd}` to verify baseline.\n"
+
+    prompt += "\n"
+
+    # Add overview if present
+    if sections['overview']:
+        prompt += f"""## Overview
+
+{sections['overview']}
+
+"""
+
+    # Add tasks
+    prompt += f"""## Your Tasks
+
+{sections['phases']}
+
+"""
+
+    # Add files section if extracted
+    if sections['files']:
+        prompt += f"""## Key Files
+
+{sections['files']}
+
+"""
+
+    # Add rules
+    prompt += f"""## Rules
+
+### Testing & Linting
+1. Run tests after every change: `{test_cmd}`
+2. Run linter after every change: `{lint_cmd}`
+3. Fix failures before moving on
+4. Do not delete or break existing functionality
+
+### Self-Review Before Committing
+- Correctness — edge cases handled?
+- Security — input validation, no injection, no credential exposure
+- Performance — no N+1 queries, unbounded loops
+- Simplicity — avoid over-engineering
+
+### Commit Style
+The commit message MUST follow the Conventional Commits specification:
+
+  <type>[optional scope]: <description>
+
+Types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert.
+Use an optional scope in parentheses to clarify what area changed.
+The description must be lowercase, imperative, and concise.
+
+Examples:
+  feat(repl): add streaming markdown rendering
+  fix(hashline): correct off-by-one in range replacement
+  refactor: simplify provider abstraction
+  docs: update SPEC.md with task queue design
+
+One commit per sub-task:
+```
+git add -A && git commit -m "<type>[optional scope]: <description>"
+```
+
+## Completion Criteria
+"""
+
+    # Add plan criteria
+    if sections['criteria']:
+        prompt += sections['criteria'] + '\n'
+    else:
+        prompt += '- [ ] All plan tasks completed\n'
+
+    prompt += f"""- [ ] All tests pass (`{test_cmd}`)
+- [ ] Linter passes (`{lint_cmd}`)
+- [ ] Each sub-task committed to git
+
+## When You Are Done
+When ALL completion criteria are met, output exactly:
+RALPH_DONE
+"""
+
+    # Save to memories/shared/ralph-logs/ (ephemeral intermediate artifact)
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate filename from plan path
+    plan_stem = plan_file.stem  # e.g., 2026-02-08-feature
+    date = time.strftime('%Y-%m-%d')
+    # Use plan stem if it starts with a date, otherwise prepend today's date
+    if re.match(r'\d{4}-\d{2}-\d{2}', plan_stem):
+        slug = plan_stem
+    else:
+        slug = f'{date}-{plan_stem}'
+
+    prompt_filename = f'{slug}-prompt.md'
+    prompt_path = log_dir / prompt_filename
+    prompt_path.write_text(prompt, encoding='utf-8')
+
+    rel_path = os.path.relpath(prompt_path, project_path)
+    return rel_path
+
+
+# --- Codebase index refresh ---
+
+def refresh_codebase_indexes(project_path: str) -> None:
+    """Re-run indexers for all existing codebase index files.
+
+    Parses index filenames to determine which indexer and source directory to use,
+    then re-runs each indexer directly (no Claude call).
+    """
+    codebase_dir = Path(project_path) / 'memories' / 'codebase'
+    if not codebase_dir.exists():
+        return
+
+    helpers_dir = Path(project_path) / '.claude' / 'helpers'
+    index_files = list(codebase_dir.glob('codebase_overview_*.md'))
+
+    for index_file in index_files:
+        filename = index_file.name  # e.g., codebase_overview_backend_py.md
+
+        # Find which indexer to use based on suffix
+        indexer_script = None
+        for suffix, script in INDEXER_MAP.items():
+            if filename.endswith(suffix):
+                indexer_script = helpers_dir / script
+                # Extract dirname: remove prefix 'codebase_overview_' and the suffix
+                prefix = 'codebase_overview_'
+                dirname = filename[len(prefix):-len(suffix)]
+                break
+
+        if not indexer_script or not indexer_script.exists():
+            continue
+
+        # Map dirname to source directory
+        if dirname == 'root':
+            source_dir = './'
+        else:
+            source_dir = f'./{dirname}/'
+
+        # Verify source directory exists
+        full_source = Path(project_path) / source_dir
+        if not full_source.exists():
+            continue
+
+        # Re-run indexer
+        try:
+            subprocess.run(
+                [sys.executable, str(indexer_script), source_dir,
+                 '-o', str(index_file)],
+                cwd=project_path,
+                capture_output=True,
+                timeout=120,
+            )
+        except (subprocess.TimeoutExpired, OSError) as e:
+            stream_progress('Indexing', f'Warning: Failed to refresh {index_file.name}: {e}')
+
+
+# --- Build / Review / Fix loops ---
+
+def run_build_loop(prompt_path: str, project_path: str,
+                   max_iterations: int, max_turns: int,
+                   phase_name: str = 'Build',
+                   pre_commit: str | None = None) -> BuildResult:
+    """Run the build loop: iterate Claude with the prompt until RALPH_DONE.
+
+    Args:
+        pre_commit: If provided, use this as the pre-loop commit hash instead of
+                    snapshotting HEAD. Used by fix loop to preserve the original
+                    build baseline.
+
+    Returns BuildResult with success status and iteration count.
+    """
+    pre_ralph_commit = pre_commit or git_rev_parse_head(project_path)
+    prompt_content = Path(project_path, prompt_path).read_text(encoding='utf-8')
+
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+    for i in range(1, max_iterations + 1):
+        stream_progress(phase_name, f'Iteration {i}/{max_iterations}')
+
+        # Refresh existing indexes (cheap — direct indexer, no Claude call)
+        refresh_codebase_indexes(project_path)
+
+        # Run Claude iteration
+        returncode, output, elapsed = run_claude_command(
+            ['claude-safe', '--no-firewall', '--', '-p', prompt_content,
+             '--max-turns', str(max_turns)],
+            cwd=project_path,
+            timeout=900,
+            phase=f'{phase_name} ({i}/{max_iterations})'
+        )
+
+        # Log raw output
+        log_path = log_dir / f'{phase_name.lower()}-{i}.log'
+        log_path.write_text(output, encoding='utf-8')
+
+        stream_progress(phase_name,
+                        f'Iteration {i} complete ({format_duration(elapsed)}, exit={returncode})')
+
+        # Check completion signal
+        if 'RALPH_DONE' in output:
+            stream_progress(phase_name, f'RALPH_DONE detected at iteration {i}')
+            return BuildResult(success=True, iterations=i, pre_commit=pre_ralph_commit)
+
+    stream_progress(phase_name, f'Reached max iterations ({max_iterations}) without RALPH_DONE')
+    return BuildResult(success=False, iterations=max_iterations, pre_commit=pre_ralph_commit)
+
+
+def run_review(project_path: str, build_result: BuildResult,
+               config: RalphConfig, review_cycle: int) -> str:
+    """Run a code review on changes since pre_ralph_commit.
+
+    Returns 'REVIEW_PASS', 'REVIEW_NEEDS_FIXES', or 'REVIEW_UNKNOWN'.
+    """
+    stream_progress('Review', f'Review cycle {review_cycle}/{config.max_review_cycles}')
+
+    # Generate diff into ralph-logs/ to avoid accidental commits from git add -A
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
+    log_dir.mkdir(parents=True, exist_ok=True)
+    diff_file = log_dir / 'RALPH_DIFF.patch'
+    with diff_file.open('w') as f:
+        subprocess.run(
+            ['git', 'diff', build_result.pre_commit, 'HEAD'],
+            cwd=project_path,
+            stdout=f,
+        )
+
+    diff_lines = len(diff_file.read_text().splitlines())
+    diff_rel = os.path.relpath(diff_file, project_path)
+    stream_progress('Review', f'Diff: {diff_lines} lines saved to {diff_rel}')
+
+    # Refresh indexes before review
+    refresh_codebase_indexes(project_path)
+
+    # Build context file references
+    context_files = []
+    if config.plan_path:
+        context_files.append(f'- Plan: `{config.plan_path}`')
+    if config.research_path:
+        context_files.append(f'- Research: `{config.research_path}`')
+    if config.prompt_path:
+        context_files.append(f'- Implementation specs/prompt: `{config.prompt_path}`')
+    context_files.append(f'- Diff: `{diff_rel}`')
+    context_section = '\n'.join(context_files)
+
+    # REVIEW.md also goes in ralph-logs/ to avoid accidental commits
+    review_md_path = log_dir / 'REVIEW.md'
+    review_md_rel = os.path.relpath(review_md_path, project_path)
+
+    # Build review prompt — closely mirrors /code_reviewer command
+    review_prompt = f"""You are a senior software engineer conducting a thorough code review.
+You are reviewing ONLY the changes introduced since commit {build_result.pre_commit}.
+
+## Critical First Step
+Read relevant docs in `/memories/technical_docs` before starting.
+
+## Context Files
+{context_section}
+
+## Before You Review
+1. Read the plan, research, and specs files listed above.
+2. Read `{diff_rel}` to see all changes.
+3. Run `git log {build_result.pre_commit}..HEAD --oneline` to see commit history.
+4. Run `{config.test_cmd}` to verify tests pass.
+5. Run `{config.lint_cmd}` to verify linting passes.
+
+## Review Priorities
+
+### 1. Correctness
+- Does the code do what it's supposed to do?
+- Are there logical errors or edge cases not handled?
+
+### 2. Security
+- Look for vulnerabilities like SQL injection, XSS, exposed credentials
+- Check for unsafe operations or improper input validation
+
+### 3. Performance
+- Identify inefficient algorithms or unnecessary computations
+- Look for memory leaks or operations that could be optimized
+
+### 4. Code Quality
+- Is the code readable and self-documenting?
+- Are naming conventions clear and consistent?
+- Is there appropriate separation of concerns?
+
+### 5. Best Practices
+- Does the code follow established patterns and conventions for the language/framework?
+
+### 6. Error Handling
+- Are errors properly caught, logged, and handled?
+- Are there appropriate fallbacks?
+
+### 7. Testing
+- Is the code testable?
+- Are there suggestions for test cases that should be written?
+
+### 8. Simplicity
+- Can the implementation be simplified?
+- Are there easier alternatives that achieve the same result?
+- Is any code over-engineered for the requirements?
+
+## Output
+Write your review to `{review_md_rel}` using this format:
+
+## SUMMARY
+[Brief description and overall assessment]
+
+## CRITICAL ISSUES
+1. [Issue with file:line reference and specific fix suggestion]
+
+## IMPROVEMENTS
+1. [Improvement with rationale and code example]
+
+## MINOR NOTES
+- [Style or convention suggestions]
+
+## WELL DONE
+- [Positive aspects of the code]
+
+## QUESTIONS
+- [Any clarifications needed]
+
+Include a verdict line at the VERY END of `{review_md_rel}`:
+REVIEW_PASS  (no critical issues or improvements needed)
+REVIEW_NEEDS_FIXES  (has critical issues or improvements that should be fixed)
+
+## Rules
+- Do NOT modify any code. Read-only review.
+- Every issue MUST include file:line reference and specific fix suggestion.
+"""
+
+    run_claude_command(
+        ['claude-safe', '--no-firewall', '--', '-p', review_prompt],
+        cwd=project_path, timeout=600, phase='Review'
+    )
+
+    # Read verdict from REVIEW.md — check last 20 lines where verdict should be
+    if not review_md_path.exists():
+        stream_progress('Review', f'Warning: {review_md_rel} not created')
+        return 'REVIEW_UNKNOWN'
+
+    review_content = review_md_path.read_text(encoding='utf-8')
+    tail = '\n'.join(review_content.splitlines()[-20:])
+
+    if 'REVIEW_NEEDS_FIXES' in tail:
+        stream_progress('Review', 'Verdict: REVIEW_NEEDS_FIXES')
+        return 'REVIEW_NEEDS_FIXES'
+    elif 'REVIEW_PASS' in tail:
+        stream_progress('Review', 'Verdict: REVIEW_PASS')
+        return 'REVIEW_PASS'
+    else:
+        stream_progress('Review', f'Warning: No clear verdict in {review_md_rel}')
+        return 'REVIEW_UNKNOWN'
+
+
+def run_fix_loop(project_path: str, config: RalphConfig,
+                 pre_commit: str) -> BuildResult:
+    """Run the fix loop to address review findings.
+
+    Creates a fix prompt from REVIEW.md and runs a build loop.
+    pre_commit is the original build baseline, preserved across fix iterations.
+    """
+    review_md_rel = os.path.relpath(
+        Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md', project_path
+    )
+
+    # Build reference documents section
+    ref_docs = []
+    if config.plan_path:
+        ref_docs.append(f'3. Read the plan at `{config.plan_path}`.')
+    if config.research_path:
+        ref_docs.append(f'4. Read the research at `{config.research_path}`.')
+    if config.prompt_path:
+        ref_docs.append(f'5. Read the specs/prompt at `{config.prompt_path}`.')
+    ref_section = '\n'.join(ref_docs)
+
+    fix_prompt = f"""You are fixing issues identified in a code review.
+
+## Before You Start
+1. Read `{review_md_rel}` for the review findings.
+2. Read the codebase index at `{config.codebase_index}`.
+{ref_section}
+6. Run tests: `{config.test_cmd}`
+7. Run linter: `{config.lint_cmd}`
+
+## Fix Priority
+1. Critical Issues — MUST fix
+2. Improvements — SHOULD fix
+3. Minor Notes — SKIP
+
+## Rules
+- Run tests after every change: `{config.test_cmd}`
+- Run linter after every change: `{config.lint_cmd}`
+- Fix failures before moving on
+- Commit each fix: `git add -A && git commit -m "fix[optional scope]: <lowercase imperative description>"`
+
+## When Done
+When all Critical Issues and Improvements are fixed, tests pass, linter passes:
+RALPH_DONE
+"""
+
+    # Save fix prompt to a temp file
+    fix_prompt_path = Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'fix-prompt.md'
+    fix_prompt_path.parent.mkdir(parents=True, exist_ok=True)
+    fix_prompt_path.write_text(fix_prompt, encoding='utf-8')
+
+    fix_rel = os.path.relpath(fix_prompt_path, project_path)
+
+    return run_build_loop(
+        fix_rel, project_path,
+        max_iterations=config.max_fix_iterations,
+        max_turns=config.max_turns,
+        phase_name='Fix',
+        pre_commit=pre_commit,
+    )
+
+
+def save_review_with_frontmatter(project_path: str, review_cycle: int) -> str | None:
+    """Save REVIEW.md with proper frontmatter to memories/shared/reviews/.
+
+    Returns path to saved review, or None on failure.
+    """
+    review_file = Path(project_path) / 'memories' / 'shared' / 'ralph-logs' / 'REVIEW.md'
+    if not review_file.exists():
+        return None
+
+    review_content = review_file.read_text(encoding='utf-8')
+
+    # Run spec_metadata.sh for frontmatter values
+    metadata_script = Path(project_path) / '.claude' / 'helpers' / 'spec_metadata.sh'
+    metadata = {}
+    if metadata_script.exists():
+        try:
+            result = subprocess.run(
+                ['bash', str(metadata_script)],
+                cwd=project_path,
+                capture_output=True, text=True, timeout=30
+            )
+            if result.returncode == 0:
+                for line in result.stdout.strip().splitlines():
+                    if ':' in line:
+                        key, _, value = line.partition(':')
+                        metadata[key.strip()] = value.strip()
+        except (subprocess.TimeoutExpired, OSError):
+            pass
+
+    # Build frontmatter
+    date = metadata.get('Current Date/Time (TZ)', time.strftime('%Y-%m-%d %H:%M:%S %Z'))
+    uuid = metadata.get('UUID', '')
+    session_id = metadata.get('claude-sessionid', '')
+    git_commit = metadata.get('Current Git Commit Hash', '')
+    branch = metadata.get('Current Branch Name', '')
+    repo_name = metadata.get('Repository Name', '')
+
+    date_str = time.strftime('%Y-%m-%d')
+    filename = f'code-review-{date_str}-iter{review_cycle}.md'
+
+    frontmatter = f"""---
+date: {date}
+file-id: {uuid}
+claude-sessionid: {session_id}
+reviewer: orchestrator
+git_commit: {git_commit}
+branch: {branch}
+repository: {repo_name}
+review_type: automated_review
+review_iteration: {review_cycle}
+tags: [code-review, automated]
+status: complete
+last_updated: {time.strftime('%Y-%m-%d %H:%M')}
+last_updated_by: orchestrator
+---
+
+"""
+
+    # Save to memories/shared/reviews/
+    reviews_dir = Path(project_path) / 'memories' / 'shared' / 'reviews'
+    reviews_dir.mkdir(parents=True, exist_ok=True)
+
+    output_path = reviews_dir / filename
+    output_path.write_text(frontmatter + review_content, encoding='utf-8')
+
+    return os.path.relpath(output_path, project_path)
+
+
+def _cleanup_ralph_artifacts(project_path: str) -> None:
+    """Remove transient artifacts from ralph-logs/ after archiving."""
+    log_dir = Path(project_path) / 'memories' / 'shared' / 'ralph-logs'
+    for name in ('RALPH_DIFF.patch', 'REVIEW.md', 'fix-prompt.md'):
+        artifact = log_dir / name
+        if artifact.exists():
+            artifact.unlink()
+
+
+# --- Research auto-discovery ---
+
+def auto_discover_research(plan_path: str, project_path: str) -> str:
+    """Try to find a matching research file by date prefix from the plan filename.
+
+    E.g., plan '2026-02-08-feature.md' → search 'memories/shared/research/2026-02-08*.md'
+
+    Returns relative path to research file, or empty string if not found.
+    """
+    plan_stem = Path(plan_path).stem
+    date_match = re.match(r'(\d{4}-\d{2}-\d{2})', plan_stem)
+    if not date_match:
+        return ''
+
+    date_prefix = date_match.group(1)
+    research_dir = Path(project_path) / 'memories' / 'shared' / 'research'
+    if not research_dir.exists():
+        return ''
+
+    matches = sorted(research_dir.glob(f'{date_prefix}*.md'),
+                     key=lambda f: f.stat().st_mtime, reverse=True)
+    if matches:
+        return str(matches[0].relative_to(project_path))
+
+    return ''
+
+
+# --- Query refinement ---
 
 def run_query_refinement(query: str, project_path: str) -> QueryRefinementResult:
     """Interactive session to refine the query based on codebase context.
@@ -533,88 +1287,152 @@ Next step: Review the plan, then run --phase implement"""
 
 
 def run_phase_implement(plan_path: str, project_path: str,
-                        non_interactive: bool = False) -> ImplementPhaseResult:
-    """Phase 2: Implement → Review"""
+                        research_path: str = '',
+                        config: RalphConfig | None = None) -> ImplementPhaseResult:
+    """Phase 2: Autonomous build → review → fix loop.
 
+    Steps:
+        1. Validate plan exists
+        2. Detect tooling (test/lint/format)
+        3. Find research file (from --research flag or auto-discover by date)
+        4. Index codebase
+        5. Generate comprehensive prompt from plan
+        6. Run build loop (multi-iteration, refreshes indexes between iterations)
+        7. Run review → fix cycles (automated review with verdict, fix loop if needed)
+        8. Archive review, clean up transient artifacts
+    """
     # Validate plan exists
     full_plan_path = Path(project_path) / plan_path
     if not full_plan_path.exists():
         raise RuntimeError(f"Plan file not found: {plan_path}")
 
-    # Step 1: Implement plan (includes validation)
+    # Build config if not provided
+    if config is None:
+        config = RalphConfig()
+
+    config.plan_path = plan_path
+
+    # Detect tooling
+    test_cmd, lint_cmd, _ = detect_tooling(project_path)
+    config.test_cmd = test_cmd
+    config.lint_cmd = lint_cmd
+
+    # Find research file
+    if not research_path:
+        research_path = auto_discover_research(plan_path, project_path)
+    config.research_path = research_path
+
+    if research_path:
+        stream_progress('Implement', f'Using research: {research_path}')
+    else:
+        stream_progress('Implement', 'No research file found (use --research to specify)')
+
+    # Step 1: Index codebase
+    stream_progress('Indexing', 'Running /index_codebase via Claude...')
     returncode, output, elapsed = run_claude_command(
-        ['claude-safe', '--no-firewall', '--', '-p', f'/implement_plan {plan_path}'],
-        cwd=project_path,
-        timeout=1800,  # 30 min for implementation
-        phase='Implement'
+        ['claude-safe', '--no-firewall', '--', '-p', '/index_codebase'],
+        cwd=project_path, timeout=600, phase='Indexing'
     )
     if returncode != 0:
-        raise RuntimeError(f"Implementation failed with code {returncode}")
-    stream_progress("Implement", f"Complete ({format_duration(elapsed)})")
-
-    # Step 2: Code review (interactive so user can ask questions and suggest improvements)
-    code_review_cmd = f'/code_reviewer {plan_path}'
-    if non_interactive:
-        # Non-interactive: use -p flag and capture output
-        returncode, review_output, elapsed = run_claude_command(
-            ['claude-safe', '--no-firewall', '--', '-p', code_review_cmd],
-            cwd=project_path,
-            timeout=600,
-            phase='Review'
-        )
-        if returncode != 0:
-            raise RuntimeError(f"Code review failed with code {returncode}")
-
-        review_path = extract_file_path(review_output, 'reviews')
-        stream_progress("Review", f"Complete: {review_path or 'no file created'} ({format_duration(elapsed)})")
-
-        # Extract issues from review output (simple heuristic)
-        issues = []
-        skip_patterns = ['no critical', 'no issues', 'no problems', 'no bugs', 'no errors',
-                         'without issue', 'without error', 'none found', '0 issues', '0 errors']
-        for line in review_output.split('\n'):
-            line_lower = line.lower()
-            # Skip lines that indicate absence of issues
-            if any(skip in line_lower for skip in skip_patterns):
-                continue
-            if any(marker in line_lower for marker in ['critical', 'issue', 'problem', 'bug', 'error']):
-                cleaned = line.strip()
-                if cleaned and len(cleaned) > 10:  # Skip short/empty lines
-                    issues.append(cleaned)
+        stream_progress('Indexing', f'Warning: Indexing returned code {returncode}')
     else:
-        # Interactive: let user interact with Claude for review feedback
-        returncode, elapsed = run_claude_interactive_command(
-            code_review_cmd,
-            cwd=project_path,
-            phase='Review'
-        )
-        if returncode != 0:
-            raise RuntimeError(f"Code review failed with code {returncode}")
+        stream_progress('Indexing', f'Complete ({format_duration(elapsed)})')
 
-        # Find the most recent review file
-        reviews_dir = Path(project_path) / 'memories' / 'shared' / 'reviews'
-        if reviews_dir.exists():
-            review_files = sorted(reviews_dir.glob('*.md'), key=lambda f: f.stat().st_mtime, reverse=True)
-            review_path = str(review_files[0].relative_to(project_path)) if review_files else None
+    # Update config with detected codebase index
+    index_path = find_codebase_index(project_path)
+    if index_path:
+        config.codebase_index = os.path.relpath(index_path, project_path)
+
+    # Step 2: Generate prompt from plan
+    stream_progress('Implement', 'Generating implementation prompt from plan...')
+    prompt_path = generate_ralph_prompt(plan_path, project_path, research_path)
+    config.prompt_path = prompt_path
+    stream_progress('Implement', f'Prompt generated: {prompt_path}')
+
+    # Step 3: Build loop
+    build_result = run_build_loop(
+        prompt_path, project_path,
+        max_iterations=config.max_iterations,
+        max_turns=config.max_turns,
+        phase_name='Build'
+    )
+
+    if not build_result.success:
+        stream_progress('Build', 'Build loop did not complete — proceeding to review anyway')
+
+    # Step 4-6: Review-fix cycle
+    review_path = ''
+    final_status = 'NEEDS_REVIEW'
+    final_review_cycle = 0
+
+    for cycle in range(1, config.max_review_cycles + 1):
+        final_review_cycle = cycle
+
+        # Step 4: Review
+        verdict = run_review(project_path, build_result, config, cycle)
+
+        # Archive the review
+        saved_review = save_review_with_frontmatter(project_path, cycle)
+        if saved_review:
+            review_path = saved_review
+            stream_progress('Review', f'Saved review: {review_path}')
+
+        # Check verdict
+        if verdict == 'REVIEW_PASS':
+            final_status = 'PASS'
+            _cleanup_ralph_artifacts(project_path)
+            stream_progress('Implement', f'Review passed on cycle {cycle}')
+            break
+
+        # Skip fix on last cycle
+        if cycle == config.max_review_cycles:
+            stream_progress('Review',
+                            f'Final review cycle ({cycle}) still has issues. Manual review needed.')
+            break
+
+        # Step 5: Fix loop
+        stream_progress('Fix', f'Fixing issues from review cycle {cycle}...')
+        fix_result = run_fix_loop(project_path, config, build_result.pre_commit)
+
+        if fix_result.success:
+            stream_progress('Fix', f'Fix loop complete at iteration {fix_result.iterations}')
         else:
-            review_path = None
+            stream_progress('Fix', 'Fix loop did not complete — continuing to next review')
 
-        stream_progress("Review", f"Complete: {review_path or 'no file created'} ({format_duration(elapsed)})")
-        issues = []  # Can't extract issues from interactive session
+    # Clean up transient artifacts
+    _cleanup_ralph_artifacts(project_path)
 
-    summary = f"""Implement Phase Complete
+    # Count commits made
+    result = subprocess.run(
+        ['git', 'log', f'{build_result.pre_commit}..HEAD', '--oneline'],
+        cwd=project_path, capture_output=True, text=True
+    )
+    commit_count = len(result.stdout.strip().splitlines()) if result.stdout.strip() else 0
 
-Plan: {plan_path}
-Review: {review_path or 'N/A'}
-Issues found: {len(issues)}
+    # Print summary
+    try:
+        current_commit = git_rev_parse_head(project_path)
+    except RuntimeError:
+        current_commit = 'unknown'
 
-Next step: Review the changes manually, then run --phase cleanup"""
+    print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}", file=sys.stderr, flush=True)
+    print(f"\n{Fore.GREEN}{Style.BRIGHT}  Implement Summary{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
+    print(f"  Status:           {final_status}", file=sys.stderr, flush=True)
+    print(f"  Build iterations: {build_result.iterations}", file=sys.stderr, flush=True)
+    print(f"  Review cycles:    {final_review_cycle}", file=sys.stderr, flush=True)
+    print(f"  Commits made:     {commit_count}", file=sys.stderr, flush=True)
+    print(f"  Pre-implement:    {build_result.pre_commit[:8]}", file=sys.stderr, flush=True)
+    print(f"  Current HEAD:     {current_commit[:8]}", file=sys.stderr, flush=True)
+    print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
 
     return ImplementPhaseResult(
         plan_path=plan_path,
-        review_path=review_path or '',
-        changes_summary=summary,
-        issues=issues[:10]  # Limit to top 10
+        review_path=review_path,
+        status=final_status,
+        build_iterations=build_result.iterations,
+        review_cycles=final_review_cycle,
+        commits_made=commit_count,
+        pre_commit=build_result.pre_commit,
     )
 
 
@@ -658,7 +1476,7 @@ def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, proj
 
     return CleanupPhaseResult(
         committed=committed,
-        commit_hash=get_current_commit_hash(project_path) if committed else None
+        commit_hash=git_rev_parse_head(project_path) if committed else None
     )
 
 
@@ -680,17 +1498,6 @@ def mark_plan_complete(plan_path: Path) -> None:
         stream_progress("Cleanup", f"Warning: Could not update plan status: {e}")
 
 
-def get_current_commit_hash(project_path: str) -> str | None:
-    """Get the current HEAD commit hash."""
-    result = subprocess.run(
-        ['git', 'rev-parse', 'HEAD'],
-        cwd=project_path,
-        capture_output=True,
-        text=True
-    )
-    return result.stdout.strip() if result.returncode == 0 else None
-
-
 # --- Output formatting ---
 
 def print_result(result: PlanPhaseResult | ImplementPhaseResult | CleanupPhaseResult, as_json: bool) -> None:
@@ -709,10 +1516,10 @@ def print_result(result: PlanPhaseResult | ImplementPhaseResult | CleanupPhaseRe
             print(f"  {Fore.MAGENTA}Plan:{Style.RESET_ALL} {result.plan_path}")
             if result.review_path:
                 print(f"  {Fore.BLUE}Review:{Style.RESET_ALL} {result.review_path}")
-            print(f"  {Fore.YELLOW}Issues found:{Style.RESET_ALL} {len(result.issues)}")
-            if result.issues:
-                for issue in result.issues[:5]:
-                    print(f"    - {issue[:80]}...")
+            print(f"  {Fore.YELLOW}Status:{Style.RESET_ALL} {result.status}")
+            print(f"  {Fore.CYAN}Build iterations:{Style.RESET_ALL} {result.build_iterations}")
+            print(f"  {Fore.CYAN}Review cycles:{Style.RESET_ALL} {result.review_cycles}")
+            print(f"  {Fore.CYAN}Commits made:{Style.RESET_ALL} {result.commits_made}")
             print(f"\n  {Fore.BLUE}Next:{Style.RESET_ALL} Review changes, then run --phase cleanup {result.plan_path}")
 
         elif isinstance(result, CleanupPhaseResult):
@@ -736,19 +1543,31 @@ Examples:
   %(prog)s "Add user authentication"              # Run all phases (with interactive query refinement)
   %(prog)s --no-refine "Fix typo in readme"       # Skip refinement for simple tasks
   %(prog)s --phase plan "Add user authentication" # Plan phase only
-  %(prog)s --phase implement path/to/plan.md      # Implement phase
+  %(prog)s --phase implement path/to/plan.md      # Implement phase (autonomous build/review/fix)
   %(prog)s --phase cleanup path/to/plan.md        # Cleanup phase
+
+  # With build/review/fix options:
+  %(prog)s --phase implement --max-iterations 20 --max-turns 30 path/to/plan.md
+  %(prog)s --phase implement --max-review-cycles 5 path/to/plan.md
         """
     )
     parser.add_argument('query_or_path', help='Query (for plan) or plan path (for implement/cleanup)')
     parser.add_argument('--phase', choices=['plan', 'implement', 'cleanup', 'all'],
                         default='all', help='Which phase to run (default: all)')
     parser.add_argument('--project', default='.', help='Project directory path')
-    parser.add_argument('--research', help='Research file path (for cleanup phase)')
+    parser.add_argument('--research', help='Research file path (for implement and cleanup phases)')
     parser.add_argument('--review', help='Review file path (for cleanup phase)')
     parser.add_argument('--json', action='store_true', help='Output JSON format')
     parser.add_argument('--no-refine', action='store_true', dest='no_refine',
                         help='Skip interactive query refinement (use original query as-is)')
+    parser.add_argument('--max-iterations', type=int, default=10,
+                        help='Build loop iteration limit (default: 10)')
+    parser.add_argument('--max-turns', type=int, default=40,
+                        help='Turns per Claude iteration (default: 40)')
+    parser.add_argument('--max-fix-iterations', type=int, default=5,
+                        help='Fix loop iteration limit (default: 5)')
+    parser.add_argument('--max-review-cycles', type=int, default=3,
+                        help='Review-fix cycle limit (default: 3)')
 
     args = parser.parse_args()
 
@@ -770,7 +1589,17 @@ Examples:
             print_result(result, args.json)
 
         elif args.phase == 'implement':
-            result = run_phase_implement(args.query_or_path, args.project)
+            config = RalphConfig(
+                max_iterations=args.max_iterations,
+                max_turns=args.max_turns,
+                max_fix_iterations=args.max_fix_iterations,
+                max_review_cycles=args.max_review_cycles,
+            )
+            result = run_phase_implement(
+                args.query_or_path, args.project,
+                research_path=args.research or '',
+                config=config,
+            )
             print_result(result, args.json)
 
         elif args.phase == 'cleanup':
@@ -790,8 +1619,17 @@ Examples:
                                          non_interactive=True)
             print_result(plan_result, args.json)
 
-            implement_result = run_phase_implement(plan_result.plan_path, args.project,
-                                                   non_interactive=True)
+            config = RalphConfig(
+                max_iterations=args.max_iterations,
+                max_turns=args.max_turns,
+                max_fix_iterations=args.max_fix_iterations,
+                max_review_cycles=args.max_review_cycles,
+            )
+            implement_result = run_phase_implement(
+                plan_result.plan_path, args.project,
+                research_path=plan_result.research_path,
+                config=config,
+            )
             print_result(implement_result, args.json)
 
             cleanup_result = run_phase_cleanup(
