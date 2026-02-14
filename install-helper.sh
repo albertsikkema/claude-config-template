@@ -334,7 +334,12 @@ main() {
             if [ "$DRY_RUN" != true ]; then
                 cat > "$TARGET_DIR/.claude.json" << 'MCPEOF'
 {
-  "mcpServers": {}
+  "mcpServers": {
+    "playwright": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "mcp/playwright"]
+    }
+  }
 }
 MCPEOF
             fi
