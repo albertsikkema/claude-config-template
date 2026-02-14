@@ -1317,7 +1317,7 @@ Present a clear summary to the user:
 
 After presenting the summary, you are in an interactive session.
 The user can ask you to fix remaining issues, run tests, or make additional changes.
-When ready for cleanup, suggest running: `orch-clean {plan_path}`
+When ready for cleanup, suggest running: `cly-clean {plan_path}`
 """
 
     run_claude_interactive_command(
