@@ -369,6 +369,201 @@ def git_rev_parse_head(project_path: str) -> str:
     return result.stdout.strip()
 
 
+def git_current_branch(project_path: str) -> str:
+    """Get current branch name."""
+    result = subprocess.run(
+        ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    return result.stdout.strip()
+
+
+def read_plan_frontmatter(plan_path: Path) -> dict[str, str]:
+    """Read YAML frontmatter from a plan file as a flat dict."""
+    try:
+        content = plan_path.read_text(encoding='utf-8')
+    except OSError:
+        return {}
+    if not content.startswith('---'):
+        return {}
+    end = content.find('---', 3)
+    if end < 0:
+        return {}
+    metadata = {}
+    for line in content[3:end].strip().splitlines():
+        if ':' in line:
+            key, _, value = line.partition(':')
+            metadata[key.strip()] = value.strip()
+    return metadata
+
+
+def update_plan_frontmatter(plan_path: Path, key: str, value: str) -> None:
+    """Add or update a key in the plan's YAML frontmatter."""
+    try:
+        content = plan_path.read_text(encoding='utf-8')
+    except OSError:
+        return
+
+    if not content.startswith('---'):
+        # No frontmatter — add one
+        content = f'---\n{key}: {value}\n---\n\n' + content
+        plan_path.write_text(content, encoding='utf-8')
+        return
+
+    end = content.find('---', 3)
+    if end < 0:
+        return
+
+    frontmatter = content[3:end]
+    body = content[end:]
+
+    pattern = rf'^{re.escape(key)}:\s*.*$'
+    if re.search(pattern, frontmatter, re.MULTILINE):
+        frontmatter = re.sub(pattern, f'{key}: {value}', frontmatter, flags=re.MULTILINE)
+    else:
+        frontmatter = frontmatter.rstrip() + f'\n{key}: {value}\n'
+
+    plan_path.write_text('---' + frontmatter + body, encoding='utf-8')
+
+
+def _interactive_select(options: list[str], header: str) -> int:
+    """Arrow-key interactive selector. Returns the chosen index.
+
+    Uses raw terminal input for arrow navigation and Enter to confirm.
+    Falls back to numbered input if terminal is not interactive.
+    """
+    import tty
+    import termios
+
+    if not sys.stdin.isatty():
+        # Non-interactive fallback
+        print(header, file=sys.stderr, flush=True)
+        for i, opt in enumerate(options):
+            print(f"  {i + 1}. {opt}", file=sys.stderr, flush=True)
+        choice = input("  > ").strip()
+        if choice.isdigit() and 1 <= int(choice) <= len(options):
+            return int(choice) - 1
+        return 0
+
+    selected = 0
+
+    def render():
+        # Move cursor up to overwrite previous render (except first time)
+        for i, opt in enumerate(options):
+            if i == selected:
+                line = f"  {Fore.GREEN}❯ {opt}{Style.RESET_ALL}"
+            else:
+                line = f"    {opt}"
+            print(line, file=sys.stderr, flush=True)
+
+    print(header, file=sys.stderr, flush=True)
+    render()
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        while True:
+            ch = sys.stdin.read(1)
+            if ch == '\r' or ch == '\n':
+                break
+            if ch == '\x1b':
+                seq = sys.stdin.read(2)
+                if seq == '[A':  # Up arrow
+                    selected = (selected - 1) % len(options)
+                elif seq == '[B':  # Down arrow
+                    selected = (selected + 1) % len(options)
+                # Redraw: move cursor up N lines, then re-render
+                print(f'\x1b[{len(options)}A', end='', file=sys.stderr, flush=True)
+                # Clear the lines
+                for _ in options:
+                    print('\x1b[2K', file=sys.stderr, flush=True)
+                print(f'\x1b[{len(options)}A', end='', file=sys.stderr, flush=True)
+                render()
+            elif ch == '\x03':  # Ctrl-C
+                raise KeyboardInterrupt
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    print(file=sys.stderr, flush=True)  # Newline after selection
+    return selected
+
+
+def _suggest_branch_name(plan_path: str) -> str:
+    """Derive a branch name from the plan filename."""
+    plan_stem = Path(plan_path).stem
+    # Strip date prefix: 2026-02-14-add-feature -> add-feature
+    name_part = re.sub(r'^\d{4}-\d{2}-\d{2}-?', '', plan_stem)
+    return f'feat/{name_part}' if name_part else 'feat/implementation'
+
+
+def ensure_feature_branch(plan_path: str, project_path: str) -> str:
+    """Ensure we're on a feature branch, not main/master. Returns branch name.
+
+    Shows an interactive branch selector. If on main/master, warns and puts
+    "Create new" first. If on a feature branch, puts the current branch first.
+    Updates the plan frontmatter with the chosen branch.
+    """
+    full_plan_path = Path(project_path) / plan_path
+    current = git_current_branch(project_path)
+    suggested = _suggest_branch_name(plan_path)
+
+    # Get existing feature branches
+    result = subprocess.run(
+        ['git', 'branch', '--format=%(refname:short)'],
+        cwd=project_path, capture_output=True, text=True,
+    )
+    all_branches = [b.strip() for b in result.stdout.strip().splitlines()
+                    if b.strip() and b.strip() not in ('main', 'master')]
+
+    on_main = current in ('main', 'master')
+
+    # Build option list
+    options = []
+    # Maps index -> (action, branch_name)
+    actions: list[tuple[str, str]] = []
+
+    if on_main:
+        header = f"\n{Fore.YELLOW}⚠ On {current} — select a feature branch:{Style.RESET_ALL}\n"
+        # First option: create new
+        options.append(f"Create: {Fore.CYAN}{suggested}{Style.RESET_ALL}")
+        actions.append(('create', suggested))
+        # Then existing branches
+        for b in all_branches:
+            options.append(b)
+            actions.append(('switch', b))
+    else:
+        header = f"\n  Select branch:\n"
+        # First option: stay on current
+        options.append(f"{current} {Fore.GREEN}(current){Style.RESET_ALL}")
+        actions.append(('stay', current))
+        # Second option: create new
+        options.append(f"Create: {Fore.CYAN}{suggested}{Style.RESET_ALL}")
+        actions.append(('create', suggested))
+        # Then other existing branches
+        for b in all_branches:
+            if b != current:
+                options.append(b)
+                actions.append(('switch', b))
+
+    selected = _interactive_select(options, header)
+    action, target_branch = actions[selected]
+
+    if action == 'create':
+        subprocess.run(['git', 'checkout', '-b', target_branch],
+                       cwd=project_path, check=True)
+        stream_progress('Branch', f'Created: {target_branch}')
+    elif action == 'switch':
+        subprocess.run(['git', 'checkout', target_branch],
+                       cwd=project_path, check=True)
+        stream_progress('Branch', f'Switched to: {target_branch}')
+    else:
+        stream_progress('Branch', f'Staying on: {target_branch}')
+
+    update_plan_frontmatter(full_plan_path, 'branch', target_branch)
+    return target_branch
+
+
 # --- Tooling detection ---
 
 def detect_tooling(project_path: str) -> tuple[str, str, str]:
@@ -1317,6 +1512,10 @@ def run_phase_implement(plan_path: str, project_path: str,
     if not full_plan_path.exists():
         raise RuntimeError(f"Plan file not found: {plan_path}")
 
+    # Ensure we're on a feature branch
+    print_phase_header('Implement')
+    ensure_feature_branch(plan_path, project_path)
+
     # Build config if not provided
     if config is None:
         config = RalphConfig()
@@ -1454,6 +1653,21 @@ def run_phase_cleanup(plan_path: str, research_path: str, review_path: str, proj
     full_plan_path = Path(project_path) / plan_path
     if not full_plan_path.exists():
         raise RuntimeError(f"Plan file not found: {plan_path}")
+
+    # Switch to the branch recorded in the plan
+    metadata = read_plan_frontmatter(full_plan_path)
+    plan_branch = metadata.get('branch', '')
+    if plan_branch:
+        current = git_current_branch(project_path)
+        if current != plan_branch:
+            stream_progress('Branch', f'Switching to plan branch: {plan_branch}')
+            subprocess.run(['git', 'checkout', plan_branch],
+                           cwd=project_path, check=True)
+    else:
+        # No branch in frontmatter — warn if on main
+        current = git_current_branch(project_path)
+        if current in ('main', 'master'):
+            stream_progress('Branch', f'Warning: on {current} and no branch recorded in plan')
 
     # Step 1: Cleanup
     cleanup_cmd = f'/cleanup {plan_path}'
