@@ -106,7 +106,21 @@ You already have the context from reading plan, research, and review files and g
    - Lessons learned about architecture, design, testing, or deployment
    - Dead ends — approaches that don't work for this codebase (prevents re-exploration)
 
-### Step 3: Document Best Practices (HIGH THRESHOLD)
+### Step 3: Rewrite Documentation to Reflect Final State
+
+Update all project documentation so it reads as if the current code was always the intended outcome. No "we changed X because the plan said Y" — just describe what the code does and why.
+
+1. **Code comments**: Review comments in changed files. They should explain the *purpose* of the code, not the history of changes. Remove any comments that reference the implementation journey (e.g., "changed from X to Y", "originally this was..."). Comments should answer "why does this code exist?" not "why was this changed?".
+
+2. **README.md**: Update if the implementation changed user-facing behavior, installation steps, configuration, or API usage. Describe the current state as the intended design.
+
+3. **CLAUDE.md**: Update architecture sections, conventions, and patterns to match the final implementation. If a pattern was added or changed, document it as established practice — not as a recent change.
+
+4. **Other project docs** (e.g., API docs, configuration docs): Rewrite any sections affected by the implementation to describe the current state cleanly.
+
+**The rule**: A reader encountering any documentation for the first time should see a coherent, intentional design — not a trail of changes.
+
+### Step 4: Document Best Practices (HIGH THRESHOLD)
 
 **CRITICAL**: Most things you learned are NOT best practices. Be very selective.
 
@@ -208,7 +222,7 @@ mkdir -p memories/best_practices
 
 **Expected result**: Most cleanups should create 0-2 best practices, not 5-10.
 
-### Step 4: Update CLAUDE.md
+### Step 5: Update CLAUDE.md
 
 For each pattern/convention to add:
 
@@ -231,7 +245,7 @@ For each pattern/convention to add:
    [List of things to avoid with explanations of why and how to do it correctly instead]
    ```
 
-### Step 5: Update Project Documentation
+### Step 6: Update Project Documentation
 
 For each project documentation file that needs updates:
 
@@ -286,7 +300,7 @@ For each project documentation file that needs updates:
    - Only if there were significant changes affecting users or developers
 
 
-### Step 6: Summary
+### Step 7: Summary
 
 Present a short summary of what was done:
 
