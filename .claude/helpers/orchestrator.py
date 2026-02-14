@@ -931,9 +931,6 @@ output exactly: IMPL_DONE
 
     stream_progress('Fix', 'Running fix pass...')
 
-    # Refresh indexes before fix
-    refresh_codebase_indexes(project_path)
-
     returncode, output, elapsed = run_claude_command(
         ['claude-safe', '--no-firewall', '--', '-p', fix_prompt,
          '--max-turns', str(config.max_turns)],
