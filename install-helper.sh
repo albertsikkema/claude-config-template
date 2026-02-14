@@ -171,7 +171,7 @@ update_git_exclude() {
     # Determine which entries to add based on what was installed
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
-        entries_to_add+=(".claude.json")
+        entries_to_add+=(".mcp.json")
         entries_to_add+=("CLAUDE.md")
     fi
 
@@ -328,10 +328,10 @@ main() {
             print_message "$GREEN" "  ✓ Installed hooks directory"
         fi
 
-        # Install .claude.json (MCP servers config) - always overwrite to get latest servers
-        print_message "$BLUE" "Installing .claude.json (MCP servers config)..."
+        # Install .mcp.json (MCP servers config) - always overwrite to get latest servers
+        print_message "$BLUE" "Installing .mcp.json (MCP servers config)..."
         if [ "$DRY_RUN" != true ]; then
-            cat > "$TARGET_DIR/.claude.json" << 'MCPEOF'
+            cat > "$TARGET_DIR/.mcp.json" << 'MCPEOF'
 {
   "mcpServers": {
     "playwright": {
@@ -342,7 +342,7 @@ main() {
 }
 MCPEOF
         fi
-        print_message "$GREEN" "  ✓ Installed .claude.json"
+        print_message "$GREEN" "  ✓ Installed .mcp.json"
 
         # Install .gitkeep files
         if [ "$DRY_RUN" != true ]; then
