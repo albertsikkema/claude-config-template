@@ -328,6 +328,21 @@ main() {
             print_message "$GREEN" "  ✓ Installed hooks directory"
         fi
 
+        # Install .claude.json (MCP servers config) only if it doesn't exist
+        if ! check_exists ".claude.json"; then
+            print_message "$BLUE" "Creating .claude.json (MCP servers config)..."
+            if [ "$DRY_RUN" != true ]; then
+                cat > "$TARGET_DIR/.claude.json" << 'MCPEOF'
+{
+  "mcpServers": {}
+}
+MCPEOF
+            fi
+            print_message "$GREEN" "  ✓ Created .claude.json (add MCP servers here)"
+        else
+            print_message "$YELLOW" "  ⊘ Skipped .claude.json (preserving existing MCP config)"
+        fi
+
         # Install .gitkeep files
         if [ "$DRY_RUN" != true ]; then
             touch "$TARGET_DIR/.claude/agents/.gitkeep"
