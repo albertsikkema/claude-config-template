@@ -54,7 +54,7 @@ This is a **configuration template** that you install into your projects. It pro
 
 - **Complete development workflow** - Research → Plan → Implement → Cleanup → Deploy ([see WORKFLOW.md](WORKFLOW.md))
 - **16 specialized AI agents** - Automated research, code analysis, and architecture design
-- **16 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams, deployment automation, and vulnerability scanning)
+- **18 slash commands** - Streamlined workflows for common tasks (including C4 architecture diagrams, deployment automation, and vulnerability scanning)
 - **108 security rules** - Language-specific secure coding guidance from [Project Codeguard](https://github.com/project-codeguard/rules)
 - **Structured documentation system** - Templates and organization for project docs
 - **Pre-configured permissions** - Ready-to-use tool access for development
@@ -109,7 +109,9 @@ Security rules integration:
 | `/create_plan` | Interactive implementation planning |
 | `/implement_plan` | Execute approved plans |
 | `/validate_plan` | Validate implementation correctness |
-| `/cleanup` | Document best practices, update project docs |
+| `/cleanup` | Document learnings, update project docs |
+| `/reflect` | Capture implementation observations to scratchpad.md |
+| `/consolidate_memory` | Integrate scratchpad into decisions.md |
 | `/build_c4_docs` | Generate C4 architecture diagrams (System Context, Container, Component) |
 | `/commit` | Create well-formatted git commits |
 | `/pr` | Generate comprehensive PR descriptions |
@@ -129,7 +131,7 @@ After installation, you'll have:
 your-project/
 ├── .claude/
 │   ├── agents/              # 16 specialized agents
-│   ├── commands/            # 16 slash commands
+│   ├── commands/            # 18 slash commands
 │   ├── hooks/               # Security hooks (three-layer defense)
 │   │   ├── pre_tool_use.py      # Layer 1 (regex) + Layer 2 (settings.json deny)
 │   │   ├── user_prompt_submit.py # Sensitive data detection in prompts
@@ -161,6 +163,7 @@ your-project/
     │   ├── project.md.template  # Project context template
     │   ├── todo.md.template     # Active work tracking template
     │   ├── done.md.template     # Completed work template
+    │   ├── decisions.md.template  # Technical decisions and memory template
     │   ├── adr.md.template      # Architecture Decision Records template
     │   └── changelog.md.template # Changelog template
     │
@@ -173,7 +176,7 @@ your-project/
     └── shared/
         ├── plans/           # Implementation plans
         ├── research/        # Research documents
-        └── project/         # Project documentation (3-file structure)
+        └── project/         # Project docs (project.md, todo.md, done.md, decisions.md, scratchpad.md)
 ```
 
 ## 🚀 Installation Options
@@ -328,6 +331,31 @@ This template includes several utility scripts in the `.claude/helpers/` directo
   orch-clean memories/shared/plans/xxx.md  # Cleanup (interactive commit)
   ```
 
+- **Sprint Runner**: Automated multi-item workflow with reflection
+  - `sprint_runner.py` - Picks tasks from todo.md, runs orchestrator, reflects, and consolidates learnings
+  - Two-tier memory: fast micro-reflections (scratchpad.md) + deliberate consolidation (decisions.md)
+
+  **Commands:**
+  ```bash
+  # Run sprint (processes items from todo.md)
+  uv run .claude/helpers/sprint_runner.py
+
+  # Process at most 3 items
+  uv run .claude/helpers/sprint_runner.py --max-items 3
+
+  # Preview what would run
+  uv run .claude/helpers/sprint_runner.py --dry-run
+
+  # Skip micro-reflections and consolidation
+  uv run .claude/helpers/sprint_runner.py --skip-reflection
+  ```
+
+  **Aliases (add to ~/.zshrc or ~/.bashrc):**
+  ```bash
+  alias sprint='uv run .claude/helpers/sprint_runner.py'
+  alias sprint-dry='uv run .claude/helpers/sprint_runner.py --dry-run'
+  ```
+
 **📖 Full scripts overview: [.claude/helpers/README.md](.claude/helpers/README.md)**
 
 ## 📚 Complete Development Workflow
@@ -383,11 +411,12 @@ You: /pr
 2025-10-14-ENG-1478-user-tracking.md
 ```
 
-**Project Documentation**: Ultra-lean 3-file structure
+**Project Documentation**: Lean 4-file structure
 ```
 memories/shared/project/project.md    # Project context (what/why/stack)
 memories/shared/project/todo.md       # Active work (Must Haves/Should Haves)
 memories/shared/project/done.md       # Completed work history
+memories/shared/project/decisions.md  # Architectural decisions and technical memory
 ```
 
 **Best Practices**: Category-based naming as `[category]-[topic].md`
@@ -614,13 +643,14 @@ Agents work autonomously and can be:
 
 ### Structured Documentation
 
-Ultra-lean 3-file structure + best practices:
+Lean 4-file structure with reflection-driven memory:
 - **project.md** - Project context (what/why/stack/constraints)
 - **todo.md** - Active work with MoSCoW prioritization (Must Haves/Should Haves)
 - **done.md** - Completed work history with full traceability
-- **best_practices/** - Documented patterns, decisions, and lessons learned from implementations
+- **decisions.md** - Living technical memory (architectural decisions, constraints, conventions)
+- **best_practices/** - Documented patterns and lessons learned from implementations
 
-See the "Ultra-Lean 3-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md) for methodology details.
+See the "Lean 4-File Documentation Method" section in [WORKFLOW.md](WORKFLOW.md) for methodology details.
 
 ## 📖 Real-World Examples
 

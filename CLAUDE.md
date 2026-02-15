@@ -23,7 +23,7 @@ Reading the index first saves tokens and improves accuracy.
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
 - 16 specialized agents for code analysis, planning, and research
-- 16 slash commands for common workflows
+- 18 slash commands for common workflows
 - A `memories/` directory system for documentation and plans
 - Pre-configured tool permissions
 
@@ -79,6 +79,43 @@ alias orch-impl='uv run .claude/helpers/orchestrator.py --phase implement'
 alias orch-clean='uv run .claude/helpers/orchestrator.py --phase cleanup'
 ```
 
+### Sprint Runner (automated multi-item workflow)
+
+```bash
+# Run sprint (processes items from todo.md)
+uv run .claude/helpers/sprint_runner.py
+
+# Process at most 3 items
+uv run .claude/helpers/sprint_runner.py --max-items 3
+
+# Preview what would run
+uv run .claude/helpers/sprint_runner.py --dry-run
+
+# Skip micro-reflections and consolidation
+uv run .claude/helpers/sprint_runner.py --skip-reflection
+
+# Custom orchestrator limits
+uv run .claude/helpers/sprint_runner.py --max-turns 30 --max-review-cycles 5
+```
+
+**Aliases (add to ~/.zshrc):**
+```bash
+alias sprint='uv run .claude/helpers/sprint_runner.py'
+alias sprint-dry='uv run .claude/helpers/sprint_runner.py --dry-run'
+```
+
+**Flow per item:**
+1. Parse `todo.md` → find next actionable item
+2. Enrich query with `project.md` + `decisions.md` context
+3. `orch --phase plan` (with enriched query, `--no-refine`)
+4. Micro-reflect → append observations to `scratchpad.md`
+5. `orch --phase implement` plan
+6. Micro-reflect → append observations to `scratchpad.md`
+7. `orch --phase cleanup` plan
+8. Consolidate: integrate `scratchpad.md` → `decisions.md`, clear scratchpad
+9. Update `todo.md` (check off) and `done.md` (add with traceability)
+10. Checkpoint → show summary, ask to continue
+
 ### PR Reviewer (automated PR review)
 
 ```bash
@@ -115,7 +152,7 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 ```
 .claude/
 ├── agents/           # 16 specialized agents
-├── commands/         # 16 slash commands
+├── commands/         # 18 slash commands
 ├── helpers/          # Utility scripts
 │   ├── index_python.py   # Python codebase indexer
 │   ├── index_js_ts.py    # JavaScript/TypeScript indexer
@@ -124,19 +161,20 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 │   ├── build_c4_diagrams.py  # C4 diagram generator
 │   ├── fetch-docs.py     # Documentation fetcher
 │   ├── orchestrator.py   # Full workflow automation (plan → build → review → fix → cleanup)
+│   ├── sprint_runner.py  # Multi-item sprint loop with reflection
 │   ├── pr_reviewer.py    # PR review automation
 │   └── vulnerability-check/ # Vulnerability scanning (OSV, GitHub, CISA, NCSC)
 └── settings.json     # Permissions and hooks
 
 memories/
-├── templates/        # Documentation templates (project.md, todo.md, done.md, pr_review.md)
+├── templates/        # Documentation templates (project.md, todo.md, done.md, decisions.md, pr_review.md)
 ├── best_practices/   # Documented patterns from implementations
 ├── technical_docs/   # Library/framework documentation
 ├── security_rules/   # 108 Codeguard rules (core/ + owasp/)
 └── shared/
     ├── plans/        # Implementation plans
     ├── research/     # Research documents
-    └── project/      # Project docs (project.md, todo.md, done.md)
+    └── project/      # Project docs (project.md, todo.md, done.md, decisions.md, scratchpad.md)
 ```
 
 ## Core Workflow
@@ -159,7 +197,9 @@ See [WORKFLOW.md](WORKFLOW.md) for complete details.
 | `/create_plan` | Interactive implementation planning |
 | `/implement_plan` | Execute approved plans |
 | `/validate_plan` | Validate implementation |
-| `/cleanup` | Document best practices, update project docs |
+| `/cleanup` | Document learnings, update project docs |
+| `/reflect` | Capture implementation observations to scratchpad.md |
+| `/consolidate_memory` | Integrate scratchpad into decisions.md |
 | `/build_c4_docs` | Generate C4 architecture diagrams |
 | `/commit` | Create git commits |
 | `/pr` | Generate PR descriptions |
@@ -300,6 +340,8 @@ export CLAUDE_CONTAINER_MODE=1
 - **Don't** hardcode versions in multiple places (read from pyproject.toml dynamically)
 - **Don't** use broad exception handlers (catch specific exceptions only)
 - **Don't** spawn subprocesses without timeouts (use asyncio.wait_for with cleanup)
+- **Don't** edit files by line number in a loop without verifying content first (lines shift after prior edits — use text-matching fallback, see `sprint_runner.py:469-482`)
+- **Don't** kill only the direct subprocess when it spawns children (use `start_new_session=True` + `os.killpg()` to clean up the entire process group)
 
 ## Codebase Overview Files
 
