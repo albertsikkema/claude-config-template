@@ -692,7 +692,8 @@ def run_sprint(
                 project_path, max_turns=max_turns, max_review_cycles=max_review_cycles,
             )
 
-            if returncode != 0:
+            cleanup_succeeded = (returncode == 0)
+            if not cleanup_succeeded:
                 stream_progress('Cleanup', f'Warning: Cleanup phase failed (exit={returncode})')
                 # Don't fail the whole sprint item for cleanup issues
 
@@ -700,8 +701,9 @@ def run_sprint(
             if not skip_reflection:
                 consolidate_memory(project_path)
 
-            # Step 8: Update todo.md / done.md
-            update_todo_done(next_item, plan_path, project_path)
+            # Step 8: Update todo.md / done.md (only if cleanup didn't handle it)
+            if not cleanup_succeeded:
+                update_todo_done(next_item, plan_path, project_path)
 
             result.completed = True
             consecutive_failures = 0
