@@ -563,21 +563,19 @@ def show_checkpoint(result: SprintResult, item_num: int) -> bool:
 # --- Extract paths from orchestrator JSON output ---
 
 def extract_orch_result(output: str) -> dict:
-    """Parse JSON output from orchestrator --json."""
-    # Try to find JSON in the output (may be mixed with stderr)
-    for line in output.strip().splitlines():
-        line = line.strip()
-        if line.startswith('{'):
-            try:
-                return json.loads(line)
-            except json.JSONDecodeError:
-                continue
+    """Parse JSON output from orchestrator --json.
 
-    # Try the whole output as JSON
-    try:
-        return json.loads(output.strip())
-    except (json.JSONDecodeError, ValueError):
-        return {}
+    The orchestrator outputs multi-line JSON (json.dumps with indent=2),
+    so we find the first '{' and parse from there to end.
+    """
+    first_brace = output.find('{')
+    if first_brace != -1:
+        try:
+            return json.loads(output[first_brace:])
+        except json.JSONDecodeError:
+            pass
+
+    return {}
 
 
 # --- Main sprint loop ---
