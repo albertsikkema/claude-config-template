@@ -354,20 +354,29 @@ def run_phase(phase: str, args: list[str], project_path: str,
     stream_progress(phase.capitalize(), f'Running orchestrator --phase {phase}...')
     start_time = time.time()
 
+    timeout_seconds = 2400  # 40 minutes max per phase
+    proc = subprocess.Popen(
+        cmd, cwd=project_path,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        start_new_session=True,  # create new process group for clean cleanup
+    )
     try:
-        result = subprocess.run(
-            cmd, cwd=project_path,
-            capture_output=True, text=True,
-            timeout=2400,  # 40 minutes max per phase
-        )
+        stdout, stderr = proc.communicate(timeout=timeout_seconds)
         elapsed = time.time() - start_time
         stream_progress(phase.capitalize(),
-                        f'Complete ({format_duration(elapsed)}, exit={result.returncode})')
-        return result.returncode, result.stdout, elapsed
+                        f'Complete ({format_duration(elapsed)}, exit={proc.returncode})')
+        return proc.returncode, stdout, elapsed
 
     except subprocess.TimeoutExpired:
         elapsed = time.time() - start_time
         stream_progress(phase.capitalize(), f'TIMEOUT after {format_duration(elapsed)}')
+        # Kill the entire process group to prevent orphaned grandchild processes
+        # (orchestrator spawns claude-safe/claude as children)
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except (OSError, ProcessLookupError):
+            proc.kill()
+        proc.wait()
         return 1, '', elapsed
 
 
