@@ -11,10 +11,10 @@ From Parnas and Clements (1986): Documentation should show the cleaned-up, ratio
 <!-- Origin: D.L. Parnas & P.C. Clements, "A rational design process: How and why to fake it", IEEE TSE, Feb 1986. https://users.ece.utexas.edu/~perry/education/SE-Intro/fakeit.pdf -->
 
 **What cleanup does:**
-- Captures what was tried (rejected alternatives in best practices)
-- Documents best practices discovered during implementation, so we can learn and improve in the future
+- Captures what was tried (rejected alternatives in decisions.md)
+- Captures implementation learnings via reflection into decisions.md
 - Learns from the process (updates to CLAUDE.md)
-- Keeps project documentation in sync (project.md, todo.md, done.md)
+- Keeps project documentation in sync (project.md, todo.md, done.md, decisions.md)
 - Updates documentation to reflect the final state of the codebase
 
 ## Initial Response
@@ -122,107 +122,18 @@ Update all project documentation so it reads as if the current code was always t
 
 **The rule**: A reader encountering any documentation for the first time should see a coherent, intentional design — not a trail of changes.
 
-### Step 4: Document Best Practices (HIGH THRESHOLD)
+### Step 4: Capture Learnings in decisions.md
 
-**CRITICAL**: Most things you learned are NOT best practices. Be very selective.
+Knowledge capture from implementation is now handled by `decisions.md` — the project's living technical memory. This replaces the old best_practices/ extraction (which had too high a threshold and lost most useful learnings).
 
-**1. Filter out non-novel patterns first:**
+**When running inside the sprint runner**: Micro-reflections and consolidation already handle this automatically. Skip this step.
 
-Before documenting anything, check if it's already known:
+**When running standalone (outside sprint runner)**: Run the reflection and consolidation commands to capture learnings:
 
-```bash
-# Search existing best practices
-grep -r -i "[pattern-name]" memories/best_practices/ 2>/dev/null
+1. **Reflect**: Run `/reflect <plan-path> [research-path] [review-path]` to capture raw observations into `memories/shared/project/scratchpad.md`
+2. **Consolidate**: Run `/consolidate_memory` to integrate scratchpad observations into `memories/shared/project/decisions.md`
 
-# Search technical docs
-grep -r -i "[pattern-name]" memories/technical_docs/ 2>/dev/null
-```
-
-**If you find anything** check if this pattern is already documented:   
-- If yes → Skip documenting, just reference existing docs
-- If no → Continue to qualification check
-
-**2. Qualify: Does this meet the threshold?**
-
-A practice is ONLY worth documenting if it meets **at least 2** of these criteria:
-
-✅ **Novel for this project** - First time we've done this pattern here
-✅ **Non-obvious** - Wouldn't be found in standard documentation
-✅ **Project-specific decision** - Tailored to our architecture/constraints
-✅ **Rejected alternatives** - We tried other approaches that failed
-✅ **Trade-offs made** - Significant benefits vs costs to document
-✅ **Counter-intuitive** - Goes against common wisdom for good reason
-
-**NOT best practices:**
-❌ Applying code review feedback (that's normal iteration)
-❌ Standard industry patterns (REST endpoints, error handling basics)
-❌ Minor test improvements (adding validation is expected)
-❌ Following existing conventions (that's just consistency)
-❌ Obvious improvements (better variable names, etc.)
-
-**3. Examples of what QUALIFIES:**
-
-✅ **"Fire-and-Forget API Pattern for Claude Integration"**
-- Novel: First time integrating background Claude execution
-- Non-obvious: Specific threading + event loop pattern
-- Rejected alternatives: Tried database tracking, too heavy
-- Trade-offs: Can't track progress, but much simpler
-
-✅ **"Defense-in-Depth Validation for Path Inputs"**
-- Project-specific: Multiple validation layers for our security model
-- Rejected alternatives: Single validation failed in production
-- Trade-offs: More code, but prevents entire class of vulnerabilities
-
-❌ **"Version Endpoint Pattern"**
-- Standard: Every API has version endpoints
-- Obvious: Read from pyproject.toml is common
-- No alternatives: This is the default approach
-
-❌ **"Improved Exception Handling"**
-- Standard: Using specific exceptions is basic Python
-- Normal iteration: Code review feedback isn't a pattern
-
-**4. For qualified patterns only:**
-
-Read existing best practices to avoid duplication:
-```bash
-ls -la memories/best_practices/*.md 2>/dev/null
-```
-- Avoid duplicating content that already exists
-- Consider updating existing files if related
-
-**5. Determine filename and category** (for qualified patterns only):
-   - Use descriptive, topic-based names: `[category]-[topic].md`
-   - Examples of GOOD best practice names:
-     - `api-fire-and-forget-claude-integration.md` (novel pattern)
-     - `security-defense-in-depth-validation.md` (project-specific)
-     - `error-handling-batch-operations.md` (rejected alternatives documented)
-   - NOT:
-     - `api-error-handling.md` (too generic, already documented)
-     - `testing-validation.md` (too standard)
-
-**6. Create best practice file** at `memories/best_practices/[category]-[topic].md`:
-
-Use the template from `memories/templates/best-practice.md`
-
-**IMPORTANT**:
-- Document WHY this is special/different for this project
-- Document what alternatives were tried and failed
-- Keep it SHORT but substantive
-
-**7. Final check before creating file:**
-
-Ask yourself:
-- "Would a competent developer find this in standard docs?" → If yes, DON'T document
-- "Is this specific to our codebase's unique constraints?" → If no, DON'T document
-- "Did we make a non-obvious decision here?" → If no, DON'T document
-
-**If still yes to documenting**, ensure directory exists:
-```bash
-mkdir -p memories/best_practices
-```
-
-**Expected result**: Most cleanups should create 0-2 best practices, not 5-10.
+If `decisions.md` doesn't exist yet, create it from the template at `memories/templates/decisions.md.template`.
 
 ### Step 5: Update CLAUDE.md
 
@@ -260,6 +171,7 @@ For each project documentation file that needs updates:
 2. **Read relevant files**:
    - Read FULLY without limit/offset parameters
    - Identify what needs to be updated based on the implementation
+   - Include `decisions.md` — check if any entries need updating based on the implementation
 
 3. **Update todo.md - Remove Completed Items**:
    - File: `memories/shared/project/todo.md`
@@ -309,15 +221,14 @@ Present a short summary of what was done:
 ```
 ✓ Cleanup Complete
 
-## Documentation Created:
-- [N] Best Practices in memories/best_practices/
-  - [category]-[topic].md: [Best Practice Title]
-  - [category]-[topic].md: [Another Best Practice]
+## Learnings Captured:
+- decisions.md: [Updated via /reflect + /consolidate_memory, or already handled by sprint runner]
 
 ## Documentation Updated:
 - CLAUDE.md: [N] patterns/conventions added
 - todo.md: [N] completed items moved to done.md
 - done.md: [N] items added with full traceability
+- decisions.md: [Updated with implementation learnings]
 - project.md: [Updated if architecture/stack changed]
 - README.md: [Updated if user-facing changes]
 
@@ -374,16 +285,16 @@ The complete workflow is:
 Cleanup is **mandatory** - it ensures documentation stays current and future AI sessions have proper context.
 
 ## Output Locations
-- **Best Practices**: `memories/best_practices/[category]-[topic].md`
+- **Learnings**: `memories/shared/project/decisions.md` (via `/reflect` + `/consolidate_memory`)
 - **Updated CLAUDE.md**: `CLAUDE.md`
-- **Updated project docs**: `memories/shared/project/*.md` (project.md, todo.md, done.md)
+- **Updated project docs**: `memories/shared/project/*.md` (project.md, todo.md, done.md, decisions.md)
 
 
 ## Success Criteria
 
 A cleanup is complete when:
-- [ ] All significant decisions and best practices are documented in memories/best_practices/
+- [ ] Implementation learnings captured in decisions.md (via /reflect + /consolidate_memory)
 - [ ] New patterns/conventions are in CLAUDE.md
-- [ ] Project documentation updated (todo.md items moved to done.md with full traceability, project.md updated if needed)
+- [ ] Project documentation updated (todo.md items moved to done.md with full traceability, project.md updated if needed, decisions.md updated)
 - [ ] README.md updated if needed (user-facing changes)
 

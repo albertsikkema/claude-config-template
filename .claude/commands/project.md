@@ -4,10 +4,11 @@ You are tasked with helping users create and manage their project documentation 
 
 ## The Structure
 
-**3 Essential Files**:
+**4 Essential Files**:
 1. **project.md** - Project context (what/why/how)
 2. **todo.md** - Active work (Must Haves / Should Haves)
 3. **done.md** - Completed work (initially empty)
+4. **decisions.md** - Living technical memory (architectural decisions, constraints, conventions)
 
 Templates are in `memories/templates/`, documentation goes to `memories/shared/project/`.
 
@@ -20,11 +21,11 @@ When this command is invoked, check if there are any parameters provided:
 **If no parameters**, respond with:
 
 ```
-I'll help you create project documentation using the lean 3-file structure.
+I'll help you create project documentation using the lean 4-file structure.
 
 What would you like to do?
 
-1. **Complete project setup** - Create all 3 files (project.md, todo.md, done.md)
+1. **Complete project setup** - Create all 4 files (project.md, todo.md, done.md, decisions.md)
 2. **Just project context** - Create project.md only
 3. **Update existing documentation** - Modify existing project docs
 
@@ -79,6 +80,7 @@ Templates in `memories/templates/`:
 - `project.md.template` - Project context
 - `todo.md.template` - Active work tracking
 - `done.md.template` - Completed work history
+- `decisions.md.template` - Technical decisions and memory
 
 Read the full template(s) without limits to understand the structure.
 
@@ -131,6 +133,7 @@ Ask questions based on:
    - `project.md` - Project context
    - `todo.md` - Active work
    - `done.md` - Completed work (initially just headers/structure)
+   - `decisions.md` - Technical memory (seed "Conventions & Presets" section with language, framework, and architecture conventions extracted from the project setup — tech stack from project.md, coding style, testing approach)
 
 4. **Show the user** what was created with a brief summary
 
@@ -170,6 +173,7 @@ Claude: Perfect! I'm creating your project documentation now...
 ✅ Created memories/shared/project/project.md
 ✅ Created memories/shared/project/todo.md (with Must Haves and Should Haves)
 ✅ Created memories/shared/project/done.md (ready for tracking completed work)
+✅ Created memories/shared/project/decisions.md (seeded with project conventions)
 
 Your project documentation is ready!
 
@@ -217,6 +221,7 @@ Claude: Great! I found existing documentation:
         - project.md already exists
         - No todo.md yet
         - No done.md yet
+        - No decisions.md yet
 
 Based on your project.md, I can see you're building [details from existing docs].
 
@@ -227,6 +232,7 @@ For todo.md, what are your current Must Have items (critical for MVP)?
 Claude: ✅ Updated memories/shared/project/project.md (refreshed dates)
 ✅ Created memories/shared/project/todo.md
 ✅ Created memories/shared/project/done.md
+✅ Created memories/shared/project/decisions.md (seeded with conventions from project.md)
 
 Your documentation structure is complete!
 ```
@@ -269,8 +275,9 @@ Your todo.md has been updated with the new features.
 - **CRITICAL**: Always use `project-context-analyzer` agent at the start to gather existing context
 - Templates are in `memories/templates/`
 - Documentation goes to `memories/shared/project/`
-- The 3-file structure is: project.md (context), todo.md (active work), done.md (completed work)
+- The 4-file structure is: project.md (context), todo.md (active work), done.md (completed work), decisions.md (technical memory)
 - done.md starts empty with just the template structure - it will be populated as work is completed
+- decisions.md is seeded with "Conventions & Presets" from the project setup; grows via sprint reflections
 - todo.md uses Must Haves (critical) and Should Haves (important but not blocking)
 - Items can be marked `[BLOCKED]` inline when they can't proceed
 - Dependencies noted with `(requires: other-item)` in descriptions
@@ -287,3 +294,4 @@ This template follows **lean documentation principles**:
 - **Traceability** - done.md links work back to plans/research/decisions
 - **Living documents** - Update constantly, keep current
 - **Simple prioritization** - Must Have (critical) vs Should Have (important)
+- **Accumulating memory** - decisions.md grows via sprint reflections, capturing what each implementation learns
