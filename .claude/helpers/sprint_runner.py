@@ -88,7 +88,6 @@ class SprintResult:
     todo_item: TodoItem
     plan_path: str = ''
     review_path: str = ''
-    decisions_added: int = 0
     completed: bool = False
     error: str = ''
 
@@ -587,7 +586,6 @@ def run_sprint(
     max_review_cycles: int = 3,
     skip_reflection: bool = False,
     dry_run: bool = False,
-    output_json: bool = False,
 ) -> list[SprintResult]:
     """Main sprint loop: parse todo → enrich → orch → reflect → consolidate → repeat."""
 
@@ -814,7 +812,6 @@ Examples:
             max_review_cycles=args.max_review_cycles,
             skip_reflection=args.skip_reflection,
             dry_run=args.dry_run,
-            output_json=args.json,
         )
 
         total_elapsed = time.time() - total_start
