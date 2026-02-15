@@ -483,20 +483,27 @@ def update_todo_done(item: TodoItem, plan_path: str, project_path: str,
     date_str = time.strftime('%Y-%m-%d')
     month_section = time.strftime('## %Y-%m (%B %Y)')
 
-    # Check if month section exists
-    if month_section not in content:
-        content += f'\n{month_section}\n'
-
-    # Add the completed item under the month section
-    category_header = f'### {item.category.replace("_", " ").title()}'
-    if category_header not in content:
-        content += f'\n{category_header}\n'
-
+    # Build the entry
     entry = f'- [x] {item.text} ({date_str})\n'
     if plan_path:
         entry += f'  - Plan: `{plan_path}`\n'
 
-    content += entry
+    # Check if month section exists
+    if month_section not in content:
+        content += f'\n{month_section}\n'
+
+    # Add the completed item under the category header within the month section
+    category_header = f'### {item.category.replace("_", " ").title()}'
+    if category_header not in content:
+        content += f'\n{category_header}\n{entry}'
+    else:
+        # Insert entry right after the category header
+        pos = content.rfind(category_header)
+        insert_at = pos + len(category_header)
+        # Skip past the newline after the header
+        if insert_at < len(content) and content[insert_at] == '\n':
+            insert_at += 1
+        content = content[:insert_at] + entry + content[insert_at:]
     done_path.write_text(content, encoding='utf-8')
     stream_progress('Todo', f'Added to done.md: {item.text[:60]}')
 
