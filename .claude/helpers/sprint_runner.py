@@ -489,17 +489,25 @@ def update_todo_done(item: TodoItem, plan_path: str, project_path: str,
         entry += f'  - Plan: `{plan_path}`\n'
 
     # Check if month section exists
-    if month_section not in content:
+    month_pos = content.find(month_section)
+    if month_pos == -1:
         content += f'\n{month_section}\n'
+        month_pos = content.find(month_section)
+
+    # Determine the scope of this month section (up to the next ## heading)
+    next_month = content.find('\n## ', month_pos + len(month_section))
+    search_range_end = next_month if next_month != -1 else len(content)
 
     # Add the completed item under the category header within the month section
     category_header = f'### {item.category.replace("_", " ").title()}'
-    if category_header not in content:
-        content += f'\n{category_header}\n{entry}'
+    category_pos = content.find(category_header, month_pos, search_range_end)
+    if category_pos == -1:
+        # Create category within this month section
+        insert_at = search_range_end
+        content = content[:insert_at] + f'\n{category_header}\n{entry}' + content[insert_at:]
     else:
         # Insert entry right after the category header
-        pos = content.rfind(category_header)
-        insert_at = pos + len(category_header)
+        insert_at = category_pos + len(category_header)
         # Skip past the newline after the header
         if insert_at < len(content) and content[insert_at] == '\n':
             insert_at += 1
