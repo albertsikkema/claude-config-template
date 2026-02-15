@@ -112,7 +112,9 @@ You already have the context from reading plan, research, and review files and g
 
 Update all project documentation so it reads as if the current code was always the intended outcome. No "we changed X because the plan said Y" — just describe what the code does and why.
 
-1. **Code comments**: Review comments in changed files. They should explain the *purpose* of the code, not the history of changes. Remove any comments that reference the implementation journey (e.g., "changed from X to Y", "originally this was..."). Comments should answer "why does this code exist?" not "why was this changed?".
+**This applies to ALL text — both existing and newly written.** New text introduced by this implementation is just as likely to contain "trail of changes" language (e.g., "this replaces the old X", "previously we used Y", "unlike the former approach"). Scan every line you've added or modified with the same critical eye.
+
+1. **Code comments**: Review comments in changed files — both pre-existing and newly added. They should explain the *purpose* of the code, not the history of changes. Remove any comments that reference the implementation journey or contrast with a previous approach (e.g., "changed from X to Y", "originally this was...", "this replaces the old...", "unlike the previous version..."). Comments should answer "why does this code exist?" not "how is this different from before?".
 
 2. **README.md**: Update if the implementation changed user-facing behavior, installation steps, configuration, or API usage. Describe the current state as the intended design.
 
@@ -120,11 +122,13 @@ Update all project documentation so it reads as if the current code was always t
 
 4. **Other project docs** (e.g., API docs, configuration docs): Rewrite any sections affected by the implementation to describe the current state cleanly.
 
-**The rule**: A reader encountering any documentation for the first time should see a coherent, intentional design — not a trail of changes.
+5. **Newly written documentation and instructions**: Re-read all text you wrote or modified during this implementation. Look for phrases that explain the current design by contrasting it with what came before — these are trail-of-changes violations even though you just wrote them. Rewrite to describe the current state on its own terms.
+
+**The rule**: A reader encountering any documentation for the first time should see a coherent, intentional design — not a trail of changes. This rule applies equally to text you just wrote — freshly written text that says "this replaces X" is still a trail of changes.
 
 ### Step 4: Capture Learnings in decisions.md
 
-Knowledge capture from implementation is now handled by `decisions.md` — the project's living technical memory. This replaces the old best_practices/ extraction (which had too high a threshold and lost most useful learnings).
+Knowledge capture from implementation is handled by `decisions.md` — the project's living technical memory. Micro-reflections during work and periodic consolidation keep it current with low overhead.
 
 **When running inside the sprint runner**: Micro-reflections and consolidation already handle this automatically. Skip this step.
 
