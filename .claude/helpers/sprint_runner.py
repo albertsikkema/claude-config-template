@@ -278,12 +278,13 @@ def enrich_query(item: TodoItem, project_path: str) -> str:
 
     if project_md.exists():
         content = project_md.read_text(encoding='utf-8')
-        # Take first 2000 chars for context
-        context_parts.append(f"## Project Context (from project.md):\n{content[:2000]}")
+        # Take first 4000 chars for context
+        context_parts.append(f"## Project Context (from project.md):\n{content[:4000]}")
 
     if decisions_md.exists():
         content = decisions_md.read_text(encoding='utf-8')
-        context_parts.append(f"## Project Decisions (from decisions.md):\n{content[:3000]}")
+        # decisions.md is the primary feedback loop — include generously
+        context_parts.append(f"## Project Decisions (from decisions.md):\n{content[:12000]}")
 
     if not context_parts:
         # No context files — return the raw item text
