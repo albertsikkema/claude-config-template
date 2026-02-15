@@ -608,14 +608,13 @@ def run_sprint(
         stream_progress('Sprint', f'Priority: {next_item.priority}, Category: {next_item.category}')
 
         if dry_run:
-            # Dry run: show enriched query and skip execution
-            enriched = enrich_query(next_item, project_path)
+            # Dry run: preview what would run without any API calls
             print(f"\n{Fore.CYAN}Dry run — would execute:{Style.RESET_ALL}", file=sys.stderr, flush=True)
             print(f"  Item: {next_item.text}", file=sys.stderr, flush=True)
             print(f"  Priority: {next_item.priority}", file=sys.stderr, flush=True)
             print(f"  Category: {next_item.category}", file=sys.stderr, flush=True)
-            print(f"  Enriched query:\n    {enriched}\n", file=sys.stderr, flush=True)
-            results.append(SprintResult(todo_item=next_item, completed=False))
+            print(f"  Query would be enriched with project.md + decisions.md context", file=sys.stderr, flush=True)
+            results.append(SprintResult(todo_item=next_item))
             continue
 
         # --- Execute the sprint item ---
