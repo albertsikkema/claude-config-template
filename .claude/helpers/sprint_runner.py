@@ -587,6 +587,7 @@ def run_sprint(
     results: list[SprintResult] = []
     consecutive_failures = 0
     item_count = 0
+    seen_line_numbers: set[int] = set()  # Track seen items for dry-run mode
 
     while True:
         # Check max items
@@ -611,6 +612,12 @@ def run_sprint(
         stream_progress('Sprint', f'Priority: {next_item.priority}, Category: {next_item.category}')
 
         if dry_run:
+            # Prevent infinite loop: in dry-run mode items are never checked off,
+            # so find_next_actionable() would return the same item forever.
+            if next_item.line_number in seen_line_numbers:
+                break
+            seen_line_numbers.add(next_item.line_number)
+
             # Dry run: preview what would run without any API calls
             print(f"\n{Fore.CYAN}Dry run — would execute:{Style.RESET_ALL}", file=sys.stderr, flush=True)
             print(f"  Item: {next_item.text}", file=sys.stderr, flush=True)
