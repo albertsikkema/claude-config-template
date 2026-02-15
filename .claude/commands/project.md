@@ -1,6 +1,6 @@
 # Project Documentation
 
-You are tasked with helping users create and manage their project documentation using the ultra-lean 3-file structure.
+You are tasked with helping users create and manage their project documentation using the lean 4-file structure.
 
 ## The Structure
 
@@ -153,7 +153,7 @@ After creating documentation, suggest what to do next:
 ```
 User: /project Create full documentation for my SaaS task management app
 
-Claude: I'll help you create documentation for your SaaS task management app using the lean 3-file structure.
+Claude: I'll help you create documentation for your SaaS task management app using the lean 4-file structure.
         Let me first check if there's any existing project documentation...
 
 [Claude uses project-context-analyzer agent in parallel]
@@ -212,7 +212,7 @@ You can create todo.md later when you're ready to start tracking work items.
 ```
 User: /project Set up the full documentation structure
 
-Claude: I'll set up the complete 3-file documentation structure.
+Claude: I'll set up the complete 4-file documentation structure.
         Let me check what already exists...
 
 [Claude uses project-context-analyzer agent]

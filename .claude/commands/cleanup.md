@@ -195,7 +195,7 @@ For each project documentation file that needs updates:
 
      ### Features
      - [x] User authentication with OAuth2 (2025-10-20)
-       - Best Practices: `memories/best_practices/authentication-oauth-patterns.md`
+       - Decisions: Updated in `memories/shared/project/decisions.md`
        - PR: #123
        - Notes: Implemented OAuth2 with Google and GitHub providers. Documented token refresh patterns and error handling. Key insight: token refresh logic at `src/auth/refresh.ts:45` needs monitoring in production.
      ```

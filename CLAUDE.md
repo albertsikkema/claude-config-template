@@ -23,7 +23,7 @@ Reading the index first saves tokens and improves accuracy.
 
 This is a **configuration template repository** for Claude Code. It installs into other projects via the `install.sh` script, providing:
 - 16 specialized agents for code analysis, planning, and research
-- 16 slash commands for common workflows
+- 18 slash commands for common workflows
 - A `memories/` directory system for documentation and plans
 - Pre-configured tool permissions
 
@@ -152,7 +152,7 @@ uv run .claude/helpers/pr_reviewer.py --skip-index 123
 ```
 .claude/
 ├── agents/           # 16 specialized agents
-├── commands/         # 16 slash commands
+├── commands/         # 18 slash commands
 ├── helpers/          # Utility scripts
 │   ├── index_python.py   # Python codebase indexer
 │   ├── index_js_ts.py    # JavaScript/TypeScript indexer
@@ -340,6 +340,8 @@ export CLAUDE_CONTAINER_MODE=1
 - **Don't** hardcode versions in multiple places (read from pyproject.toml dynamically)
 - **Don't** use broad exception handlers (catch specific exceptions only)
 - **Don't** spawn subprocesses without timeouts (use asyncio.wait_for with cleanup)
+- **Don't** edit files by line number in a loop without verifying content first (lines shift after prior edits — use text-matching fallback, see `sprint_runner.py:469-482`)
+- **Don't** kill only the direct subprocess when it spawns children (use `start_new_session=True` + `os.killpg()` to clean up the entire process group)
 
 ## Codebase Overview Files
 

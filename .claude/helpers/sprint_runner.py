@@ -466,9 +466,20 @@ def update_todo_done(item: TodoItem, plan_path: str, project_path: str,
 
         if 1 <= item.line_number <= len(lines):
             line = lines[item.line_number - 1]
-            # Replace [ ] with [x]
-            updated_line = re.sub(r'\[ \]', '[x]', line, count=1)
-            lines[item.line_number - 1] = updated_line
+            # Verify the line contains the expected item text before replacing
+            if item.text[:30] in line:
+                updated_line = re.sub(r'\[ \]', '[x]', line, count=1)
+                lines[item.line_number - 1] = updated_line
+            else:
+                # Line shifted — search for the item by text
+                found = False
+                for i, l in enumerate(lines):
+                    if item.text[:30] in l and re.search(r'\[ \]', l):
+                        lines[i] = re.sub(r'\[ \]', '[x]', l, count=1)
+                        found = True
+                        break
+                if not found:
+                    stream_progress('Todo', f'Warning: Could not find item to check off: {item.text[:50]}')
 
         # Add newly discovered tasks at the end of the appropriate section
         if new_tasks:
@@ -550,10 +561,9 @@ def show_checkpoint(result: SprintResult, item_num: int) -> bool:
         return True
 
     try:
-        response = input(f"\n  {Fore.WHITE}Continue to next item? [Y/n/r(etry)]: {Style.RESET_ALL}").strip().lower()
+        response = input(f"\n  {Fore.WHITE}Continue to next item? [Y/n]: {Style.RESET_ALL}").strip().lower()
         if response in ('n', 'no', 'stop', 'q', 'quit'):
             return False
-        # 'r' or 'retry' would need special handling — for now treat as continue
         return True
     except (EOFError, KeyboardInterrupt):
         return False
@@ -565,16 +575,18 @@ def extract_orch_result(output: str) -> dict:
     """Parse JSON output from orchestrator --json.
 
     The orchestrator outputs multi-line JSON (json.dumps with indent=2),
-    so we find the first '{' and parse from there to end.
+    so we find the first '{' and last '}' to extract the JSON block.
     """
     first_brace = output.find('{')
-    if first_brace != -1:
-        try:
-            return json.loads(output[first_brace:])
-        except json.JSONDecodeError:
-            pass
-
-    return {}
+    if first_brace == -1:
+        return {}
+    last_brace = output.rfind('}')
+    if last_brace == -1:
+        return {}
+    try:
+        return json.loads(output[first_brace:last_brace + 1])
+    except json.JSONDecodeError:
+        return {}
 
 
 # --- Main sprint loop ---
@@ -637,7 +649,7 @@ def run_sprint(
             print(f"  Priority: {next_item.priority}", file=sys.stderr, flush=True)
             print(f"  Category: {next_item.category}", file=sys.stderr, flush=True)
             print(f"  Query would be enriched with project.md + decisions.md context", file=sys.stderr, flush=True)
-            results.append(SprintResult(todo_item=next_item))
+            results.append(SprintResult(todo_item=next_item, completed=True))
             continue
 
         # --- Execute the sprint item ---
@@ -708,6 +720,8 @@ def run_sprint(
             cleanup_args = [plan_path]
             if research_path:
                 cleanup_args = ['--research', research_path] + cleanup_args
+            if review_path:
+                cleanup_args = ['--review', review_path] + cleanup_args
 
             returncode, output, elapsed = run_phase(
                 'cleanup', cleanup_args,
@@ -819,12 +833,13 @@ Examples:
         # Print summary
         completed = sum(1 for r in results if r.completed)
         failed = sum(1 for r in results if not r.completed and r.error)
+        completed_label = 'Previewed' if args.dry_run else 'Completed'
 
         print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}", file=sys.stderr, flush=True)
         print(f"\n{Fore.GREEN}{Style.BRIGHT}  Sprint Summary{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
         print(f"  Items processed: {len(results)}", file=sys.stderr, flush=True)
-        print(f"  Completed:       {completed}", file=sys.stderr, flush=True)
-        print(f"  Failed:          {failed}", file=sys.stderr, flush=True)
+        print(f"  {completed_label + ':':15s}{completed}", file=sys.stderr, flush=True)
+        print(f"  {'Failed:':15s}{failed}", file=sys.stderr, flush=True)
         print(f"  Total time:      {format_duration(total_elapsed)}", file=sys.stderr, flush=True)
         print(f"\n{Fore.BLUE}{'=' * 60}{Style.RESET_ALL}\n", file=sys.stderr, flush=True)
 
@@ -833,6 +848,7 @@ Examples:
                 'items_processed': len(results),
                 'completed': completed,
                 'failed': failed,
+                'dry_run': args.dry_run,
                 'total_seconds': round(total_elapsed, 1),
                 'results': [asdict(r) for r in results],
             }
