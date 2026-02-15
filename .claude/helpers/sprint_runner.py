@@ -338,7 +338,7 @@ def run_phase(phase: str, args: list[str], project_path: str,
     helpers_dir = Path(project_path) / '.claude' / 'helpers'
     orchestrator = helpers_dir / 'orchestrator.py'
 
-    cmd = [sys.executable, str(orchestrator),
+    cmd = ['uv', 'run', str(orchestrator),
            '--phase', phase,
            '--json',
            '--project', project_path,
