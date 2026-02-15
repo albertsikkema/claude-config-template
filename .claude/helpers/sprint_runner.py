@@ -44,7 +44,7 @@ import signal
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict
 from pathlib import Path
 
 from colorama import Fore, Style, init
@@ -89,7 +89,6 @@ class SprintResult:
     plan_path: str = ''
     review_path: str = ''
     decisions_added: int = 0
-    new_tasks_discovered: list[str] = field(default_factory=list)
     completed: bool = False
     error: str = ''
 
@@ -525,10 +524,6 @@ def show_checkpoint(result: SprintResult, item_num: int) -> bool:
         print(f"  Plan: {result.plan_path}", file=sys.stderr, flush=True)
     if result.error:
         print(f"  {Fore.RED}Error: {result.error}{Style.RESET_ALL}", file=sys.stderr, flush=True)
-    if result.new_tasks_discovered:
-        print(f"  New tasks: {len(result.new_tasks_discovered)}", file=sys.stderr, flush=True)
-        for task in result.new_tasks_discovered[:3]:
-            print(f"    - {task}", file=sys.stderr, flush=True)
 
     print(f"\n{Fore.BLUE}{'─' * 40}{Style.RESET_ALL}", file=sys.stderr, flush=True)
 
