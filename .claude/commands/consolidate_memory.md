@@ -48,7 +48,7 @@ For each observation in the scratchpad, determine the right action:
 Before writing decisions.md:
 - Does NOT delete entries just because they're old — a foundational decision from sprint #1 stays if it's still relevant
 - The only criteria for removal: "Is this still true and useful for future implementation work?"
-- decisions.md is expected to grow over time (300-500 lines for a mature project is normal)
+- decisions.md is expected to grow over time (500 lines for a mature project is normal)
 - No mechanical rules, no staleness markers, no hard caps — use your judgment
 
 ### Step 4: Write and Clear
