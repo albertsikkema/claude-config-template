@@ -171,7 +171,6 @@ update_git_exclude() {
     # Determine which entries to add based on what was installed
     if [ "$INSTALL_CLAUDE" = true ]; then
         entries_to_add+=(".claude/")
-        entries_to_add+=(".mcp.json")
         entries_to_add+=("CLAUDE.md")
     fi
 
@@ -335,8 +334,12 @@ main() {
 {
   "mcpServers": {
     "playwright": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "mcp/playwright"]
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--headless"]
+    },
+    "serena": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"]
     }
   }
 }
